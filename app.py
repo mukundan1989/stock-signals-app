@@ -36,6 +36,9 @@ metrics = [
     {"label": "Prediction Accuracy", "value": "87%", "color": "orange", "description": "Success rate of predictions"}
 ]
 
+# Add 10px spacing above Toggle Features
+st.markdown("<br>", unsafe_allow_html=True)
+
 # Display Metrics
 st.subheader("📊 Key Metrics")
 cols = st.columns(2)
@@ -49,8 +52,8 @@ for i, metric in enumerate(metrics):
             </div>
         """, unsafe_allow_html=True)
 
-# Add 20px spacing above Toggle Features
-st.markdown("<br><br>", unsafe_allow_html=True)
+# Add 10px spacing above Toggle Features
+st.markdown("<br>", unsafe_allow_html=True)
 
 # Toggle Buttons Section (Now Below Key Metrics & Centered)
 st.subheader("🔧 Toggle Features")
@@ -62,8 +65,8 @@ with col2:
 with col3:
     fundamental_toggle = st.toggle("Include Fundamental Data", False)
 
-# Add 20px spacing above Stock Portfolio
-st.markdown("<br><br>", unsafe_allow_html=True)
+# Add 10px spacing above Toggle Features
+st.markdown("<br>", unsafe_allow_html=True)
 
 # Stock Table Data
 stocks = [
