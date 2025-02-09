@@ -17,10 +17,6 @@ st.markdown("""
         .green { background-color: #10B981; }
         .purple { background-color: #8B5CF6; }
         .orange { background-color: #F59E0B; }
-        .stock-table th, .stock-table td {
-            padding: 10px;
-            text-align: left;
-        }
     </style>
 """, unsafe_allow_html=True)
 
@@ -55,7 +51,7 @@ for i, metric in enumerate(metrics):
             </div>
         """, unsafe_allow_html=True)
 
-# Toggle Buttons Section (Now Below Key Metrics)
+# Toggle Buttons Section (Below Key Metrics)
 st.subheader("🔧 Toggle Features")
 col1, col2, col3 = st.columns(3)
 with col1:
@@ -78,9 +74,43 @@ stocks = pd.DataFrame([
     ["WMT", "Walmart", "$99.99", "Positive", "+0.3562%", "Buy"]
 ], columns=["Symbol", "Name", "Current Price", "Sentiment", "% Change", "Action"])
 
-# Display Stock Table
+# Display Stock Table with Improved Styling
 st.subheader("📜 Stock Portfolio")
-st.dataframe(stocks)
+
+# Apply Styling to Data
+def style_row(action):
+    return "background-color: #d1fae5; color: #065f46;" if action == "Buy" else "background-color: #fee2e2; color: #b91c1c;"
+
+styled_table = """
+    <table style="width:100%; border-collapse: collapse; text-align: left; font-size: 16px;">
+        <tr style="background-color: #f4f4f4; font-weight: bold;">
+            <th style="padding: 10px;">Symbol</th>
+            <th style="padding: 10px;">Name</th>
+            <th style="padding: 10px;">Action</th>
+            <th style="padding: 10px;">Current $</th>
+            <th style="padding: 10px;">% Change</th>
+            <th style="padding: 10px;">Sentiment</th>
+        </tr>
+"""
+
+for _, row in stocks.iterrows():
+    color_style = style_row(row["Action"])
+    change_icon = "⬆️" if "+" in row["% Change"] else "⬇️"
+    
+    styled_table += f"""
+        <tr style="{color_style}; font-weight: bold;">
+            <td style="padding: 10px; color: #2563eb;">{row['Symbol']}</td>
+            <td style="padding: 10px;">{row['Name']}</td>
+            <td style="padding: 10px;">{row['Action']}</td>
+            <td style="padding: 10px;">{row['Current Price']}</td>
+            <td style="padding: 10px;">{change_icon} {row['% Change']}</td>
+            <td style="padding: 10px;">{row['Sentiment']}</td>
+        </tr>
+    """
+
+styled_table += "</table>"
+
+st.markdown(styled_table, unsafe_allow_html=True)
 
 # Add Stock Button
 st.markdown("<br>", unsafe_allow_html=True)
