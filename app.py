@@ -32,7 +32,7 @@ st.markdown("""
         .toggle-wrapper {
             display: flex;
             justify-content: center;
-            gap: 20px; /* Reduce space between toggles */
+            gap: 5px; /* Reduce space between toggles */
         }
         .toggle-container {
             display: flex;
