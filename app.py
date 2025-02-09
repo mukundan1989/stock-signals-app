@@ -81,12 +81,16 @@ stocks = [
     {"symbol": "WMT", "name": "Walmart", "price": "$99.99", "sentiment": "Positive", "change": "+0.3562%", "action": "Buy"}
 ]
 
-# Display Styled Stock Portfolio
+# Add 20px spacing above Stock Portfolio
+st.markdown("<br><br>", unsafe_allow_html=True)
+
+# Stock Portfolio Section
 st.subheader("📜 Stock Portfolio")
 
 # Table Header
 st.markdown("**Stock Details**")
 st.divider()
+
 
 # Iterate through stocks and display rows with columns
 for stock in stocks:
