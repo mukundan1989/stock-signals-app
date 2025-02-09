@@ -62,7 +62,7 @@ metrics = [
 st.markdown("<br>", unsafe_allow_html=True)
 
 # Display Metrics
-st.subheader("📊 Key Metrics")
+st.subheader("Key Metrics")
 cols = st.columns(2)
 for i, metric in enumerate(metrics):
     with cols[i % 2]:
@@ -78,7 +78,7 @@ for i, metric in enumerate(metrics):
 st.markdown("<br><br>", unsafe_allow_html=True)
 
 # Toggle Buttons Section with Icons Only
-st.subheader("🔧 Toggle Features")
+st.subheader("Toggle Features")
 
 # Force icons & toggles closer using CSS
 st.markdown("<div class='toggle-wrapper'>", unsafe_allow_html=True)
@@ -116,7 +116,7 @@ stocks = [
 ]
 
 # Display Stock Portfolio
-st.subheader("📜 Stock Portfolio")
+st.subheader("Stock Portfolio")
 
 # Table Header
 # st.markdown("**Stock Details**")
