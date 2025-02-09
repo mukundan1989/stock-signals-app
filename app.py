@@ -17,6 +17,18 @@ st.markdown("""
         .green { background-color: #10B981; }
         .purple { background-color: #8B5CF6; }
         .orange { background-color: #F59E0B; }
+        .stock-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .stock-table th, .stock-table td {
+            padding: 12px;
+            text-align: left;
+        }
+        .buy { background-color: #D1FAE5; color: #065F46; padding: 5px 10px; border-radius: 5px; font-weight: bold; }
+        .sell { background-color: #FEE2E2; color: #991B1B; padding: 5px 10px; border-radius: 5px; font-weight: bold; }
+        .positive { color: #10B981; }
+        .negative { color: #EF4444; }
     </style>
 """, unsafe_allow_html=True)
 
@@ -51,7 +63,7 @@ for i, metric in enumerate(metrics):
             </div>
         """, unsafe_allow_html=True)
 
-# Toggle Buttons Section (Below Key Metrics)
+# Toggle Buttons Section (Now Below Key Metrics)
 st.subheader("🔧 Toggle Features")
 col1, col2, col3 = st.columns(3)
 with col1:
@@ -65,52 +77,46 @@ with col3:
     fundamental_toggle = st.toggle("Enable Fundamental", fundamental_toggle)
 
 # Stock Table Data
-stocks = pd.DataFrame([
-    ["AAPL", "Apple", "$99.99", "Positive", "+0.7562%", "Buy"],
-    ["AMZN", "Amazon", "$99.99", "Positive", "+0.6762%", "Buy"],
-    ["GOOG", "Google", "$99.99", "Negative", "-0.2562%", "Sell"],
-    ["MA", "Mastercard", "$99.99", "Negative", "-0.6562%", "Sell"],
-    ["QQQQ", "Nasdaq", "$99.99", "Positive", "+0.4562%", "Buy"],
-    ["WMT", "Walmart", "$99.99", "Positive", "+0.3562%", "Buy"]
-], columns=["Symbol", "Name", "Current Price", "Sentiment", "% Change", "Action"])
+stocks = [
+    {"symbol": "AAPL", "name": "Apple", "price": "$99.99", "sentiment": "Positive", "change": "+0.7562%", "action": "Buy"},
+    {"symbol": "AMZN", "name": "Amazon", "price": "$99.99", "sentiment": "Positive", "change": "+0.6762%", "action": "Buy"},
+    {"symbol": "GOOG", "name": "Google", "price": "$99.99", "sentiment": "Negative", "change": "-0.2562%", "action": "Sell"},
+    {"symbol": "MA", "name": "Mastercard", "price": "$99.99", "sentiment": "Negative", "change": "-0.6562%", "action": "Sell"},
+    {"symbol": "QQQQ", "name": "Nasdaq", "price": "$99.99", "sentiment": "Positive", "change": "+0.4562%", "action": "Buy"},
+    {"symbol": "WMT", "name": "Walmart", "price": "$99.99", "sentiment": "Positive", "change": "+0.3562%", "action": "Buy"}
+]
 
-# Display Stock Table with Improved Styling
+# Display Styled Stock Table
 st.subheader("📜 Stock Portfolio")
+st.markdown("<table class='stock-table' style='width:100%;'>", unsafe_allow_html=True)
+st.markdown("""
+    <tr style='background-color: #F3F4F6;'>
+        <th>Symbol</th>
+        <th>Name</th>
+        <th>Action</th>
+        <th>Current $</th>
+        <th>% Change</th>
+        <th>Sentiment</th>
+    </tr>
+""", unsafe_allow_html=True)
 
-# Apply Styling to Data
-def style_row(action):
-    return "background-color: #d1fae5; color: #065f46;" if action == "Buy" else "background-color: #fee2e2; color: #b91c1c;"
+for stock in stocks:
+    action_class = "buy" if stock["action"] == "Buy" else "sell"
+    change_class = "positive" if float(stock["change"].replace('%', '')) > 0 else "negative"
+    sentiment_class = "positive" if stock["sentiment"] == "Positive" else "negative"
 
-styled_table = """
-    <table style="width:100%; border-collapse: collapse; text-align: left; font-size: 16px;">
-        <tr style="background-color: #f4f4f4; font-weight: bold;">
-            <th style="padding: 10px;">Symbol</th>
-            <th style="padding: 10px;">Name</th>
-            <th style="padding: 10px;">Action</th>
-            <th style="padding: 10px;">Current $</th>
-            <th style="padding: 10px;">% Change</th>
-            <th style="padding: 10px;">Sentiment</th>
+    st.markdown(f"""
+        <tr>
+            <td><b>{stock['symbol']}</b></td>
+            <td>{stock['name']}</td>
+            <td><span class='{action_class}'>{stock['action']}</span></td>
+            <td>{stock['price']}</td>
+            <td class='{change_class}'>{'📈' if 'positive' in change_class else '📉'} {stock['change']}</td>
+            <td class='{sentiment_class}'>{stock['sentiment']}</td>
         </tr>
-"""
+    """, unsafe_allow_html=True)
 
-for _, row in stocks.iterrows():
-    color_style = style_row(row["Action"])
-    change_icon = "⬆️" if "+" in row["% Change"] else "⬇️"
-    
-    styled_table += f"""
-        <tr style="{color_style}; font-weight: bold;">
-            <td style="padding: 10px; color: #2563eb;">{row['Symbol']}</td>
-            <td style="padding: 10px;">{row['Name']}</td>
-            <td style="padding: 10px;">{row['Action']}</td>
-            <td style="padding: 10px;">{row['Current Price']}</td>
-            <td style="padding: 10px;">{change_icon} {row['% Change']}</td>
-            <td style="padding: 10px;">{row['Sentiment']}</td>
-        </tr>
-    """
-
-styled_table += "</table>"
-
-st.markdown(styled_table, unsafe_allow_html=True)
+st.markdown("</table>", unsafe_allow_html=True)
 
 # Add Stock Button
 st.markdown("<br>", unsafe_allow_html=True)
