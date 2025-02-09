@@ -1,8 +1,9 @@
 import streamlit as st
 import pandas as pd
 
-# Custom CSS for Styling
+# Load FontAwesome for Elegant Black Icons
 st.markdown("""
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         .metric-card {
             padding: 20px;
@@ -17,17 +18,17 @@ st.markdown("""
         .green { background-color: #10B981; }
         .purple { background-color: #8B5CF6; }
         .orange { background-color: #F59E0B; }
+        .stock-symbol {
+            background-color: #f3f4f6;
+            border-radius: 8px;
+            padding: 10px;
+            text-align: center;
+            display: inline-block;
+        }
         .buy { background-color: #D1FAE5; color: #065F46; padding: 6px 12px; border-radius: 5px; font-weight: bold; }
         .sell { background-color: #FEE2E2; color: #991B1B; padding: 6px 12px; border-radius: 5px; font-weight: bold; }
         .positive { color: #10B981; font-weight: bold; }
         .negative { color: #EF4444; font-weight: bold; }
-    </style>
-""", unsafe_allow_html=True)
-
-# Load FontAwesome for Icons
-st.markdown("""
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <style>
         .toggle-container {
             display: flex;
             align-items: center;
@@ -52,9 +53,6 @@ metrics = [
     {"label": "Prediction Accuracy", "value": "87%", "color": "orange", "description": "Success rate of predictions"}
 ]
 
-# Add 10px spacing above Key Metrics
-st.markdown("<br>", unsafe_allow_html=True)
-
 # Display Metrics
 st.subheader("📊 Key Metrics")
 cols = st.columns(2)
@@ -68,8 +66,8 @@ for i, metric in enumerate(metrics):
             </div>
         """, unsafe_allow_html=True)
 
-# Add 10px spacing above Toggle Features
-st.markdown("<br>", unsafe_allow_html=True)
+# Add 20px spacing above Toggle Features
+st.markdown("<br><br>", unsafe_allow_html=True)
 
 # Toggle Buttons Section with Elegant Black Icons
 st.subheader("🔧 Toggle Features")
@@ -87,8 +85,8 @@ with col3:
     st.markdown("<div class='toggle-container'><i class='fa-brands fa-google toggle-icon'></i> Fundamental Data</div>", unsafe_allow_html=True)
     fundamental_toggle = st.toggle("", False)
 
-# Add 10px spacing above Stock Portfolio
-st.markdown("<br>", unsafe_allow_html=True)
+# Add 20px spacing above Stock Portfolio
+st.markdown("<br><br>", unsafe_allow_html=True)
 
 # Stock Table Data
 stocks = [
@@ -117,13 +115,7 @@ for stock in stocks:
     
     # Symbol & Name with Light Grey Background and Rounded Edges
     col1.markdown(f"""
-        <div style="
-            background-color: #f3f4f6;
-            border-radius: 8px;
-            padding: 10px;
-            text-align: center;
-            width: fit-content;
-            display: inline-block;">
+        <div class='stock-symbol'>
             <strong>{stock['symbol']}</strong><br>
             <small style="color:gray">{stock['name']}</small>
         </div>
@@ -135,7 +127,6 @@ for stock in stocks:
     col5.markdown(f"<span class='{sentiment_class}'>{stock['sentiment']}</span>", unsafe_allow_html=True)
 
     st.divider()
-
 
 # Add Stock Button
 st.markdown("<br>", unsafe_allow_html=True)
