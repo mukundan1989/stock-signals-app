@@ -35,7 +35,10 @@ sentiment_toggle = st.sidebar.checkbox("Include Sentiment Analysis", False)
 technical_toggle = st.sidebar.checkbox("Include Technical Indicators", False)
 fundamental_toggle = st.sidebar.checkbox("Include Fundamental Data", False)
 
-# Toggle Buttons in Main Section
+# Add 20px spacing above Toggle Features
+st.markdown("<br><br>", unsafe_allow_html=True)
+
+# Toggle Buttons Section (Now Below Key Metrics)
 st.subheader("🔧 Toggle Features")
 col1, col2, col3 = st.columns(3)
 with col1:
