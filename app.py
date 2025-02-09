@@ -90,14 +90,27 @@ for stock in stocks:
 
     col1, col2, col3, col4, col5 = st.columns([2, 1, 1, 1, 1])
     
-    # Combine symbol & company name into one cell
-    col1.markdown(f"**{stock['symbol']}**  \n<small style='color:gray'>{stock['name']}</small>", unsafe_allow_html=True)
+    # Symbol & Name with Light Grey Background and Rounded Edges
+    col1.markdown(f"""
+        <div style="
+            background-color: #f3f4f6;
+            border-radius: 8px;
+            padding: 10px;
+            text-align: center;
+            width: fit-content;
+            display: inline-block;">
+            <strong>{stock['symbol']}</strong><br>
+            <small style="color:gray">{stock['name']}</small>
+        </div>
+    """, unsafe_allow_html=True)
+
     col2.markdown(f"<span class='{action_class}'>{stock['action']}</span>", unsafe_allow_html=True)
     col3.write(stock["price"])
     col4.markdown(f"<span class='{change_class}'>📈 {stock['change']}</span>" if "positive" in change_class else f"<span class='{change_class}'>📉 {stock['change']}</span>", unsafe_allow_html=True)
     col5.markdown(f"<span class='{sentiment_class}'>{stock['sentiment']}</span>", unsafe_allow_html=True)
 
     st.divider()
+
 
 # Add Stock Button
 st.markdown("<br>", unsafe_allow_html=True)
