@@ -34,7 +34,7 @@ for i, metric in enumerate(metrics):
 
 # Stock table data
 stocks = pd.DataFrame([
-    ["AAPL", "Apple", "$99.99", "Positive", "+0.7562%", "Buy"],
+    ["AAPL", "Apple", "$92.99", "Positive", "+0.7562%", "Buy"],
     ["AMZN", "Amazon", "$99.99", "Positive", "+0.6762%", "Buy"],
     ["GOOG", "Google", "$99.99", "Negative", "-0.2562%", "Sell"],
     ["MA", "Mastercard", "$99.99", "Negative", "-0.6562%", "Sell"],
