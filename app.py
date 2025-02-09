@@ -17,16 +17,44 @@ st.markdown("""
         .green { background-color: #10B981; }
         .purple { background-color: #8B5CF6; }
         .orange { background-color: #F59E0B; }
-        .stock-table {
-            width: 100%;
-            border-collapse: collapse;
+
+        .stock-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 16px;
         }
-        .stock-table th, .stock-table td {
-            padding: 12px;
-            text-align: left;
+        .stock-card {
+            width: calc(33.333% - 16px);
+            background: white;
+            border-radius: 10px;
+            padding: 16px;
+            box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
         }
-        .buy { background-color: #D1FAE5; color: #065F46; padding: 5px 10px; border-radius: 5px; font-weight: bold; }
-        .sell { background-color: #FEE2E2; color: #991B1B; padding: 5px 10px; border-radius: 5px; font-weight: bold; }
+        .stock-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+        .stock-action {
+            padding: 5px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+        .buy { background-color: #D1FAE5; color: #065F46; }
+        .sell { background-color: #FEE2E2; color: #991B1B; }
+        .stock-info {
+            font-size: 14px;
+            color: #4B5563;
+        }
+        .stock-change {
+            font-size: 16px;
+            font-weight: bold;
+        }
         .positive { color: #10B981; }
         .negative { color: #EF4444; }
     </style>
@@ -76,47 +104,40 @@ with col3:
     st.write("Fundamental Data")
     fundamental_toggle = st.toggle("Enable Fundamental", fundamental_toggle)
 
-# Stock Table Data
+# Stock Data
 stocks = [
-    {"symbol": "AAPL", "name": "Apple", "price": "$99.99", "sentiment": "Positive", "change": "+0.7562%", "action": "Buy"},
-    {"symbol": "AMZN", "name": "Amazon", "price": "$99.99", "sentiment": "Positive", "change": "+0.6762%", "action": "Buy"},
-    {"symbol": "GOOG", "name": "Google", "price": "$99.99", "sentiment": "Negative", "change": "-0.2562%", "action": "Sell"},
-    {"symbol": "MA", "name": "Mastercard", "price": "$99.99", "sentiment": "Negative", "change": "-0.6562%", "action": "Sell"},
-    {"symbol": "QQQQ", "name": "Nasdaq", "price": "$99.99", "sentiment": "Positive", "change": "+0.4562%", "action": "Buy"},
-    {"symbol": "WMT", "name": "Walmart", "price": "$99.99", "sentiment": "Positive", "change": "+0.3562%", "action": "Buy"}
+    {"symbol": "AAPL", "name": "Apple", "price": "$99.99", "sentiment": "Positive", "change": "+0.75%", "action": "Buy"},
+    {"symbol": "AMZN", "name": "Amazon", "price": "$99.99", "sentiment": "Positive", "change": "+0.67%", "action": "Buy"},
+    {"symbol": "GOOG", "name": "Google", "price": "$99.99", "sentiment": "Negative", "change": "-0.25%", "action": "Sell"},
+    {"symbol": "MA", "name": "Mastercard", "price": "$99.99", "sentiment": "Negative", "change": "-0.65%", "action": "Sell"},
+    {"symbol": "QQQQ", "name": "Nasdaq", "price": "$99.99", "sentiment": "Positive", "change": "+0.45%", "action": "Buy"},
+    {"symbol": "WMT", "name": "Walmart", "price": "$99.99", "sentiment": "Positive", "change": "+0.35%", "action": "Buy"}
 ]
 
-# Display Styled Stock Table
+# Display Stock Portfolio in Card Layout
 st.subheader("📜 Stock Portfolio")
-st.markdown("<table class='stock-table' style='width:100%;'>", unsafe_allow_html=True)
-st.markdown("""
-    <tr style='background-color: #F3F4F6;'>
-        <th>Symbol</th>
-        <th>Name</th>
-        <th>Action</th>
-        <th>Current $</th>
-        <th>% Change</th>
-        <th>Sentiment</th>
-    </tr>
-""", unsafe_allow_html=True)
-
+st.markdown("<div class='stock-container'>", unsafe_allow_html=True)
 for stock in stocks:
     action_class = "buy" if stock["action"] == "Buy" else "sell"
     change_class = "positive" if float(stock["change"].replace('%', '')) > 0 else "negative"
     sentiment_class = "positive" if stock["sentiment"] == "Positive" else "negative"
 
     st.markdown(f"""
-        <tr>
-            <td><b>{stock['symbol']}</b></td>
-            <td>{stock['name']}</td>
-            <td><span class='{action_class}'>{stock['action']}</span></td>
-            <td>{stock['price']}</td>
-            <td class='{change_class}'>{'📈' if 'positive' in change_class else '📉'} {stock['change']}</td>
-            <td class='{sentiment_class}'>{stock['sentiment']}</td>
-        </tr>
+        <div class='stock-card'>
+            <div class='stock-header'>
+                <span>{stock['symbol']} - {stock['name']}</span>
+                <span class='stock-action {action_class}'>{stock['action']}</span>
+            </div>
+            <div class='stock-info'>
+                <b>Current Price:</b> {stock['price']} <br>
+                <b>Sentiment:</b> <span class='{sentiment_class}'>{stock['sentiment']}</span>
+            </div>
+            <div class='stock-change {change_class}'>
+                {"📈" if 'positive' in change_class else "📉"} {stock['change']}
+            </div>
+        </div>
     """, unsafe_allow_html=True)
-
-st.markdown("</table>", unsafe_allow_html=True)
+st.markdown("</div>", unsafe_allow_html=True)
 
 # Add Stock Button
 st.markdown("<br>", unsafe_allow_html=True)
