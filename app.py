@@ -75,16 +75,16 @@ st.subheader("🔧 Toggle Features")
 col1, col2, col3 = st.columns(3)
 
 with col1:
-    st.markdown("<div class='toggle-container'><i class='fa-brands fa-twitter toggle-icon'></i></div>", unsafe_allow_html=True)
-    sentiment_toggle = st.toggle("Twitter", False)
+    st.markdown("<i class='fa-brands fa-twitter toggle-icon'></i>", unsafe_allow_html=True)
+    sentiment_toggle = st.toggle("sentiment_toggle", False)
 
 with col2:
-    st.markdown("<div class='toggle-container'><i class='fa-solid fa-newspaper toggle-icon'></i></div>", unsafe_allow_html=True)
-    technical_toggle = st.toggle("News", False)
+    st.markdown("<i class='fa-solid fa-newspaper toggle-icon'></i>", unsafe_allow_html=True)
+    technical_toggle = st.toggle("technical_toggle", False)
 
 with col3:
-    st.markdown("<div class='toggle-container'><i class='fa-brands fa-google toggle-icon'></i></div>", unsafe_allow_html=True)
-    fundamental_toggle = st.toggle("GTrends", False)
+    st.markdown("<i class='fa-brands fa-google toggle-icon'></i>", unsafe_allow_html=True)
+    fundamental_toggle = st.toggle("fundamental_toggle", False)
 
 # Add 20px spacing above Stock Portfolio
 st.markdown("<br><br>", unsafe_allow_html=True)
