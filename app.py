@@ -58,6 +58,9 @@ metrics = [
     {"label": "Prediction Accuracy", "value": "87%", "color": "orange", "description": "Success rate of predictions"}
 ]
 
+# Add 20px spacing above Key Metrics
+st.markdown("<br><br>", unsafe_allow_html=True)
+
 # Display Metrics
 st.subheader("📊 Key Metrics")
 cols = st.columns(2)
