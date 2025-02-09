@@ -28,12 +28,6 @@ st.markdown("""
 st.title("📈 Portfolio Dashboard")
 st.markdown("Easily predict stock market trends and make smarter investment decisions.")
 
-# Sidebar Toggles
-st.sidebar.header("Options")
-sentiment_toggle = st.sidebar.checkbox("Include Sentiment Analysis", False)
-technical_toggle = st.sidebar.checkbox("Include Technical Indicators", False)
-fundamental_toggle = st.sidebar.checkbox("Include Fundamental Data", False)
-
 # Metrics Data
 metrics = [
     {"label": "Above baseline", "value": "43%", "color": "blue", "description": "Compared to market average"},
@@ -55,21 +49,21 @@ for i, metric in enumerate(metrics):
             </div>
         """, unsafe_allow_html=True)
 
-# Add 10px spacing above Toggle Features
-st.markdown("<br>", unsafe_allow_html=True)
+# Add 20px spacing above Toggle Features
+st.markdown("<br><br>", unsafe_allow_html=True)
 
-# Toggle Buttons Section (Now Below Key Metrics)
+# Toggle Buttons Section (Now Below Key Metrics & Centered)
 st.subheader("🔧 Toggle Features")
 col1, col2, col3 = st.columns(3)
 with col1:
-    st.write("Sentiment Analysis")
-    sentiment_toggle = st.toggle("Enable Sentiment", sentiment_toggle)
+    sentiment_toggle = st.toggle("Include Sentiment Analysis", False)
 with col2:
-    st.write("Technical Indicators")
-    technical_toggle = st.toggle("Enable Technical", technical_toggle)
+    technical_toggle = st.toggle("Include Technical Indicators", False)
 with col3:
-    st.write("Fundamental Data")
-    fundamental_toggle = st.toggle("Enable Fundamental", fundamental_toggle)
+    fundamental_toggle = st.toggle("Include Fundamental Data", False)
+
+# Add 20px spacing above Stock Portfolio
+st.markdown("<br><br>", unsafe_allow_html=True)
 
 # Stock Table Data
 stocks = [
@@ -81,16 +75,12 @@ stocks = [
     {"symbol": "WMT", "name": "Walmart", "price": "$99.99", "sentiment": "Positive", "change": "+0.3562%", "action": "Buy"}
 ]
 
-# Add 10px spacing above Stock Portfolio
-st.markdown("<br>", unsafe_allow_html=True)
-
-# Stock Portfolio Section
+# Display Stock Portfolio
 st.subheader("📜 Stock Portfolio")
 
 # Table Header
 st.markdown("**Stock Details**")
 st.divider()
-
 
 # Iterate through stocks and display rows with columns
 for stock in stocks:
