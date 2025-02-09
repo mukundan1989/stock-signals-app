@@ -29,13 +29,15 @@ st.markdown("""
         .sell { background-color: #FEE2E2; color: #991B1B; padding: 6px 12px; border-radius: 5px; font-weight: bold; }
         .positive { color: #10B981; font-weight: bold; }
         .negative { color: #EF4444; font-weight: bold; }
+        .toggle-wrapper {
+            display: flex;
+            justify-content: center;
+            gap: 20px; /* Reduce space between toggles */
+        }
         .toggle-container {
             display: flex;
             align-items: center;
-            justify-content: center;
             gap: 6px;  /* Reduce space between icon & toggle */
-            width: max-content;
-            padding: 5px;
         }
         .toggle-icon {
             font-size: 20px;
@@ -75,23 +77,27 @@ st.markdown("<br><br>", unsafe_allow_html=True)
 # Toggle Buttons Section with Icons Only
 st.subheader("🔧 Toggle Features")
 
-# Reduce spacing between columns
-col1, col2, col3 = st.columns([1, 0.8, 1])  # Adjusted widths to bring them closer
+# Force icons & toggles closer using CSS
+st.markdown("<div class='toggle-wrapper'>", unsafe_allow_html=True)
+
+col1, col2, col3 = st.columns(3)
 
 with col1:
     st.markdown("<div class='toggle-container'><i class='fa-brands fa-twitter toggle-icon'></i>", unsafe_allow_html=True)
-    sentiment_toggle = st.toggle("", False, key="sentiment")
+    st.toggle("", False, key="sentiment")
     st.markdown("</div>", unsafe_allow_html=True)
 
 with col2:
     st.markdown("<div class='toggle-container'><i class='fa-solid fa-newspaper toggle-icon'></i>", unsafe_allow_html=True)
-    technical_toggle = st.toggle("", False, key="technical")
+    st.toggle("", False, key="technical")
     st.markdown("</div>", unsafe_allow_html=True)
 
 with col3:
     st.markdown("<div class='toggle-container'><i class='fa-brands fa-google toggle-icon'></i>", unsafe_allow_html=True)
-    fundamental_toggle = st.toggle("", False, key="fundamental")
+    st.toggle("", False, key="fundamental")
     st.markdown("</div>", unsafe_allow_html=True)
+
+st.markdown("</div>", unsafe_allow_html=True)  # Close wrapper div
     
 # Add 20px spacing above Stock Portfolio
 st.markdown("<br><br>", unsafe_allow_html=True)
