@@ -1,6 +1,5 @@
 import streamlit as st
 import pandas as pd
-import streamlit.components.v1 as components
 
 # Custom CSS for Styling
 st.markdown("""
@@ -35,19 +34,6 @@ sentiment_toggle = st.sidebar.checkbox("Include Sentiment Analysis", False)
 technical_toggle = st.sidebar.checkbox("Include Technical Indicators", False)
 fundamental_toggle = st.sidebar.checkbox("Include Fundamental Data", False)
 
-# Toggle Buttons in Main Section
-st.subheader("🔧 Toggle Features")
-col1, col2, col3 = st.columns(3)
-with col1:
-    st.write("Sentiment Analysis")
-    sentiment_toggle = st.toggle("Enable Sentiment", sentiment_toggle)
-with col2:
-    st.write("Technical Indicators")
-    technical_toggle = st.toggle("Enable Technical", technical_toggle)
-with col3:
-    st.write("Fundamental Data")
-    fundamental_toggle = st.toggle("Enable Fundamental", fundamental_toggle)
-
 # Metrics Data
 metrics = [
     {"label": "Above baseline", "value": "43%", "color": "blue", "description": "Compared to market average"},
@@ -68,6 +54,19 @@ for i, metric in enumerate(metrics):
                 <small>{metric['description']}</small>
             </div>
         """, unsafe_allow_html=True)
+
+# Toggle Buttons Section (Now Below Key Metrics)
+st.subheader("🔧 Toggle Features")
+col1, col2, col3 = st.columns(3)
+with col1:
+    st.write("Sentiment Analysis")
+    sentiment_toggle = st.toggle("Enable Sentiment", sentiment_toggle)
+with col2:
+    st.write("Technical Indicators")
+    technical_toggle = st.toggle("Enable Technical", technical_toggle)
+with col3:
+    st.write("Fundamental Data")
+    fundamental_toggle = st.toggle("Enable Fundamental", fundamental_toggle)
 
 # Stock Table Data
 stocks = pd.DataFrame([
