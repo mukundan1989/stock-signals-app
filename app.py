@@ -88,14 +88,14 @@ for stock in stocks:
     change_class = "positive" if float(stock["change"].replace('%', '')) > 0 else "negative"
     sentiment_class = "positive" if stock["sentiment"] == "Positive" else "negative"
 
-    col1, col2, col3, col4, col5, col6 = st.columns([1, 2, 1, 1, 1, 1])
+    col1, col2, col3, col4, col5 = st.columns([2, 1, 1, 1, 1])
     
-    col1.write(f"**{stock['symbol']}**")
-    col2.write(stock["name"])
-    col3.markdown(f"<span class='{action_class}'>{stock['action']}</span>", unsafe_allow_html=True)
-    col4.write(stock["price"])
-    col5.markdown(f"<span class='{change_class}'>📈 {stock['change']}</span>" if "positive" in change_class else f"<span class='{change_class}'>📉 {stock['change']}</span>", unsafe_allow_html=True)
-    col6.markdown(f"<span class='{sentiment_class}'>{stock['sentiment']}</span>", unsafe_allow_html=True)
+    # Combine symbol & company name into one cell
+    col1.markdown(f"**{stock['symbol']}**  \n<small style='color:gray'>{stock['name']}</small>", unsafe_allow_html=True)
+    col2.markdown(f"<span class='{action_class}'>{stock['action']}</span>", unsafe_allow_html=True)
+    col3.write(stock["price"])
+    col4.markdown(f"<span class='{change_class}'>📈 {stock['change']}</span>" if "positive" in change_class else f"<span class='{change_class}'>📉 {stock['change']}</span>", unsafe_allow_html=True)
+    col5.markdown(f"<span class='{sentiment_class}'>{stock['sentiment']}</span>", unsafe_allow_html=True)
 
     st.divider()
 
