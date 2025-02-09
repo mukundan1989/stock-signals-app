@@ -5,43 +5,25 @@ import pandas as pd
 st.markdown("""
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        .metric-card {
-            padding: 20px;
-            border-radius: 10px;
-            text-align: center;
-            font-size: 20px;
-            font-weight: bold;
-            color: white;
-            margin: 10px;
-        }
-        .blue { background-color: #3B82F6; }
-        .green { background-color: #10B981; }
-        .purple { background-color: #8B5CF6; }
-        .orange { background-color: #F59E0B; }
-        .stock-symbol {
-            background-color: #f3f4f6;
-            border-radius: 8px;
-            padding: 10px;
-            text-align: center;
-            display: inline-block;
-        }
-        .buy { background-color: #D1FAE5; color: #065F46; padding: 6px 12px; border-radius: 5px; font-weight: bold; }
-        .sell { background-color: #FEE2E2; color: #991B1B; padding: 6px 12px; border-radius: 5px; font-weight: bold; }
-        .positive { color: #10B981; font-weight: bold; }
-        .negative { color: #EF4444; font-weight: bold; }
+        /* Make toggle section responsive */
         .toggle-wrapper {
             display: flex;
             justify-content: center;
-            gap: 5px; /* Reduce space between toggles */
+            flex-wrap: wrap;  /* Allows wrapping on smaller screens */
+            gap: 15px;
         }
         .toggle-container {
             display: flex;
             align-items: center;
-            gap: 3px;  /* Reduce space between icon & toggle */
+            gap: 6px;
         }
         .toggle-icon {
             font-size: 20px;
             color: black;
+        }
+        /* Ensure stock table is scrollable on mobile */
+        .stock-table-container {
+            overflow-x: auto;
         }
     </style>
 """, unsafe_allow_html=True)
@@ -58,29 +40,24 @@ metrics = [
     {"label": "Prediction Accuracy", "value": "87%", "color": "orange", "description": "Success rate of predictions"}
 ]
 
-# Add 10px spacing above Key Metrics
-st.markdown("<br>", unsafe_allow_html=True)
-
 # Display Metrics
-st.subheader("Key Metrics")
+st.subheader("📊 Key Metrics")
 cols = st.columns(2)
 for i, metric in enumerate(metrics):
     with cols[i % 2]:
         st.markdown(f"""
-            <div class='metric-card {metric['color']}'>
+            <div style='padding:20px; border-radius:10px; text-align:center; background:{metric['color']}; color:white;'>
                 <h2>{metric['value']}</h2>
                 <p>{metric['label']}</p>
                 <small>{metric['description']}</small>
             </div>
         """, unsafe_allow_html=True)
 
-# Add 10px spacing above Toggle Features
+# Add spacing above Toggle Features
 st.markdown("<br>", unsafe_allow_html=True)
 
-# Toggle Buttons Section with Icons Only
-st.subheader("Toggle Features")
-
-# Force icons & toggles closer using CSS
+# Toggle Buttons Section (Now Mobile-Friendly)
+st.subheader("🔧 Toggle Features")
 st.markdown("<div class='toggle-wrapper'>", unsafe_allow_html=True)
 
 col1, col2, col3 = st.columns(3)
@@ -101,8 +78,8 @@ with col3:
     st.markdown("</div>", unsafe_allow_html=True)
 
 st.markdown("</div>", unsafe_allow_html=True)  # Close wrapper div
-    
-# Add 10px spacing above Stock Portfolio
+
+# Add spacing above Stock Portfolio
 st.markdown("<br>", unsafe_allow_html=True)
 
 # Stock Table Data
@@ -115,35 +92,32 @@ stocks = [
     {"symbol": "WMT", "name": "Walmart", "price": "$99.99", "sentiment": "Positive", "change": "+0.3562%", "action": "Buy"}
 ]
 
-# Display Stock Portfolio
-st.subheader("Stock Portfolio")
+# Display Stock Portfolio (Mobile-Friendly)
+st.subheader("📜 Stock Portfolio")
+st.markdown("<div class='stock-table-container'>", unsafe_allow_html=True)
 
-# Table Header
-# st.markdown("**Stock Details**")
-# st.divider()
-
-# Iterate through stocks and display rows with columns
+# Display Stocks with Responsive Layout
 for stock in stocks:
     action_class = "buy" if stock["action"] == "Buy" else "sell"
     change_class = "positive" if float(stock["change"].replace('%', '')) > 0 else "negative"
     sentiment_class = "positive" if stock["sentiment"] == "Positive" else "negative"
 
-    col1, col2, col3, col4, col5 = st.columns([2, 1, 1, 1, 1])
-    
-    # Symbol & Name with Light Grey Background and Rounded Edges
+    col1, col2, col3, col4 = st.columns([1.5, 1, 1, 1])
+
     col1.markdown(f"""
-        <div class='stock-symbol'>
+        <div style='background:#f3f4f6; padding:10px; border-radius:8px; text-align:center;'>
             <strong>{stock['symbol']}</strong><br>
-            <small style="color:gray">{stock['name']}</small>
+            <small style='color:gray'>{stock['name']}</small>
         </div>
     """, unsafe_allow_html=True)
 
     col2.markdown(f"<span class='{action_class}'>{stock['action']}</span>", unsafe_allow_html=True)
-    col3.write(stock["price"])
-    col4.markdown(f"<span class='{change_class}'>📈 {stock['change']}</span>" if "positive" in change_class else f"<span class='{change_class}'>📉 {stock['change']}</span>", unsafe_allow_html=True)
-    col5.markdown(f"<span class='{sentiment_class}'>{stock['sentiment']}</span>", unsafe_allow_html=True)
+    col3.markdown(f"<span class='{change_class}'>📈 {stock['change']}</span>" if "positive" in change_class else f"<span class='{change_class}'>📉 {stock['change']}</span>", unsafe_allow_html=True)
+    col4.markdown(f"<span class='{sentiment_class}'>{stock['sentiment']}</span>", unsafe_allow_html=True)
 
     st.divider()
+
+st.markdown("</div>", unsafe_allow_html=True)  # Close stock table div
 
 # Add Stock Button
 st.markdown("<br>", unsafe_allow_html=True)
