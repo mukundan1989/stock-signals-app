@@ -1,118 +1,51 @@
 import streamlit as st
 import pandas as pd
-import numpy as np
-from datetime import datetime, timedelta
 
-# Set page configuration
-st.set_page_config(page_title="Portfolio Dashboard", layout="wide")
+# App title
+st.title("Portfolio Dashboard")
+st.markdown("Easily predict stock market trends and make smarter investment decisions.")
 
-# Custom CSS for styling
-st.markdown("""
-    <style>
-    .metric-card {
-        background-color: white;
-        padding: 20px;
-        border-radius: 10px;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
-    .stButton>button {
-        background-color: #2563eb;
-        color: white;
-        width: 100%;
-    }
-    /* Custom table styling */
-    [data-testid="stDataFrame"] div[class*="data-table"] {
-        font-family: -apple-system, BlinkMacSystemFont, sans-serif;
-        border-radius: 8px;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-    }
-    [data-testid="stDataFrame"] th {
-        background-color: #f8f9fa;
-        padding: 12px 24px !important;
-        font-weight: 600 !important;
-        color: #374151 !important;
-        border-bottom: 1px solid #e5e7eb;
-    }
-    [data-testid="stDataFrame"] td {
-        padding: 16px 24px !important;
-        font-size: 14px;
-    }
-    .badge {
-        padding: 4px 12px;
-        border-radius: 9999px;
-        font-weight: 500;
-        font-size: 12px;
-        display: inline-block;
-    }
-    .badge-buy {
-        background-color: #dcfce7;
-        color: #166534;
-    }
-    .badge-sell {
-        background-color: #fee2e2;
-        color: #991b1b;
-    }
-    .badge-positive {
-        background-color: #dcfce7;
-        color: #166534;
-    }
-    .badge-negative {
-        background-color: #fee2e2;
-        color: #991b1b;
-    }
-    .symbol {
-        color: #2563eb;
-        font-weight: 600;
-    }
-    .trend-up {
-        color: #16a34a;
-    }
-    .trend-down {
-        color: #dc2626;
-    }
-    </style>
-""", unsafe_allow_html=True)
+# Toggle switches
+st.sidebar.header("Options")
+sentiment_toggle = st.sidebar.checkbox("Include Sentiment Analysis", False)
+technical_toggle = st.sidebar.checkbox("Include Technical Indicators", False)
+fundamental_toggle = st.sidebar.checkbox("Include Fundamental Data", False)
 
-# [Previous header and metrics code remains the same until the table section]
+# Metrics data
+metrics = [
+    {"label": "Above baseline", "value": "43%", "color": "blue", "description": "Compared to market average"},
+    {"label": "Value gain on buy", "value": "$13,813", "color": "green", "description": "Total profit from buy signals"},
+    {"label": "Sentiment Score", "value": "+0.75", "color": "purple", "description": "Overall market sentiment"},
+    {"label": "Prediction Accuracy", "value": "87%", "color": "orange", "description": "Success rate of predictions"}
+]
 
-# Create sample stock data with HTML formatting
-stocks_data = {
-    "Symbol": [
-        f'<span class="symbol">{symbol}</span>'
-        for symbol in ["AAPL", "AMZN", "GOOG", "MA", "QQQQ", "WMT"]
-    ],
-    "Name": ["Apple", "Amazon", "Google", "Mastercard", "Nasdaq", "Walmart"],
-    "Action": [
-        '<span class="badge badge-buy">Buy</span>',
-        '<span class="badge badge-buy">Buy</span>',
-        '<span class="badge badge-sell">Sell</span>',
-        '<span class="badge badge-sell">Sell</span>',
-        '<span class="badge badge-buy">Buy</span>',
-        '<span class="badge badge-buy">Buy</span>'
-    ],
-    "Price": ["$99.99", "$99.99", "$99.99", "$99.99", "$99.99", "$99.99"],
-    "Change": [
-        '<span class="trend-up">↑ +0.7562%</span>',
-        '<span class="trend-up">↑ +0.6762%</span>',
-        '<span class="trend-down">↓ -0.2562%</span>',
-        '<span class="trend-down">↓ -0.6562%</span>',
-        '<span class="trend-up">↑ +0.4562%</span>',
-        '<span class="trend-up">↑ +0.3562%</span>'
-    ],
-    "Sentiment": [
-        '<span class="badge badge-positive">Positive</span>',
-        '<span class="badge badge-positive">Positive</span>',
-        '<span class="badge badge-negative">Negative</span>',
-        '<span class="badge badge-negative">Negative</span>',
-        '<span class="badge badge-positive">Positive</span>',
-        '<span class="badge badge-positive">Positive</span>'
-    ]
-}
+# Display Metrics
+st.subheader("Key Metrics")
+cols = st.columns(2)
+for i, metric in enumerate(metrics):
+    with cols[i % 2]:
+        st.markdown(f"""
+            <div style='padding: 10px; background-color: {metric['color']}; border-radius: 5px; color: white;'>
+                <h3>{metric['value']}</h3>
+                <p><b>{metric['label']}</b></p>
+                <small>{metric['description']}</small>
+            </div>
+        """, unsafe_allow_html=True)
 
-df = pd.DataFrame(stocks_data)
+# Stock table data
+stocks = pd.DataFrame([
+    ["AAPL", "Apple", "$99.99", "Positive", "+0.7562%", "Buy"],
+    ["AMZN", "Amazon", "$99.99", "Positive", "+0.6762%", "Buy"],
+    ["GOOG", "Google", "$99.99", "Negative", "-0.2562%", "Sell"],
+    ["MA", "Mastercard", "$99.99", "Negative", "-0.6562%", "Sell"],
+    ["QQQQ", "Nasdaq", "$99.99", "Positive", "+0.4562%", "Buy"],
+    ["WMT", "Walmart", "$99.99", "Positive", "+0.3562%", "Buy"]
+], columns=["Symbol", "Name", "Current Price", "Sentiment", "% Change", "Action"])
 
-# Display the styled table
-st.markdown("### Stock Analysis")
-st.write(df.to_html(escape=False, index=False), unsafe_allow_html=True)
+# Display Stock Table
+st.subheader("Stock Portfolio")
+st.dataframe(stocks)
 
-# [Rest of the code remains the same]
+# Add Stock Button
+if st.button("Add Stock"):
+    st.success("Feature to add stocks coming soon!")
