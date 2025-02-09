@@ -24,6 +24,22 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
+# Load FontAwesome for Icons
+st.markdown("""
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        .toggle-container {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .toggle-icon {
+            font-size: 18px;
+            color: black;
+        }
+    </style>
+""", unsafe_allow_html=True)
+
 # App Title
 st.title("📈 Portfolio Dashboard")
 st.markdown("Easily predict stock market trends and make smarter investment decisions.")
@@ -36,7 +52,7 @@ metrics = [
     {"label": "Prediction Accuracy", "value": "87%", "color": "orange", "description": "Success rate of predictions"}
 ]
 
-# Add 10px spacing above Toggle Features
+# Add 10px spacing above Key Metrics
 st.markdown("<br>", unsafe_allow_html=True)
 
 # Display Metrics
@@ -55,17 +71,23 @@ for i, metric in enumerate(metrics):
 # Add 10px spacing above Toggle Features
 st.markdown("<br>", unsafe_allow_html=True)
 
-# Toggle Buttons Section (Now Below Key Metrics & Centered)
+# Toggle Buttons Section with Elegant Black Icons
 st.subheader("🔧 Toggle Features")
+
 col1, col2, col3 = st.columns(3)
 with col1:
-    sentiment_toggle = st.toggle("🐦Twitter", False)
-with col2:
-    technical_toggle = st.toggle("Google Trends", False)
-with col3:
-    fundamental_toggle = st.toggle("News Analysis", False)
+    st.markdown("<div class='toggle-container'><i class='fa-brands fa-twitter toggle-icon'></i> Sentiment Analysis</div>", unsafe_allow_html=True)
+    sentiment_toggle = st.toggle("", False)
 
-# Add 10px spacing above Toggle Features
+with col2:
+    st.markdown("<div class='toggle-container'><i class='fa-solid fa-newspaper toggle-icon'></i> Technical Indicators</div>", unsafe_allow_html=True)
+    technical_toggle = st.toggle("", False)
+
+with col3:
+    st.markdown("<div class='toggle-container'><i class='fa-brands fa-google toggle-icon'></i> Fundamental Data</div>", unsafe_allow_html=True)
+    fundamental_toggle = st.toggle("", False)
+
+# Add 10px spacing above Stock Portfolio
 st.markdown("<br>", unsafe_allow_html=True)
 
 # Stock Table Data
