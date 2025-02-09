@@ -37,7 +37,7 @@ st.markdown("""
         .toggle-container {
             display: flex;
             align-items: center;
-            gap: 6px;  /* Reduce space between icon & toggle */
+            gap: 3px;  /* Reduce space between icon & toggle */
         }
         .toggle-icon {
             font-size: 20px;
