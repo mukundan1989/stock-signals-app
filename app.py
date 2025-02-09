@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 
-# Load FontAwesome for Elegant Black Icons
+# Load FontAwesome for Icons
 st.markdown("""
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
@@ -32,10 +32,11 @@ st.markdown("""
         .toggle-container {
             display: flex;
             align-items: center;
-            gap: 8px;
+            justify-content: center;
+            gap: 10px;
         }
         .toggle-icon {
-            font-size: 18px;
+            font-size: 24px;
             color: black;
         }
     </style>
@@ -69,22 +70,25 @@ for i, metric in enumerate(metrics):
 # Add 20px spacing above Toggle Features
 st.markdown("<br><br>", unsafe_allow_html=True)
 
-# Toggle Buttons Section with Elegant Black Icons
+# Toggle Buttons Section with Icons Only
 st.subheader("🔧 Toggle Features")
 
 col1, col2, col3 = st.columns(3)
 
 with col1:
-    st.markdown("<i class='fa-brands fa-twitter toggle-icon'></i>", unsafe_allow_html=True)
-    st.toggle("", False, key="sentiment")
+    st.markdown("<div class='toggle-container'><i class='fa-brands fa-twitter toggle-icon'></i>", unsafe_allow_html=True)
+    sentiment_toggle = st.toggle("", False, key="sentiment")
+    st.markdown("</div>", unsafe_allow_html=True)
 
 with col2:
-    st.markdown("<i class='fa-solid fa-newspaper toggle-icon'></i>", unsafe_allow_html=True)
-    st.toggle("", False, key="technical")
+    st.markdown("<div class='toggle-container'><i class='fa-solid fa-newspaper toggle-icon'></i>", unsafe_allow_html=True)
+    technical_toggle = st.toggle("", False, key="technical")
+    st.markdown("</div>", unsafe_allow_html=True)
 
 with col3:
-    st.markdown("<i class='fa-brands fa-google toggle-icon'></i>", unsafe_allow_html=True)
-    st.toggle("", False, key="fundamental")
+    st.markdown("<div class='toggle-container'><i class='fa-brands fa-google toggle-icon'></i>", unsafe_allow_html=True)
+    fundamental_toggle = st.toggle("", False, key="fundamental")
+    st.markdown("</div>", unsafe_allow_html=True)
 
 # Add 20px spacing above Stock Portfolio
 st.markdown("<br><br>", unsafe_allow_html=True)
