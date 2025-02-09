@@ -59,11 +59,11 @@ st.markdown("<br>", unsafe_allow_html=True)
 st.subheader("🔧 Toggle Features")
 col1, col2, col3 = st.columns(3)
 with col1:
-    sentiment_toggle = st.toggle("Include Sentiment Analysis", False)
+    sentiment_toggle = st.toggle("Twitter", False)
 with col2:
-    technical_toggle = st.toggle("Include Technical Indicators", False)
+    technical_toggle = st.toggle("Google Trends", False)
 with col3:
-    fundamental_toggle = st.toggle("Include Fundamental Data", False)
+    fundamental_toggle = st.toggle("News Analysis", False)
 
 # Add 10px spacing above Toggle Features
 st.markdown("<br>", unsafe_allow_html=True)
