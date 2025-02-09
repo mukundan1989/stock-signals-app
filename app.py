@@ -120,7 +120,7 @@ st.subheader("Stock Portfolio")
 
 # Table Header
 # st.markdown("**Stock Details**")
-st.divider()
+# st.divider()
 
 # Iterate through stocks and display rows with columns
 for stock in stocks:
