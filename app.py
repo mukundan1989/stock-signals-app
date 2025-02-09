@@ -21,14 +21,23 @@ st.markdown("""
             width: 100%;
             border-collapse: collapse;
         }
-        .stock-table th, .stock-table td {
+        .stock-table th {
+            padding: 12px;
+            text-align: left;
+            background-color: #f3f4f6;
+            font-weight: bold;
+        }
+        .stock-table td {
             padding: 12px;
             text-align: left;
         }
+        .stock-table tr:nth-child(even) {
+            background-color: #f9fafb;
+        }
         .buy { background-color: #D1FAE5; color: #065F46; padding: 5px 10px; border-radius: 5px; font-weight: bold; }
         .sell { background-color: #FEE2E2; color: #991B1B; padding: 5px 10px; border-radius: 5px; font-weight: bold; }
-        .positive { color: #10B981; }
-        .negative { color: #EF4444; }
+        .positive { color: #10B981; font-weight: bold; }
+        .negative { color: #EF4444; font-weight: bold; }
     </style>
 """, unsafe_allow_html=True)
 
@@ -88,9 +97,9 @@ stocks = [
 
 # Display Styled Stock Table
 st.subheader("📜 Stock Portfolio")
-st.markdown("<table class='stock-table' style='width:100%;'>", unsafe_allow_html=True)
+st.markdown("<table class='stock-table'>", unsafe_allow_html=True)
 st.markdown("""
-    <tr style='background-color: #F3F4F6;'>
+    <tr>
         <th>Symbol</th>
         <th>Name</th>
         <th>Action</th>
