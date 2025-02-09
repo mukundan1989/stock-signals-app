@@ -74,8 +74,8 @@ for i, metric in enumerate(metrics):
             </div>
         """, unsafe_allow_html=True)
 
-# Add 20px spacing above Toggle Features
-st.markdown("<br><br>", unsafe_allow_html=True)
+# Add 10px spacing above Toggle Features
+st.markdown("<br>", unsafe_allow_html=True)
 
 # Toggle Buttons Section with Icons Only
 st.subheader("Toggle Features")
@@ -102,8 +102,8 @@ with col3:
 
 st.markdown("</div>", unsafe_allow_html=True)  # Close wrapper div
     
-# Add 20px spacing above Stock Portfolio
-st.markdown("<br><br>", unsafe_allow_html=True)
+# Add 10px spacing above Stock Portfolio
+st.markdown("<br>", unsafe_allow_html=True)
 
 # Stock Table Data
 stocks = [
