@@ -35,6 +35,19 @@ sentiment_toggle = st.sidebar.checkbox("Include Sentiment Analysis", False)
 technical_toggle = st.sidebar.checkbox("Include Technical Indicators", False)
 fundamental_toggle = st.sidebar.checkbox("Include Fundamental Data", False)
 
+# Toggle Buttons in Main Section
+st.subheader("🔧 Toggle Features")
+col1, col2, col3 = st.columns(3)
+with col1:
+    st.write("Sentiment Analysis")
+    sentiment_toggle = st.toggle("Enable Sentiment", sentiment_toggle)
+with col2:
+    st.write("Technical Indicators")
+    technical_toggle = st.toggle("Enable Technical", technical_toggle)
+with col3:
+    st.write("Fundamental Data")
+    fundamental_toggle = st.toggle("Enable Fundamental", fundamental_toggle)
+
 # Metrics Data
 metrics = [
     {"label": "Above baseline", "value": "43%", "color": "blue", "description": "Compared to market average"},
@@ -68,32 +81,7 @@ stocks = pd.DataFrame([
 
 # Display Stock Table
 st.subheader("📜 Stock Portfolio")
-st.markdown("""
-    <table class='stock-table' style='width:100%; border-collapse: collapse;'>
-        <tr style='background-color: #f4f4f4;'>
-            <th>Symbol</th>
-            <th>Name</th>
-            <th>Action</th>
-            <th>Current $</th>
-            <th>% Change</th>
-            <th>Sentiment</th>
-        </tr>
-""", unsafe_allow_html=True)
-
-for _, row in stocks.iterrows():
-    color = "#10B981" if row["Action"] == "Buy" else "#EF4444"
-    st.markdown(f"""
-        <tr>
-            <td>{row['Symbol']}</td>
-            <td>{row['Name']}</td>
-            <td style='color: {color}; font-weight: bold;'>{row['Action']}</td>
-            <td>{row['Current Price']}</td>
-            <td>{row['% Change']}</td>
-            <td>{row['Sentiment']}</td>
-        </tr>
-    """, unsafe_allow_html=True)
-
-st.markdown("</table>", unsafe_allow_html=True)
+st.dataframe(stocks)
 
 # Add Stock Button
 st.markdown("<br>", unsafe_allow_html=True)
