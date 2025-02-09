@@ -55,6 +55,9 @@ for i, metric in enumerate(metrics):
             </div>
         """, unsafe_allow_html=True)
 
+# Add 20px spacing above Toggle Features
+st.markdown("<br><br>", unsafe_allow_html=True)
+
 # Toggle Buttons Section (Now Below Key Metrics)
 st.subheader("🔧 Toggle Features")
 col1, col2, col3 = st.columns(3)
