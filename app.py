@@ -59,7 +59,7 @@ st.markdown("<br>", unsafe_allow_html=True)
 st.subheader("🔧 Toggle Features")
 col1, col2, col3 = st.columns(3)
 with col1:
-    sentiment_toggle = st.toggle("Twitter", False)
+    sentiment_toggle = st.toggle("🐦Twitter", False)
 with col2:
     technical_toggle = st.toggle("Google Trends", False)
 with col3:
