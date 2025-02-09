@@ -17,25 +17,8 @@ st.markdown("""
         .green { background-color: #10B981; }
         .purple { background-color: #8B5CF6; }
         .orange { background-color: #F59E0B; }
-        .stock-table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-        .stock-table th {
-            padding: 12px;
-            text-align: left;
-            background-color: #f3f4f6;
-            font-weight: bold;
-        }
-        .stock-table td {
-            padding: 12px;
-            text-align: left;
-        }
-        .stock-table tr:nth-child(even) {
-            background-color: #f9fafb;
-        }
-        .buy { background-color: #D1FAE5; color: #065F46; padding: 5px 10px; border-radius: 5px; font-weight: bold; }
-        .sell { background-color: #FEE2E2; color: #991B1B; padding: 5px 10px; border-radius: 5px; font-weight: bold; }
+        .buy { background-color: #D1FAE5; color: #065F46; padding: 6px 12px; border-radius: 5px; font-weight: bold; }
+        .sell { background-color: #FEE2E2; color: #991B1B; padding: 6px 12px; border-radius: 5px; font-weight: bold; }
         .positive { color: #10B981; font-weight: bold; }
         .negative { color: #EF4444; font-weight: bold; }
     </style>
@@ -95,37 +78,29 @@ stocks = [
     {"symbol": "WMT", "name": "Walmart", "price": "$99.99", "sentiment": "Positive", "change": "+0.3562%", "action": "Buy"}
 ]
 
-# Display Styled Stock Table
+# Display Styled Stock Portfolio
 st.subheader("📜 Stock Portfolio")
-st.markdown("<table class='stock-table'>", unsafe_allow_html=True)
-st.markdown("""
-    <tr>
-        <th>Symbol</th>
-        <th>Name</th>
-        <th>Action</th>
-        <th>Current $</th>
-        <th>% Change</th>
-        <th>Sentiment</th>
-    </tr>
-""", unsafe_allow_html=True)
 
+# Table Header
+st.markdown("**Stock Details**")
+st.divider()
+
+# Iterate through stocks and display rows with columns
 for stock in stocks:
     action_class = "buy" if stock["action"] == "Buy" else "sell"
     change_class = "positive" if float(stock["change"].replace('%', '')) > 0 else "negative"
     sentiment_class = "positive" if stock["sentiment"] == "Positive" else "negative"
 
-    st.markdown(f"""
-        <tr>
-            <td><b>{stock['symbol']}</b></td>
-            <td>{stock['name']}</td>
-            <td><span class='{action_class}'>{stock['action']}</span></td>
-            <td>{stock['price']}</td>
-            <td class='{change_class}'>{'📈' if 'positive' in change_class else '📉'} {stock['change']}</td>
-            <td class='{sentiment_class}'>{stock['sentiment']}</td>
-        </tr>
-    """, unsafe_allow_html=True)
+    col1, col2, col3, col4, col5, col6 = st.columns([1, 2, 1, 1, 1, 1])
+    
+    col1.write(f"**{stock['symbol']}**")
+    col2.write(stock["name"])
+    col3.markdown(f"<span class='{action_class}'>{stock['action']}</span>", unsafe_allow_html=True)
+    col4.write(stock["price"])
+    col5.markdown(f"<span class='{change_class}'>📈 {stock['change']}</span>" if "positive" in change_class else f"<span class='{change_class}'>📉 {stock['change']}</span>", unsafe_allow_html=True)
+    col6.markdown(f"<span class='{sentiment_class}'>{stock['sentiment']}</span>", unsafe_allow_html=True)
 
-st.markdown("</table>", unsafe_allow_html=True)
+    st.divider()
 
 # Add Stock Button
 st.markdown("<br>", unsafe_allow_html=True)
