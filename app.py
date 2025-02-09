@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
-import plotly.graph_objects as go
-from datetime import datetime
+import numpy as np
+from datetime import datetime, timedelta
 
 # Set page configuration
 st.set_page_config(page_title="Portfolio Dashboard", layout="wide")
@@ -99,21 +99,26 @@ st.dataframe(styled_df, use_container_width=True)
 if st.button("➕ Add Stock"):
     st.info("Stock addition functionality would go here")
 
-# Optional: Add a simple line chart for visualization
+# Create sample data for the line chart
 st.markdown("### Market Trend")
+dates = pd.date_range(start='2025-01-01', periods=30)
+values = [100 + i + (i**2)*0.1 for i in range(30)]
 chart_data = pd.DataFrame({
-    'Date': pd.date_range(start='2025-01-01', periods=30),
-    'Value': [100 + i + (i**2)*0.1 for i in range(30)]
+    'Date': dates,
+    'Value': values
 })
 
-fig = go.Figure()
-fig.add_trace(go.Scatter(x=chart_data['Date'], y=chart_data['Value'], mode='lines'))
-fig.update_layout(
-    title="Portfolio Performance",
-    xaxis_title="Date",
-    yaxis_title="Value",
-    height=400,
-    margin=dict(l=0, r=0, t=40, b=0)
+# Using Streamlit's native line chart
+st.line_chart(
+    chart_data.set_index('Date')['Value'],
+    use_container_width=True
 )
 
-st.plotly_chart(fig, use_container_width=True)
+# Optional: Add some summary statistics
+col1, col2, col3 = st.columns(3)
+with col1:
+    st.metric("30-Day Change", "+23.5%", "2.4%")
+with col2:
+    st.metric("Average Value", "$112.45", "1.2%")
+with col3:
+    st.metric("Volatility", "Low", "Stable")
