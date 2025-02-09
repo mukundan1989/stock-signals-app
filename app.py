@@ -34,9 +34,11 @@ st.markdown("""
             align-items: center;
             justify-content: center;
             gap: 10px;
+            width: max-content;
+            padding: 5px;
         }
         .toggle-icon {
-            font-size: 24px;
+            font-size: 20px;
             color: black;
         }
     </style>
@@ -73,6 +75,7 @@ st.markdown("<br><br>", unsafe_allow_html=True)
 # Toggle Buttons Section with Icons Only
 st.subheader("🔧 Toggle Features")
 
+# Align Icons & Toggles Side by Side
 col1, col2, col3 = st.columns(3)
 
 with col1:
