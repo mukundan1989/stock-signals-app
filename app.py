@@ -76,15 +76,15 @@ col1, col2, col3 = st.columns(3)
 
 with col1:
     st.markdown("<div class='toggle-container'><i class='fa-brands fa-twitter toggle-icon'></i></div>", unsafe_allow_html=True)
-    sentiment_toggle = st.toggle("Sentiment Analysis Toggle", False)
+    sentiment_toggle = st.toggle("Twitter", False)
 
 with col2:
     st.markdown("<div class='toggle-container'><i class='fa-solid fa-newspaper toggle-icon'></i></div>", unsafe_allow_html=True)
-    technical_toggle = st.toggle("Technical Indicators Toggle", False)
+    technical_toggle = st.toggle("News", False)
 
 with col3:
     st.markdown("<div class='toggle-container'><i class='fa-brands fa-google toggle-icon'></i></div>", unsafe_allow_html=True)
-    fundamental_toggle = st.toggle("Fundamental Data Toggle", False)
+    fundamental_toggle = st.toggle("GTrends", False)
 
 # Add 20px spacing above Stock Portfolio
 st.markdown("<br><br>", unsafe_allow_html=True)
