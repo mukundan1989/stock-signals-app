@@ -33,7 +33,7 @@ st.markdown("""
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 10px;
+            gap: 6px;  /* Reduce space between icon & toggle */
             width: max-content;
             padding: 5px;
         }
@@ -75,8 +75,8 @@ st.markdown("<br><br>", unsafe_allow_html=True)
 # Toggle Buttons Section with Icons Only
 st.subheader("🔧 Toggle Features")
 
-# Align Icons & Toggles Side by Side
-col1, col2, col3 = st.columns(3)
+# Reduce spacing between columns
+col1, col2, col3 = st.columns([1, 0.8, 1])  # Adjusted widths to bring them closer
 
 with col1:
     st.markdown("<div class='toggle-container'><i class='fa-brands fa-twitter toggle-icon'></i>", unsafe_allow_html=True)
@@ -92,7 +92,7 @@ with col3:
     st.markdown("<div class='toggle-container'><i class='fa-brands fa-google toggle-icon'></i>", unsafe_allow_html=True)
     fundamental_toggle = st.toggle("", False, key="fundamental")
     st.markdown("</div>", unsafe_allow_html=True)
-
+    
 # Add 20px spacing above Stock Portfolio
 st.markdown("<br><br>", unsafe_allow_html=True)
 
