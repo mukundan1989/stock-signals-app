@@ -1,54 +1,106 @@
 import streamlit as st
-import random
+import pandas as pd
+import mysql.connector
 
-# Dummy data
-stocks = [
-    {"symbol": "AAPL", "name": "Apple", "price": 99.99, "sentiment": "Positive", "change": "+0.7562%", "action": "Buy"},
-    {"symbol": "AMZN", "name": "Amazon", "price": 99.99, "sentiment": "Positive", "change": "+0.6762%", "action": "Buy"},
-    {"symbol": "GOOG", "name": "Google", "price": 99.99, "sentiment": "Negative", "change": "-0.2562%", "action": "Sell"},
-    {"symbol": "MA", "name": "Mastercard", "price": 99.99, "sentiment": "Negative", "change": "-0.6562%", "action": "Sell"},
-    {"symbol": "QQQQ", "name": "Nasdaq", "price": 99.99, "sentiment": "Positive", "change": "+0.4562%", "action": "Buy"},
-    {"symbol": "WMT", "name": "Walmart", "price": 99.99, "sentiment": "Positive", "change": "+0.3562%", "action": "Buy"},
-]
+# Database credentials
+DB_HOST = "13.203.191.72"
+DB_NAME = "stockstream_two"
+DB_USER = "stockstream_two"
+DB_PASSWORD = "stockstream_two"
 
-def render_dashboard():
-    st.title("📈 Portfolio Dashboard")
-    st.write("Easily predict stock market trends and make smarter investment decisions.")
-    
-    col1, col2, col3, col4 = st.columns(4)
-    col1.metric("Above Baseline", "43%")
-    col2.metric("Value Gain on Buy", "$13,813")
-    col3.metric("Sentiment Score", "+0.75")
-    col4.metric("Prediction Accuracy", "87%")
+# Available tables
+TABLES = {
+    "Google Trends": "gtrend_latest_signal",
+    "News": "news_latest_signal",
+    "Twitter": "twitter_latest_signal",
+    "Overall": "overall_latest_signal"
+}
 
-    st.subheader("Sentiment Input")
-    st.write("Include market sentiment and see how public opinion shapes stock predictions.")
-    
-    st.write("Baseline: 2 Jan 2025")
-    
-    st.subheader("Portfolio")
-    st.write("Current Portfolio Holdings:")
-    
-    for stock in stocks:
-        col1, col2, col3, col4, col5 = st.columns([1, 2, 2, 2, 2])
-        col1.write(f"**{stock['symbol']}**")
-        col2.write(stock["name"])
-        col3.write(f"{stock['action']} ${stock['price']}")
-        col4.write(f"{stock['sentiment']}")
-        col5.write(stock["change"])
-    
-    if st.button("➕ Add Stock"):
-        new_stock = {
-            "symbol": f"STK{random.randint(100,999)}",
-            "name": "New Stock",
-            "price": 99.99,
-            "sentiment": random.choice(["Positive", "Negative"]),
-            "change": f"{random.uniform(-1,1):.4f}%",
-            "action": random.choice(["Buy", "Sell"])
-        }
-        stocks.append(new_stock)
-        st.experimental_rerun()
+# Streamlit UI
+st.title("Database Table Viewer")
 
-# Run the app
-if __name__ == "__main__":
-    render_dashboard()
+# Initialize session state for selected table
+if "selected_table" not in st.session_state:
+    st.session_state["selected_table"] = "overall_latest_signal"  # Default table
+if "data" not in st.session_state:
+    st.session_state["data"] = None
+if "show_search" not in st.session_state:
+    st.session_state["show_search"] = False
+if "added_symbols" not in st.session_state:
+    st.session_state["added_symbols"] = set()
+
+# Toggle buttons for table selection
+selected_table = None
+cols = st.columns(len(TABLES))
+for i, (label, table) in enumerate(TABLES.items()):
+    if cols[i].toggle(label, table == st.session_state["selected_table"]):
+        selected_table = table
+
+# Update session state if a new table is selected
+if selected_table and selected_table != st.session_state["selected_table"]:
+    st.session_state["selected_table"] = selected_table
+    st.session_state["data"] = None  # Reset data
+    st.rerun()
+
+# Function to fetch data
+def fetch_data(table, limit=5):
+    try:
+        conn = mysql.connector.connect(
+            host=DB_HOST,
+            database=DB_NAME,
+            user=DB_USER,
+            password=DB_PASSWORD
+        )
+        cursor = conn.cursor()
+        query = f"SELECT * FROM `{DB_NAME}`.`{table}` LIMIT {limit}"
+        cursor.execute(query)
+        df = pd.DataFrame(cursor.fetchall(), columns=[desc[0] for desc in cursor.description])
+        cursor.close()
+        conn.close()
+        return df
+    except Exception as e:
+        st.error(f"Error fetching data: {e}")
+        return None
+
+# Load initial data if not set
+if st.session_state["data"] is None:
+    st.session_state["data"] = fetch_data(st.session_state["selected_table"])
+
+# Add Stock button
+if st.button("Add Stock"):
+    st.session_state["show_search"] = True
+
+# Search functionality
+if st.session_state["show_search"]:
+    symbol = st.text_input("Enter Stock Symbol:")
+    if symbol:
+        try:
+            conn = mysql.connector.connect(
+                host=DB_HOST,
+                database=DB_NAME,
+                user=DB_USER,
+                password=DB_PASSWORD
+            )
+            cursor = conn.cursor()
+            query = f"SELECT * FROM `{DB_NAME}`.`{st.session_state['selected_table']}` WHERE comp_symbol = %s"
+            cursor.execute(query, (symbol,))
+            result = cursor.fetchall()
+            cursor.close()
+            conn.close()
+
+            if result:
+                if symbol not in st.session_state["added_symbols"]:
+                    new_row = pd.DataFrame(result, columns=st.session_state["data"].columns)
+                    st.session_state["data"] = pd.concat([st.session_state["data"], new_row], ignore_index=True)
+                    st.session_state["added_symbols"].add(symbol)
+                    st.session_state["show_search"] = False
+                    st.rerun()
+                else:
+                    st.warning("Stock already added!")
+            else:
+                st.error("Stock not found!")
+        except Exception as e:
+            st.error(f"Error searching stock: {e}")
+
+# Display table data
+st.dataframe(st.session_state["data"])
