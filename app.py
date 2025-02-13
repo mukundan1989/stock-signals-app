@@ -17,7 +17,34 @@ TABLES = {
 }
 
 # Streamlit UI
-st.title("Database Table Viewer")
+st.title("📊 Portfolio Dashboard")
+
+# Header & Description
+st.markdown("""
+### Portfolio
+Easily predict stock market trends and make smarter investment decisions
+with our intuitive portfolio tool.
+""")
+
+# Dummy Metrics Data
+metrics = [
+    {"label": "Above Baseline", "value": "43%", "color": "#3b82f6", "description": "Compared to market average"},
+    {"label": "Value Gain on Buy", "value": "$13,813", "color": "#22c55e", "description": "Total profit from buy signals"},
+    {"label": "Sentiment Score", "value": "+0.75", "color": "#8b5cf6", "description": "Overall market sentiment"},
+    {"label": "Prediction Accuracy", "value": "87%", "color": "#f97316", "description": "Success rate of predictions"}
+]
+
+# Display Metrics in a Grid
+cols = st.columns(4)
+for i, metric in enumerate(metrics):
+    with cols[i]:
+        st.markdown(f"""
+        <div style="border-left: 5px solid {metric['color']}; padding-left: 10px;">
+        <h2 style="color: {metric['color']};">{metric['value']}</h2>
+        <h4>{metric['label']}</h4>
+        <p style="color: gray; font-size: 12px;">{metric['description']}</p>
+        </div>
+        """, unsafe_allow_html=True)
 
 # Initialize session state for selected table
 if "selected_table" not in st.session_state:
@@ -67,7 +94,7 @@ if st.session_state["data"] is None:
     st.session_state["data"] = fetch_data(st.session_state["selected_table"])
 
 # Add Stock button
-if st.button("Add Stock"):
+if st.button("➕ Add Stock"):
     st.session_state["show_search"] = True
 
 # Search functionality
