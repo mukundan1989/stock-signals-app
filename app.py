@@ -7,7 +7,7 @@ DB_HOST = "13.203.191.72"
 DB_NAME = "stockstream_two"
 DB_USER = "stockstream_two"
 DB_PASSWORD = "stockstream_two"
-DB_TABLE = os.getenv("DB_TABLE")
+DB_TABLE = "stockstream_two"
 
 # Streamlit UI
 st.title("Database Table Viewer")
