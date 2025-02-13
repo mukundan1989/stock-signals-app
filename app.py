@@ -73,8 +73,8 @@ if st.session_state["show_search"]:
                 if new_symbol in existing_symbols:
                     st.warning("Stock symbol already added.")
                 else:
-                    
                 new_row = pd.DataFrame(result, columns=st.session_state["data"].columns)
+                st.session_state["data"] = pd.concat([st.session_state["data"], new_row], ignore_index=True)new_row = pd.DataFrame(result, columns=st.session_state["data"].columns)
                                     st.session_state["data"] = pd.concat([st.session_state["data"], new_row], ignore_index=True)
                 st.session_state["show_search"] = False
                 st.session_state["added_symbols"].add(symbol)
