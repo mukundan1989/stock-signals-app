@@ -78,4 +78,6 @@ if st.session_state["show_search"]:
                     st.session_state["show_search"] = False
                     st.session_state["added_symbols"].add(symbol)
                     st.rerun()
+        except Exception as e:
+            st.error(f"Error searching stock: {e}")
                 
