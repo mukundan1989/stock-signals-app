@@ -60,6 +60,8 @@ if "selected_table" not in st.session_state:
     st.session_state["selected_table"] = "overall_latest_signal"  # Default table
 if "data" not in st.session_state:
     st.session_state["data"] = None
+if "show_search" not in st.session_state:
+    st.session_state["show_search"] = False
 
 # Toggle buttons (Only one can be active at a time)
 st.write("### Select Data Source")
@@ -111,6 +113,38 @@ def fetch_data(table, limit=5):
 if st.session_state["data"] is None:
     st.session_state["data"] = fetch_data(st.session_state["selected_table"])
 
-# Display table without index column
+# Display table with only required columns (No extra index)
 if st.session_state["data"] is not None:
-    st.dataframe(st.session_state["data"].set_index("comp_symbol"))
+    st.dataframe(st.session_state["data"][["date", "comp_name", "comp_symbol", "trade_signal", "entry_price"]])
+
+# Add Stock button (always visible)
+if st.button("Add Stock"):
+    st.session_state["show_search"] = True
+
+# Show search box when "Add Stock" is clicked
+if st.session_state["show_search"]:
+    symbol = st.text_input("Enter Stock Symbol:")
+    if symbol:
+        try:
+            conn = mysql.connector.connect(
+                host=DB_HOST,
+                database=DB_NAME,
+                user=DB_USER,
+                password=DB_PASSWORD
+            )
+            cursor = conn.cursor()
+            query = f"SELECT date, comp_name, comp_symbol, trade_signal, entry_price FROM `{DB_NAME}`.`{st.session_state['selected_table']}` WHERE comp_symbol = %s"
+            cursor.execute(query, (symbol,))
+            result = cursor.fetchall()
+            cursor.close()
+            conn.close()
+
+            if result:
+                new_row = pd.DataFrame(result, columns=["date", "comp_name", "comp_symbol", "trade_signal", "entry_price"])
+                st.session_state["data"] = pd.concat([st.session_state["data"], new_row], ignore_index=True)
+                st.session_state["show_search"] = False  # Hide search box after adding stock
+                st.rerun()
+            else:
+                st.warning("Stock not found!")
+        except Exception as e:
+            st.error(f"Error searching stock: {e}")
