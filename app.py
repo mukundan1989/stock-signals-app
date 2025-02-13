@@ -7,7 +7,7 @@ DB_HOST = "13.203.191.72"
 DB_NAME = "stockstream_two"
 DB_USER = "stockstream_two"
 DB_PASSWORD = "stockstream_two"
-DB_TABLE = "stockstream_two"
+DB_TABLE = "overall_latest_signal"
 
 # Streamlit UI
 st.title("Database Table Viewer")
