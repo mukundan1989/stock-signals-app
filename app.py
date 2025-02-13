@@ -22,7 +22,7 @@ def fetch_data():
             password=DB_PASSWORD
         )
         cursor = conn.cursor()
-        query = f"SELECT * FROM {DB_TABLE}"
+        query = f"SELECT * FROM `{DB_NAME}`.`{DB_TABLE}`"
         cursor.execute(query)
         df = pd.DataFrame(cursor.fetchall(), columns=[desc[0] for desc in cursor.description])
         cursor.close()
