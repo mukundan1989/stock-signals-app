@@ -20,9 +20,8 @@ TABLES = {
 st.markdown("<h1 style='text-align: center;'>Portfolio</h1>", unsafe_allow_html=True)
 st.write("Easily predict stock market trends and make smarter investment decisions with our intuitive portfolio tool.")
 
-# Metrics Grid (2x2 Layout)
+# Metrics Grid (2x2 Layout with Spacing)
 col1, col2 = st.columns(2)
-col3, col4 = st.columns(2)
 
 with col1:
     st.markdown(
@@ -37,6 +36,11 @@ with col2:
         "<h2>$13,813</h2><p>Value Gain on Buy</p></div>",
         unsafe_allow_html=True
     )
+
+# Add spacing between rows
+st.markdown("<br>", unsafe_allow_html=True)
+
+col3, col4 = st.columns(2)
 
 with col3:
     st.markdown(
