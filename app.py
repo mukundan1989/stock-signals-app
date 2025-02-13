@@ -113,4 +113,4 @@ if st.session_state["data"] is None:
 
 # Display table without index column
 if st.session_state["data"] is not None:
-    st.table(st.session_state["data"])
+    st.dataframe(st.session_state["data"].set_index("comp_symbol"))
