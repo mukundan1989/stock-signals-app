@@ -1,32 +1,35 @@
-import mysql.connector
+import streamlit as st
+import pandas as pd
+import psycopg2
 
 # Database credentials
-HOST = "13.203.191.72"
-USER = "stockstream_two"
-PASSWORD = "stockstream_two"
-DATABASE = "stockstream_two"
+DB_HOST = "13.203.191.72"
+DB_NAME = "stockstream_two"
+DB_USER = "stockstream_two"
+DB_PASSWORD = "stockstream_two"
+DB_TABLE = os.getenv("DB_TABLE")
 
-try:
-    print("🔄 Attempting to connect to the database...")
+# Streamlit UI
+st.title("Database Table Viewer")
 
-    # Attempt connection
-    conn = mysql.connector.connect(
-        host=HOST,
-        user=USER,
-        password=PASSWORD,
-        database=DATABASE,
-        connect_timeout=10  # 10-second timeout to prevent hanging
-    )
-    
-    if conn.is_connected():
-        print("✅ Successfully connected to the database!")
-    else:
-        print("❌ Connection failed.")
+# Function to fetch data
+def fetch_data():
+    try:
+        conn = psycopg2.connect(
+            host=DB_HOST,
+            database=DB_NAME,
+            user=DB_USER,
+            password=DB_PASSWORD
+        )
+        query = f"SELECT * FROM {DB_TABLE}"
+        df = pd.read_sql(query, conn)
+        conn.close()
+        return df
+    except Exception as e:
+        st.error(f"Error fetching data: {e}")
+        return None
 
-    # Close connection
-    conn.close()
-
-except mysql.connector.Error as err:
-    print(f"❌ Error: {err}")
-except Exception as e:
-    print(f"⚠️ Unexpected error: {e}")
+# Display data
+data = fetch_data()
+if data is not None:
+    st.dataframe(data)
