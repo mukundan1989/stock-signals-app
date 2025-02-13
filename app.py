@@ -1,60 +1,34 @@
 import streamlit as st
-import pandas as pd
 import mysql.connector
 
-# Database connection function
-def get_db_connection():
+# Database credentials
+DB_HOST = "13.234.116.170"
+DB_USER = "stockapp_sentiment_v1"
+DB_PASSWORD = "Speed#a12345"
+DB_NAME = "stockapp_sentiment_v1"
+
+# Function to test database connection
+def test_db_connection():
     try:
         conn = mysql.connector.connect(
-            host="13.234.116.170",
-            user="stockapp_sentiment_v1",
-            password="Speed#a12345",
-            database="stockapp_sentiment_v1"
+            host=DB_HOST,
+            user=DB_USER,
+            password=DB_PASSWORD,
+            database=DB_NAME
         )
-        return conn
+        if conn.is_connected():
+            return "✅ Database connection successful!"
+        else:
+            return "❌ Database connection failed!"
     except mysql.connector.Error as err:
-        st.error(f"Database connection error: {err}")
-        return None
-
-# Fetch data function
-def fetch_data(offset, limit):
-    conn = get_db_connection()
-    if conn is None:
-        return pd.DataFrame()  # Return empty DataFrame if no connection
-
-    try:
-        cursor = conn.cursor(dictionary=True)
-        query = f"SELECT * FROM portfolio LIMIT {limit} OFFSET {offset};"
-        cursor.execute(query)
-        records = cursor.fetchall()
-        cursor.close()
-        conn.close()
-        
-        if not records:
-            st.warning("No more data available.")
-            return pd.DataFrame()
-
-        return pd.DataFrame(records)  # Convert MySQL rows to DataFrame
-    except mysql.connector.Error as err:
-        st.error(f"Error fetching data: {err}")
-        return pd.DataFrame()
+        return f"❌ Error: {err}"
+    finally:
+        if 'conn' in locals() and conn.is_connected():
+            conn.close()
 
 # Streamlit app
-st.title("Portfolio Stocks")
+st.title("Database Connection Test")
 
-# Initialize session state for row count
-if "num_rows" not in st.session_state:
-    st.session_state.num_rows = 10  # Default rows to show
-
-# Fetch initial data
-stocks_df = fetch_data(0, st.session_state.num_rows)
-
-if stocks_df.empty:
-    st.warning("No data found in the portfolio table.")
-else:
-    st.dataframe(stocks_df)
-
-# Button to load more rows
-if st.button("Add Stock"):
-    st.session_state.num_rows += 10  # Increase row count by 10
-    st.experimental_rerun()
+# Check database connection
+status_message = test_db_connection()
+st.write(status_message)
