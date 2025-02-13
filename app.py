@@ -87,7 +87,7 @@ with col4:
     if st.toggle("Overall", value=(st.session_state["selected_table"] == "overall_latest_signal")):
         toggle_selection("overall_latest_signal")
 
-# Function to fetch data and filter required columns
+# Function to fetch and filter data
 def fetch_data(table, limit=5):
     try:
         conn = mysql.connector.connect(
@@ -97,15 +97,11 @@ def fetch_data(table, limit=5):
             password=DB_PASSWORD
         )
         cursor = conn.cursor()
-        query = f"SELECT * FROM `{DB_NAME}`.`{table}` LIMIT {limit}"
+        query = f"SELECT date, comp_name, comp_symbol, trade_signal, entry_price FROM `{DB_NAME}`.`{table}` LIMIT {limit}"
         cursor.execute(query)
-        df = pd.DataFrame(cursor.fetchall(), columns=[desc[0] for desc in cursor.description])
+        df = pd.DataFrame(cursor.fetchall(), columns=["date", "comp_name", "comp_symbol", "trade_signal", "entry_price"])
         cursor.close()
         conn.close()
-        
-        # Keep only specific columns
-        required_columns = ["date", "comp_name", "comp_symbol", "trade_signal", "entry_price"]
-        df = df[[col for col in required_columns if col in df.columns]]
         return df
     except Exception as e:
         st.error(f"Error fetching data: {e}")
@@ -115,5 +111,6 @@ def fetch_data(table, limit=5):
 if st.session_state["data"] is None:
     st.session_state["data"] = fetch_data(st.session_state["selected_table"])
 
-# Display only selected columns
-st.dataframe(st.session_state["data"])
+# Display table without index column
+if st.session_state["data"] is not None:
+    st.dataframe(st.session_state["data"].reset_index(drop=True))
