@@ -39,7 +39,16 @@ cols = [st.columns(2) for _ in range(2)]
 index = 0
 for row in cols:
     for col in row:
-        if index < len(metrics):
+                    if index < len(metrics):
+                metric = metrics[index]
+                st.markdown(f"""
+                <div style="border-left: 5px solid {metric['color']}; padding-left: 10px;">
+                <h2 style="color: {metric['color']};">{metric['value']}</h2>
+                <h4>{metric['label']}</h4>
+                <p style="color: gray; font-size: 12px;">{metric['description']}</p>
+                </div>
+                """, unsafe_allow_html=True)
+                index += 1
                 with col:
         st.markdown(f"""
         <div style="border-left: 5px solid {metric['color']}; padding-left: 10px;">
