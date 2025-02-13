@@ -1,40 +1,27 @@
-import streamlit as st
-import pandas as pd
 import mysql.connector
-import os
 
-# Database connection function
-def get_db_connection():
-    return mysql.connector.connect(
-        host="13.203.191.72",
-        user="stockstream_two",
-        password="stockstream_two",
-        database="stockstream_two"
+# Database credentials
+HOST = "13.203.191.72"
+USER = "stockstream_two"
+PASSWORD = "stockstream_two"
+DATABASE = "stockstream_two"
+
+try:
+    # Attempt connection
+    conn = mysql.connector.connect(
+        host=HOST,
+        user=USER,
+        password=PASSWORD,
+        database=DATABASE
     )
+    
+    if conn.is_connected():
+        print("✅ Successfully connected to the database!")
+    else:
+        print("❌ Connection failed.")
 
-# Fetch data function
-def fetch_data(offset, limit):
-    conn = get_db_connection()
-    query = f"""
-        SELECT * FROM portfolio
-        LIMIT {limit} OFFSET {offset}
-    """
-    df = pd.read_sql(query, conn)
+    # Close connection
     conn.close()
-    return df
 
-# Streamlit app
-st.title("Portfolio Stocks")
-
-# Initialize session state for row count
-if "num_rows" not in st.session_state:
-    st.session_state.num_rows = 10  # Default rows to show
-
-# Fetch initial data
-stocks_df = fetch_data(0, st.session_state.num_rows)
-st.dataframe(stocks_df)
-
-# Button to load more rows
-if st.button("Add Stock"):
-    st.session_state.num_rows += 10  # Increase row count by 10
-    st.experimental_rerun()
+except mysql.connector.Error as err:
+    print(f"❌ Error: {err}")
