@@ -12,6 +12,10 @@ DB_TABLE = "overall_latest_signal"
 # Streamlit UI
 st.title("Database Table Viewer")
 
+# Initialize session state for data if not already set
+if "data" not in st.session_state:
+    st.session_state["data"] = None
+
 # Function to fetch data
 def fetch_data(limit=5):
     try:
@@ -32,13 +36,20 @@ def fetch_data(limit=5):
         st.error(f"Error fetching data: {e}")
         return None
 
-# Display initial data
-data = fetch_data()
-if data is not None:
-    st.dataframe(data)
+# Load initial data
+if st.session_state["data"] is None:
+    st.session_state["data"] = fetch_data()
+
+st.dataframe(st.session_state["data"])
 
 # Add stock search functionality
+if "show_search" not in st.session_state:
+    st.session_state["show_search"] = False
+
 if st.button("Add Stock"):
+    st.session_state["show_search"] = True
+
+if st.session_state["show_search"]:
     symbol = st.text_input("Enter Stock Symbol:")
     if symbol:
         try:
@@ -55,9 +66,9 @@ if st.button("Add Stock"):
             cursor.close()
             conn.close()
             if result:
-                new_row = pd.DataFrame(result, columns=data.columns)
-                data = pd.concat([data, new_row], ignore_index=True)
-                st.dataframe(data)
+                new_row = pd.DataFrame(result, columns=st.session_state["data"].columns)
+                st.session_state["data"] = pd.concat([st.session_state["data"], new_row], ignore_index=True)
+                st.experimental_rerun()
             else:
                 st.warning("No matching stock found.")
         except Exception as e:
