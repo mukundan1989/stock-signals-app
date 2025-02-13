@@ -1,34 +1,40 @@
 import streamlit as st
+import pandas as pd
 import mysql.connector
+import os
 
-# Database credentials
-DB_HOST = "13.234.116.170"
-DB_USER = "stockapp_sentiment_v1"
-DB_PASSWORD = "Speed#a12345"
-DB_NAME = "stockapp_sentiment_v1"
+# Database connection function
+def get_db_connection():
+    return mysql.connector.connect(
+        host="13.203.191.72",
+        user="stockstream_two",
+        password="stockstream_two",
+        database="stockstream_two"
+    )
 
-# Function to test database connection
-def test_db_connection():
-    try:
-        conn = mysql.connector.connect(
-            host=DB_HOST,
-            user=DB_USER,
-            password=DB_PASSWORD,
-            database=DB_NAME
-        )
-        if conn.is_connected():
-            return "✅ Database connection successful!"
-        else:
-            return "❌ Database connection failed!"
-    except mysql.connector.Error as err:
-        return f"❌ Error: {err}"
-    finally:
-        if 'conn' in locals() and conn.is_connected():
-            conn.close()
+# Fetch data function
+def fetch_data(offset, limit):
+    conn = get_db_connection()
+    query = f"""
+        SELECT * FROM portfolio
+        LIMIT {limit} OFFSET {offset}
+    """
+    df = pd.read_sql(query, conn)
+    conn.close()
+    return df
 
 # Streamlit app
-st.title("Database Connection Test")
+st.title("Portfolio Stocks")
 
-# Check database connection
-status_message = test_db_connection()
-st.write(status_message)
+# Initialize session state for row count
+if "num_rows" not in st.session_state:
+    st.session_state.num_rows = 10  # Default rows to show
+
+# Fetch initial data
+stocks_df = fetch_data(0, st.session_state.num_rows)
+st.dataframe(stocks_df)
+
+# Button to load more rows
+if st.button("Add Stock"):
+    st.session_state.num_rows += 10  # Increase row count by 10
+    st.experimental_rerun()
