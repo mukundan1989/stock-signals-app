@@ -113,4 +113,4 @@ if st.session_state["data"] is None:
 
 # Display table without index column
 if st.session_state["data"] is not None:
-    st.dataframe(st.session_state["data"].reset_index(drop=True))
+    st.dataframe(st.session_state["data"].style.hide_index())
