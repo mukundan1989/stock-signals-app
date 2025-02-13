@@ -16,8 +16,40 @@ TABLES = {
     "Overall": "overall_latest_signal"
 }
 
-# Streamlit UI
-st.title("Database Table Viewer")
+# Streamlit UI - Metrics Section
+st.markdown("<h1 style='text-align: center;'>Portfolio</h1>", unsafe_allow_html=True)
+st.write("Easily predict stock market trends and make smarter investment decisions with our intuitive portfolio tool.")
+
+# Metrics Grid (4 square boxes)
+col1, col2, col3, col4 = st.columns(4)
+
+with col1:
+    st.markdown(
+        "<div style='background-color:#007BFF; padding:20px; border-radius:10px; text-align:center; color:white;'>"
+        "<h2>43%</h2><p>Above Baseline</p></div>",
+        unsafe_allow_html=True
+    )
+
+with col2:
+    st.markdown(
+        "<div style='background-color:#007BFF; padding:20px; border-radius:10px; text-align:center; color:white;'>"
+        "<h2>$13,813</h2><p>Value Gain on Buy</p></div>",
+        unsafe_allow_html=True
+    )
+
+with col3:
+    st.markdown(
+        "<div style='background-color:#007BFF; padding:20px; border-radius:10px; text-align:center; color:white;'>"
+        "<h2>+0.75</h2><p>Sentiment Score</p></div>",
+        unsafe_allow_html=True
+    )
+
+with col4:
+    st.markdown(
+        "<div style='background-color:#007BFF; padding:20px; border-radius:10px; text-align:center; color:white;'>"
+        "<h2>87%</h2><p>Prediction Accuracy</p></div>",
+        unsafe_allow_html=True
+    )
 
 # Initialize session state for selected table
 if "selected_table" not in st.session_state:
