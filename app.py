@@ -44,6 +44,7 @@ st.dataframe(st.session_state["data"])
 
 # Add stock search functionality
 if "show_search" not in st.session_state:
+    st.session_state["added_symbols"] = set()  # Track added stock symbols
     st.session_state["show_search"] = False
 
 if st.button("Add Stock"):
@@ -51,7 +52,7 @@ if st.button("Add Stock"):
 
 if st.session_state["show_search"]:
     symbol = st.text_input("Enter Stock Symbol:")
-    if symbol:
+    if symbol and symbol not in st.session_state["added_symbols"]:
         try:
             conn = mysql.connector.connect(
                 host=DB_HOST,
@@ -66,8 +67,16 @@ if st.session_state["show_search"]:
             cursor.close()
             conn.close()
             if result:
+                # Check if the stock symbol already exists in the table
+                existing_symbols = st.session_state["data"]["comp_symbol"].tolist()
+                new_symbol = result[0][st.session_state["data"].columns.get_loc("comp_symbol")]
+                if new_symbol in existing_symbols:
+                    st.warning("Stock symbol already added.")
+                else:
                 new_row = pd.DataFrame(result, columns=st.session_state["data"].columns)
-                st.session_state["data"] = pd.concat([st.session_state["data"], new_row], ignore_index=True)
+                                    st.session_state["data"] = pd.concat([st.session_state["data"], new_row], ignore_index=True)
+                st.session_state["show_search"] = False
+                st.session_state["added_symbols"].add(symbol)
                 st.rerun()
             else:
                 st.warning("No matching stock found.")
