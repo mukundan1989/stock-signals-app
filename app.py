@@ -64,7 +64,7 @@ if "show_search" not in st.session_state:
     st.session_state["show_search"] = False
 
 # Add spacing before "Select Data Source"
-st.markdown("<br><br>", unsafe_allow_html=True)
+st.markdown("<br>", unsafe_allow_html=True)
 
 # Toggle buttons (Only one can be active at a time)
 st.write("### Select Sentiment Model")
@@ -117,7 +117,7 @@ if st.session_state["data"] is None:
     st.session_state["data"] = fetch_data(st.session_state["selected_table"])
 
 # Add spacing before "Watchlist"
-st.markdown("<br><br>", unsafe_allow_html=True)
+st.markdown("<br>", unsafe_allow_html=True)
 
 # Toggle buttons (Only one can be active at a time)
 st.write("### Watchlist")
