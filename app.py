@@ -63,8 +63,11 @@ if "data" not in st.session_state:
 if "show_search" not in st.session_state:
     st.session_state["show_search"] = False
 
+# Add spacing before "Select Data Source"
+st.markdown("<br><br>", unsafe_allow_html=True)
+
 # Toggle buttons (Only one can be active at a time)
-st.write("### Select Data Source")
+st.write("### Select Sentiment Model")
 col1, col2, col3, col4 = st.columns(4)
 
 def toggle_selection(table_key):
@@ -112,6 +115,13 @@ def fetch_data(table, limit=5):
 # Load initial data if not set
 if st.session_state["data"] is None:
     st.session_state["data"] = fetch_data(st.session_state["selected_table"])
+
+# Add spacing before "Watchlist"
+st.markdown("<br><br>", unsafe_allow_html=True)
+
+# Toggle buttons (Only one can be active at a time)
+st.write("### Watchlist")
+col1, col2, col3, col4 = st.columns(4)
 
 # Display table with only required columns (No extra index)
 if st.session_state["data"] is not None:
