@@ -16,72 +16,8 @@ TABLES = {
     "Overall": "overall_latest_signal"
 }
 
-# Custom CSS for metrics
-st.markdown("""
-<style>
-.metric-box {
-    background-color: white;
-    padding: 20px;
-    border-radius: 8px;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-    margin: 10px 0;
-}
-.metric-value {
-    font-size: 28px;
-    font-weight: bold;
-    margin-bottom: 5px;
-}
-.metric-label {
-    font-size: 16px;
-    color: #333;
-    margin-bottom: 5px;
-}
-.metric-description {
-    font-size: 12px;
-    color: #666;
-}
-</style>
-""", unsafe_allow_html=True)
-
 # Streamlit UI
-st.title("📊 Portfolio Dashboard")
-
-# Header & Description
-st.markdown("""
-### Portfolio
-Easily predict stock market trends and make smarter investment decisions
-with our intuitive portfolio tool.
-""")
-
-# Metrics Data
-metrics = [
-    {"label": "Above Baseline", "value": "43%", "color": "#3b82f6", "description": "Compared to market average"},
-    {"label": "Value Gain on Buy", "value": "$13,813", "color": "#22c55e", "description": "Total profit from buy signals"},
-    {"label": "Sentiment Score", "value": "+0.75", "color": "#8b5cf6", "description": "Overall market sentiment"},
-    {"label": "Prediction Accuracy", "value": "87%", "color": "#f97316", "description": "Success rate of predictions"}
-]
-
-# Display Metrics in a 2x2 Grid
-col1, col2 = st.columns(2)
-with col1:
-    for metric in metrics[0:2]:
-        st.markdown(f"""
-        <div class="metric-box" style="border-left: 4px solid {metric['color']};">
-            <div class="metric-value" style="color: {metric['color']}">{metric['value']}</div>
-            <div class="metric-label">{metric['label']}</div>
-            <div class="metric-description">{metric['description']}</div>
-        </div>
-        """, unsafe_allow_html=True)
-
-with col2:
-    for metric in metrics[2:4]:
-        st.markdown(f"""
-        <div class="metric-box" style="border-left: 4px solid {metric['color']};">
-            <div class="metric-value" style="color: {metric['color']}">{metric['value']}</div>
-            <div class="metric-label">{metric['label']}</div>
-            <div class="metric-description">{metric['description']}</div>
-        </div>
-        """, unsafe_allow_html=True)
+st.title("Database Table Viewer")
 
 # Initialize session state for selected table
 if "selected_table" not in st.session_state:
@@ -131,7 +67,7 @@ if st.session_state["data"] is None:
     st.session_state["data"] = fetch_data(st.session_state["selected_table"])
 
 # Add Stock button
-if st.button("➕ Add Stock"):
+if st.button("Add Stock"):
     st.session_state["show_search"] = True
 
 # Search functionality
