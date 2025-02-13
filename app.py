@@ -62,7 +62,9 @@ if "data" not in st.session_state:
     st.session_state["data"] = None
 
 # Toggle buttons (Only one can be active at a time)
-st.write("### Select Data Source")
+st.write("
+
+### Sentiment Input")
 col1, col2, col3, col4 = st.columns(4)
 
 def toggle_selection(table_key):
@@ -112,4 +114,4 @@ if st.session_state["data"] is None:
     st.session_state["data"] = fetch_data(st.session_state["selected_table"])
 
 # Display table data
-st.dataframe(st.session_state["data"])
+st.dataframe(st.session_state["data"], index=False)
