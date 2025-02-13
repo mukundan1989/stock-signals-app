@@ -62,9 +62,7 @@ if "data" not in st.session_state:
     st.session_state["data"] = None
 
 # Toggle buttons (Only one can be active at a time)
-st.write("
-
-### Sentiment Input")
+st.write("### Sentiment Input")
 col1, col2, col3, col4 = st.columns(4)
 
 def toggle_selection(table_key):
