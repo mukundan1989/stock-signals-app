@@ -68,7 +68,7 @@ if st.session_state["show_search"]:
             if result:
                 new_row = pd.DataFrame(result, columns=st.session_state["data"].columns)
                 st.session_state["data"] = pd.concat([st.session_state["data"], new_row], ignore_index=True)
-                st.experimental_rerun()
+                st.rerun()
             else:
                 st.warning("No matching stock found.")
         except Exception as e:
