@@ -57,7 +57,7 @@ def fetch_data(table, limit=5):
         return None
 
 # Load initial data if not set
-if st.session_state["data"] is None:
+if "data" not in st.session_state or st.session_state["data"] is None:
     st.session_state["data"] = fetch_data(st.session_state["selected_table"])
 
 # Display table data
