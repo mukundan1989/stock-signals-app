@@ -61,15 +61,31 @@ if "selected_table" not in st.session_state:
 if "data" not in st.session_state:
     st.session_state["data"] = None
 
-# Toggle buttons (Only one active at a time)
+# Toggle buttons (Only one can be active at a time)
 st.write("### Select Data Source")
-selected_table = st.radio("Choose a table:", list(TABLES.keys()), index=list(TABLES.values()).index(st.session_state["selected_table"]))
+col1, col2, col3, col4 = st.columns(4)
 
-# Update session state if a new table is selected
-if selected_table and TABLES[selected_table] != st.session_state["selected_table"]:
-    st.session_state["selected_table"] = TABLES[selected_table]
-    st.session_state["data"] = None  # Reset data
-    st.rerun()
+def toggle_selection(table_key):
+    if st.session_state["selected_table"] != table_key:
+        st.session_state["selected_table"] = table_key
+        st.session_state["data"] = None  # Reset data
+        st.rerun()
+
+with col1:
+    if st.toggle("Google Trends", value=(st.session_state["selected_table"] == "gtrend_latest_signal")):
+        toggle_selection("gtrend_latest_signal")
+
+with col2:
+    if st.toggle("News", value=(st.session_state["selected_table"] == "news_latest_signal")):
+        toggle_selection("news_latest_signal")
+
+with col3:
+    if st.toggle("Twitter", value=(st.session_state["selected_table"] == "twitter_latest_signal")):
+        toggle_selection("twitter_latest_signal")
+
+with col4:
+    if st.toggle("Overall", value=(st.session_state["selected_table"] == "overall_latest_signal")):
+        toggle_selection("overall_latest_signal")
 
 # Function to fetch data
 def fetch_data(table, limit=5):
