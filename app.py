@@ -62,7 +62,7 @@ if "data" not in st.session_state:
     st.session_state["data"] = None
 
 # Toggle buttons (Only one can be active at a time)
-st.write("### Sentiment Input")
+st.write("### Select Data Source")
 col1, col2, col3, col4 = st.columns(4)
 
 def toggle_selection(table_key):
@@ -87,7 +87,7 @@ with col4:
     if st.toggle("Overall", value=(st.session_state["selected_table"] == "overall_latest_signal")):
         toggle_selection("overall_latest_signal")
 
-# Function to fetch data
+# Function to fetch data and filter required columns
 def fetch_data(table, limit=5):
     try:
         conn = mysql.connector.connect(
@@ -102,6 +102,10 @@ def fetch_data(table, limit=5):
         df = pd.DataFrame(cursor.fetchall(), columns=[desc[0] for desc in cursor.description])
         cursor.close()
         conn.close()
+        
+        # Keep only specific columns
+        required_columns = ["date", "comp_name", "comp_symbol", "trade_signal", "entry_price"]
+        df = df[[col for col in required_columns if col in df.columns]]
         return df
     except Exception as e:
         st.error(f"Error fetching data: {e}")
@@ -111,5 +115,5 @@ def fetch_data(table, limit=5):
 if st.session_state["data"] is None:
     st.session_state["data"] = fetch_data(st.session_state["selected_table"])
 
-# Display table data
+# Display only selected columns
 st.dataframe(st.session_state["data"])
