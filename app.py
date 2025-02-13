@@ -20,8 +20,9 @@ TABLES = {
 st.markdown("<h1 style='text-align: center;'>Portfolio</h1>", unsafe_allow_html=True)
 st.write("Easily predict stock market trends and make smarter investment decisions with our intuitive portfolio tool.")
 
-# Metrics Grid (4 square boxes)
-col1, col2, col3, col4 = st.columns(4)
+# Metrics Grid (2x2 Layout)
+col1, col2 = st.columns(2)
+col3, col4 = st.columns(2)
 
 with col1:
     st.markdown(
