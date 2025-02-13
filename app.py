@@ -115,7 +115,7 @@ if st.session_state["data"] is None:
 
 # Display table with only required columns (No extra index)
 if st.session_state["data"] is not None:
-    st.dataframe(st.session_state["data"][["date", "comp_name", "comp_symbol", "trade_signal", "entry_price"]])
+    st.dataframe(st.session_state["data"].to_dict(orient="records"))
 
 # Add Stock button (always visible)
 if st.button("Add Stock"):
