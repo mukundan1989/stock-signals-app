@@ -35,9 +35,12 @@ metrics = [
 ]
 
 # Display Metrics in a Grid
-cols = st.columns(4)
-for i, metric in enumerate(metrics):
-    with cols[i]:
+cols = [st.columns(2) for _ in range(2)]
+index = 0
+for row in cols:
+    for col in row:
+        if index < len(metrics):
+                with col:
         st.markdown(f"""
         <div style="border-left: 5px solid {metric['color']}; padding-left: 10px;">
         <h2 style="color: {metric['color']};">{metric['value']}</h2>
