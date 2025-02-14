@@ -2,11 +2,11 @@ import streamlit as st
 import pandas as pd
 import mysql.connector
 
-# Custom CSS for forcing a 2×2 grid layout
+# Custom CSS to enforce a 2×2 grid on all screens
 st.markdown(
     """
     <style>
-    /* Remove default header */
+    /* Remove Streamlit header */
     header[data-testid="stHeader"] {
         display: none;
     }
@@ -18,29 +18,64 @@ st.markdown(
         padding-right: 5%;
     }
 
-    /* Force a 2×2 Grid Layout */
-    .stColumns {
-        display: flex !important;
-        flex-wrap: wrap !important;
-        justify-content: center !important;
-        align-items: center !important;
-    }
-    .stColumns > div {
-        flex: 1 1 48% !important; /* Forces 2 per row */
-        max-width: 48% !important;
-        margin: 1%;
+    /* Create a 2×2 grid layout */
+    .grid-container {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 10px;
+        justify-content: center;
+        align-items: center;
     }
 
-    /* Styling for Metric Boxes */
+    /* Responsive fix: Keep 2×2 layout even on small screens */
+    @media (max-width: 600px) {
+        .grid-container {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 5px;
+        }
+    }
+
+    /* Styling for metric boxes */
     .metric-box {
         background-color: #007BFF;
         padding: 20px;
         border-radius: 10px;
         text-align: center;
         color: white;
-        width: 100%;
+        font-size: 18px;
+        font-weight: bold;
     }
     </style>
+    """,
+    unsafe_allow_html=True
+)
+
+# Streamlit UI - Portfolio Section
+st.markdown("<h1 style='text-align: center;'>Portfolio</h1>", unsafe_allow_html=True)
+st.write("Easily predict stock market trends and make smarter investment decisions with our intuitive portfolio tool.")
+
+# **2×2 Grid Layout Using HTML**
+st.markdown(
+    """
+    <div class="grid-container">
+        <div class="metric-box">
+            <h2>43%</h2>
+            <p>Above Baseline</p>
+        </div>
+        <div class="metric-box">
+            <h2>$13,813</h2>
+            <p>Value Gain on Buy</p>
+        </div>
+        <div class="metric-box">
+            <h2>+0.75</h2>
+            <p>Sentiment Score</p>
+        </div>
+        <div class="metric-box">
+            <h2>87%</h2>
+            <p>Prediction Accuracy</p>
+        </div>
+    </div>
     """,
     unsafe_allow_html=True
 )
@@ -58,23 +93,6 @@ TABLES = {
     "Twitter": "twitter_latest_signal",
     "Overall": "overall_latest_signal"
 }
-
-# Streamlit UI - Portfolio Section
-st.markdown("<h1 style='text-align: center;'>Portfolio</h1>", unsafe_allow_html=True)
-st.write("Easily predict stock market trends and make smarter investment decisions with our intuitive portfolio tool.")
-
-# **2×2 Grid using st.columns(2)**
-col1, col2 = st.columns(2)
-with col1:
-    st.markdown("<div class='metric-box'><h2>43%</h2><p>Above Baseline</p></div>", unsafe_allow_html=True)
-with col2:
-    st.markdown("<div class='metric-box'><h2>$13,813</h2><p>Value Gain on Buy</p></div>", unsafe_allow_html=True)
-
-col3, col4 = st.columns(2)
-with col3:
-    st.markdown("<div class='metric-box'><h2>+0.75</h2><p>Sentiment Score</p></div>", unsafe_allow_html=True)
-with col4:
-    st.markdown("<div class='metric-box'><h2>87%</h2><p>Prediction Accuracy</p></div>", unsafe_allow_html=True)
 
 # Initialize session state for selected table
 if "selected_table" not in st.session_state:
