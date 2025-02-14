@@ -2,10 +2,17 @@ import streamlit as st
 import pandas as pd
 import mysql.connector
 
-# Custom CSS for elegant table design
+# Custom CSS for dark-themed elegant table design
 st.markdown(
     """
     <style>
+    /* Target the main container (st-emotion-cache-bm2z3a) and set a dark grey background */
+    .st-emotion-cache-bm2z3a {
+        background-color: #2a2a2a; /* Dark grey background */
+        color: #ffffff; /* White text for the entire page */
+    }
+
+    /* Custom CSS for elegant table design */
     .pretty-table {
         width: 100%;
         border-collapse: collapse;
@@ -17,23 +24,41 @@ st.markdown(
         overflow: hidden;
         text-align: center;
         border: none;
+        color: #ffffff; /* White text for the table */
     }
+
+    /* Black header with white text */
     .pretty-table thead tr {
-        background-color: #007BFF;
-        color: #ffffff;
+        background-color: #000000; /* Black header */
+        color: #ffffff; /* White text */
         text-align: center;
         border: none;
     }
+
+    /* Padding for table cells */
     .pretty-table th, .pretty-table td {
         padding: 12px 15px;
         text-align: center;
         border: none;
     }
-    .pretty-table tbody tr:nth-of-type(even) {
-        background-color: #f3f3f3;
+
+    /* Alternating row colors: light grey and dark grey */
+    .pretty-table tbody tr:nth-of-type(odd) {
+        background-color: #3a3a3a; /* Dark grey */
     }
+
+    .pretty-table tbody tr:nth-of-type(even) {
+        background-color: #4a4a4a; /* Light grey */
+    }
+
+    /* Hover effect for rows */
     .pretty-table tbody tr:hover {
-        background-color: #f1f1f1;
+        background-color: #5a5a5a; /* Slightly lighter grey on hover */
+    }
+
+    /* Ensure the text above the table is white */
+    h1, p {
+        color: #ffffff !important; /* White text for titles and paragraphs */
     }
     </style>
     """,
@@ -80,9 +105,11 @@ def fetch_gtrend_signals():
         st.error(f"Error fetching Google Trends signals: {e}")
         return None
 
-st.markdown("<h1 style='text-align: center; color: #007BFF;'>Google Trends Signals</h1>", unsafe_allow_html=True)
+# Page title and description
+st.markdown("<h1 style='text-align: center;'>Google Trends Signals</h1>", unsafe_allow_html=True)
 st.write("<p style='text-align: center;'>View the latest Google Trends sentiment signals for each stock.</p>", unsafe_allow_html=True)
 
+# Fetch and display Google Trends signals
 gtrend_signals_df = fetch_gtrend_signals()
 
 if gtrend_signals_df is not None:
