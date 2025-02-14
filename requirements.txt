@@ -1,3 +1,7 @@
 streamlit
 pandas
 mysql-connector-python
+streamlit-option-menu
+streamlit-extras
+st-aggrid
+streamlit-lottie
