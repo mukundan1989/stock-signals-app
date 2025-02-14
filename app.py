@@ -30,6 +30,36 @@ st.markdown(
         font-size: 18px;
         font-weight: bold;
     }
+
+    .pretty-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.9em;
+        font-family: sans-serif;
+        min-width: 400px;
+        box-shadow: 0 0 20px rgba(0, 0, 0, 0.15);
+        border-radius: 10px;
+        overflow: hidden;
+        text-align: center;
+        border: none;
+    }
+    .pretty-table thead tr {
+        background-color: #007BFF;
+        color: #ffffff;
+        text-align: center;
+        border: none;
+    }
+    .pretty-table th, .pretty-table td {
+        padding: 12px 15px;
+        text-align: center;
+        border: none;
+    }
+    .pretty-table tbody tr:nth-of-type(even) {
+        background-color: #f3f3f3;
+    }
+    .pretty-table tbody tr:hover {
+        background-color: #f1f1f1;
+    }
     </style>
     """,
     unsafe_allow_html=True
@@ -137,7 +167,8 @@ if st.session_state["data"] is None:
 # Display formatted table with pretty headers
 st.write("### Watchlist")
 if st.session_state["data"] is not None:
-    st.dataframe(st.session_state["data"], use_container_width=True)
+    table_html = st.session_state["data"].to_html(index=False, classes="pretty-table", escape=False)
+    st.markdown(table_html, unsafe_allow_html=True)
 
 # Add Stock button
 if st.button("Add Stock"):
