@@ -1,10 +1,6 @@
 import streamlit as st
 import pandas as pd
 import mysql.connector
-from streamlit_option_menu import option_menu
-from streamlit_extras.metric_cards import style_metric_cards
-from streamlit_lottie import st_lottie
-import requests
 
 # Database credentials
 DB_HOST = "13.203.191.72"
@@ -20,28 +16,13 @@ TABLES = {
     "Overall": "overall_latest_signal"
 }
 
-# Load Lottie Animation
-@st.cache_data
-def load_lottieurl(url):
-    r = requests.get(url)
-    if r.status_code == 200:
-        return r.json()
-    else:
-        return None
-
-lottie_stock = load_lottieurl("https://assets2.lottiefiles.com/packages/lf20_k6hrgs9k.json")
-
 # Sidebar Navigation
-with st.sidebar:
-    selected = option_menu("Main Menu", ["Portfolio", "Sentiment Model", "Watchlist"], 
-                           icons=["graph-up", "search", "list"], menu_icon="cast", default_index=0)
+st.sidebar.title("Navigation")
+selected = st.sidebar.radio("Select Page", ["Portfolio", "Sentiment Model", "Watchlist"])
 
 # Main Page Title
-st.markdown("<h1 style='text-align: center;'>Portfolio Dashboard</h1>", unsafe_allow_html=True)
-st.write("Easily predict stock market trends and make smarter investment decisions with our intuitive tool.")
-
-# Display Lottie Animation
-st_lottie(lottie_stock, height=200)
+st.title("Portfolio Dashboard")
+st.write("Easily predict stock market trends and make smarter investment decisions.")
 
 # Metrics Section
 col1, col2 = st.columns(2)
@@ -55,8 +36,6 @@ with col3:
     st.metric(label="Sentiment Score", value="+0.75")
 with col4:
     st.metric(label="Prediction Accuracy", value="87%")
-
-style_metric_cards()  # Enhance metric card styles
 
 # Fetch Data Function
 def fetch_data(table, limit=5):
@@ -82,7 +61,7 @@ def fetch_data(table, limit=5):
 st.write("### Watchlist")
 data = fetch_data("overall_latest_signal")
 if data is not None:
-    st.data_editor(data, num_rows="dynamic")  # Replaced AgGrid with st.data_editor
+    st.dataframe(data)  # Simplified table display
 
 # Add Stock Search Feature
 if st.button("Add Stock"):
