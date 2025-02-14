@@ -2,10 +2,17 @@ import streamlit as st
 import pandas as pd
 import mysql.connector
 
-# Custom CSS for elegant table design
+# Custom CSS for dark-themed elegant table design
 st.markdown(
     """
     <style>
+    /* Dark grey background for the entire page */
+    body {
+        background-color: #2a2a2a;
+        color: #ffffff; /* White text for the entire page */
+    }
+
+    /* Custom CSS for elegant table design */
     .pretty-table {
         width: 100%;
         border-collapse: collapse;
@@ -17,23 +24,36 @@ st.markdown(
         overflow: hidden;
         text-align: center;
         border: none;
+        color: #ffffff; /* White text for the table */
     }
+
+    /* Black header with white text */
     .pretty-table thead tr {
-        background-color: #007BFF;
-        color: #ffffff;
+        background-color: #000000; /* Black header */
+        color: #ffffff; /* White text */
         text-align: center;
         border: none;
     }
+
+    /* Padding for table cells */
     .pretty-table th, .pretty-table td {
         padding: 12px 15px;
         text-align: center;
         border: none;
     }
-    .pretty-table tbody tr:nth-of-type(even) {
-        background-color: #f3f3f3;
+
+    /* Alternating row colors: light grey and dark grey */
+    .pretty-table tbody tr:nth-of-type(odd) {
+        background-color: #3a3a3a; /* Dark grey */
     }
+
+    .pretty-table tbody tr:nth-of-type(even) {
+        background-color: #4a4a4a; /* Light grey */
+    }
+
+    /* Hover effect for rows */
     .pretty-table tbody tr:hover {
-        background-color: #f1f1f1;
+        background-color: #5a5a5a; /* Slightly lighter grey on hover */
     }
     </style>
     """,
@@ -46,8 +66,8 @@ DB_NAME = "stockstream_two"
 DB_USER = "stockstream_two"
 DB_PASSWORD = "stockstream_two"
 
-# Function to fetch the latest News signals
-def fetch_news_signals():
+# Function to fetch the latest Google Trends signals
+def fetch_gtrend_signals():
     try:
         conn = mysql.connector.connect(
             host=DB_HOST,
@@ -58,18 +78,18 @@ def fetch_news_signals():
         cursor = conn.cursor()
 
         query = """
-        SELECT date, comp_symbol, analyzed_articles, sentiment_score, sentiment, entry_price
-        FROM news_signals_full
+        SELECT date, comp_symbol, analyzed_keywords, sentiment_score, sentiment, entry_price
+        FROM gtrend_signals_full
         WHERE (comp_symbol, date) IN (
             SELECT comp_symbol, MAX(date)
-            FROM news_signals_full
+            FROM gtrend_signals_full
             GROUP BY comp_symbol
         );
         """
         cursor.execute(query)
         result = cursor.fetchall()
 
-        columns = ["Date", "Company Symbol", "Analyzed Articles", "Sentiment Score", "Sentiment", "Entry Price"]
+        columns = ["Date", "Company Symbol", "Analyzed Keywords", "Sentiment Score", "Sentiment", "Entry Price"]
         df = pd.DataFrame(result, columns=columns)
 
         cursor.close()
@@ -77,19 +97,21 @@ def fetch_news_signals():
 
         return df
     except Exception as e:
-        st.error(f"Error fetching News signals: {e}")
+        st.error(f"Error fetching Google Trends signals: {e}")
         return None
 
-st.markdown("<h1 style='text-align: center; color: #007BFF;'>News Signals</h1>", unsafe_allow_html=True)
-st.write("<p style='text-align: center;'>View the latest News sentiment signals for each stock.</p>", unsafe_allow_html=True)
+# Page title and description
+st.markdown("<h1 style='text-align: center; color: #ffffff;'>Google Trends Signals</h1>", unsafe_allow_html=True)
+st.write("<p style='text-align: center; color: #ffffff;'>View the latest Google Trends sentiment signals for each stock.</p>", unsafe_allow_html=True)
 
-news_signals_df = fetch_news_signals()
+# Fetch and display Google Trends signals
+gtrend_signals_df = fetch_gtrend_signals()
 
-if news_signals_df is not None:
-    if not news_signals_df.empty:
-        table_html = news_signals_df.to_html(index=False, classes="pretty-table")
+if gtrend_signals_df is not None:
+    if not gtrend_signals_df.empty:
+        table_html = gtrend_signals_df.to_html(index=False, classes="pretty-table")
         st.markdown(table_html, unsafe_allow_html=True)
     else:
-        st.warning("No News signals found in the database.")
+        st.warning("No Google Trends signals found in the database.")
 else:
-    st.error("Failed to fetch News signals. Please check the database connection.")
+    st.error("Failed to fetch Google Trends signals. Please check the database connection.")
