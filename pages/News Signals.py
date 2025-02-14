@@ -71,8 +71,8 @@ DB_NAME = "stockstream_two"
 DB_USER = "stockstream_two"
 DB_PASSWORD = "stockstream_two"
 
-# Function to fetch the latest Google Trends signals
-def fetch_gtrend_signals():
+# Function to fetch the latest News signals
+def fetch_news_signals():
     try:
         conn = mysql.connector.connect(
             host=DB_HOST,
@@ -83,18 +83,18 @@ def fetch_gtrend_signals():
         cursor = conn.cursor()
 
         query = """
-        SELECT date, comp_symbol, analyzed_keywords, sentiment_score, sentiment, entry_price
-        FROM gtrend_signals_full
+        SELECT date, comp_symbol, analyzed_articles, sentiment_score, sentiment, entry_price
+        FROM news_signals_full
         WHERE (comp_symbol, date) IN (
             SELECT comp_symbol, MAX(date)
-            FROM gtrend_signals_full
+            FROM news_signals_full
             GROUP BY comp_symbol
         );
         """
         cursor.execute(query)
         result = cursor.fetchall()
 
-        columns = ["Date", "Company Symbol", "Analyzed Keywords", "Sentiment Score", "Sentiment", "Entry Price"]
+        columns = ["Date", "Company Symbol", "Analyzed Articles", "Sentiment Score", "Sentiment", "Entry Price"]
         df = pd.DataFrame(result, columns=columns)
 
         cursor.close()
@@ -102,21 +102,21 @@ def fetch_gtrend_signals():
 
         return df
     except Exception as e:
-        st.error(f"Error fetching Google Trends signals: {e}")
+        st.error(f"Error fetching News signals: {e}")
         return None
 
 # Page title and description
-st.markdown("<h1 style='text-align: center;'>Google Trends Signals</h1>", unsafe_allow_html=True)
-st.write("<p style='text-align: center;'>View the latest Google Trends sentiment signals for each stock.</p>", unsafe_allow_html=True)
+st.markdown("<h1 style='text-align: center;'>News Signals</h1>", unsafe_allow_html=True)
+st.write("<p style='text-align: center;'>View the latest News sentiment signals for each stock.</p>", unsafe_allow_html=True)
 
-# Fetch and display Google Trends signals
-gtrend_signals_df = fetch_gtrend_signals()
+# Fetch and display News signals
+news_signals_df = fetch_news_signals()
 
-if gtrend_signals_df is not None:
-    if not gtrend_signals_df.empty:
-        table_html = gtrend_signals_df.to_html(index=False, classes="pretty-table")
+if news_signals_df is not None:
+    if not news_signals_df.empty:
+        table_html = news_signals_df.to_html(index=False, classes="pretty-table")
         st.markdown(table_html, unsafe_allow_html=True)
     else:
-        st.warning("No Google Trends signals found in the database.")
+        st.warning("No News signals found in the database.")
 else:
-    st.error("Failed to fetch Google Trends signals. Please check the database connection.")
+    st.error("Failed to fetch News signals. Please check the database connection.")
