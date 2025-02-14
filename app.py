@@ -49,7 +49,7 @@ st.markdown(
     }
 
     /* Responsive CSS for mobile */
-    @media (max-width: 600px) {
+    @media (max-width: 200px) {
         /* Force columns to behave as a 2x2 grid */
         .stColumns > div {
             flex: 1 1 45% !important; /* Adjust the width to fit 2 columns */
