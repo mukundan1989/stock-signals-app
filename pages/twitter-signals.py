@@ -90,10 +90,9 @@ twitter_signals_df = fetch_twitter_signals()
 
 if twitter_signals_df is not None:
     if not twitter_signals_df.empty:
-        # Display the DataFrame
-        st.dataframe(twitter_signals_df, use_container_width=True)
+        # Display the DataFrame without the index column
+        st.dataframe(twitter_signals_df, use_container_width=True, hide_index=True)
     else:
         st.warning("No Twitter signals found in the database.")
 else:
     st.error("Failed to fetch Twitter signals. Please check the database connection.")
-
