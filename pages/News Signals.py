@@ -6,10 +6,10 @@ import mysql.connector
 st.markdown(
     """
     <style>
-    /* Light grey background for the site */
-    body {
-        background-color: #f0f0f0; /* Light grey background */
-        color: #000000; /* Dark text for the site */
+    /* Target the main container (st-emotion-cache-bm2z3a) and set a dark grey background */
+    .st-emotion-cache-bm2z3a {
+        background-color: #2a2a2a; /* Dark grey background */
+        color: #ffffff; /* White text for the entire page */
     }
 
     /* Custom CSS for elegant table design */
@@ -54,6 +54,11 @@ st.markdown(
     /* Hover effect for rows */
     .pretty-table tbody tr:hover {
         background-color: #5a5a5a; /* Slightly lighter grey on hover */
+    }
+
+    /* Ensure the text above the table is white */
+    h1, p {
+        color: #ffffff !important; /* White text for titles and paragraphs */
     }
     </style>
     """,
@@ -101,8 +106,8 @@ def fetch_gtrend_signals():
         return None
 
 # Page title and description
-st.markdown("<h1 style='text-align: center; color: #000000;'>Google Trends Signals</h1>", unsafe_allow_html=True)
-st.write("<p style='text-align: center; color: #000000;'>View the latest Google Trends sentiment signals for each stock.</p>", unsafe_allow_html=True)
+st.markdown("<h1 style='text-align: center;'>Google Trends Signals</h1>", unsafe_allow_html=True)
+st.write("<p style='text-align: center;'>View the latest Google Trends sentiment signals for each stock.</p>", unsafe_allow_html=True)
 
 # Fetch and display Google Trends signals
 gtrend_signals_df = fetch_gtrend_signals()
