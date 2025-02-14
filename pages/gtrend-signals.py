@@ -2,15 +2,60 @@ import streamlit as st
 import pandas as pd
 import mysql.connector
 
-# Custom CSS to make the app full-width and responsive
+# Custom CSS for elegant table design
 st.markdown(
     """
     <style>
+    /* Main container styling */
     .main > div {
         max-width: 100%;
         padding-left: 5%;
         padding-right: 5%;
     }
+
+    /* Table styling */
+    .pretty-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 25px 0;
+        font-size: 0.9em;
+        font-family: sans-serif;
+        min-width: 400px;
+        box-shadow: 0 0 20px rgba(0, 0, 0, 0.15);
+        border-radius: 10px;
+        overflow: hidden;
+    }
+
+    /* Table header styling */
+    .pretty-table thead tr {
+        background-color: #007BFF;
+        color: #ffffff;
+        text-align: left;
+    }
+
+    /* Table header and data cells */
+    .pretty-table th,
+    .pretty-table td {
+        padding: 12px 15px;
+    }
+
+    /* Table body rows */
+    .pretty-table tbody tr {
+        border-bottom: 1px solid #dddddd;
+    }
+
+    /* Alternate row coloring */
+    .pretty-table tbody tr:nth-of-type(even) {
+        background-color: #f3f3f3;
+    }
+
+    /* Hover effect for rows */
+    .pretty-table tbody tr:hover {
+        background-color: #f1f1f1;
+        cursor: pointer;
+    }
+
+    /* Remove the default index column */
     .stDataFrame {
         width: 100% !important;
     }
@@ -24,12 +69,6 @@ st.markdown(
     }
     .stDataFrame th, .stDataFrame td {
         padding: 8px !important;
-    }
-    .stButton > button {
-        width: 100%;
-    }
-    .stMarkdown {
-        width: 100%;
     }
     </style>
     """,
@@ -82,16 +121,19 @@ def fetch_gtrend_signals():
         return None
 
 # Streamlit UI - Google Trends Signals Page
-st.markdown("<h1 style='text-align: center;'>Google Trends Signals</h1>", unsafe_allow_html=True)
+st.markdown("<h1 style='text-align: center; color: #007BFF;'>Google Trends Signals</h1>", unsafe_allow_html=True)
 st.write("View the latest Google Trends sentiment signals for each stock.")
 
-# Fetch and display the Google Trends signals
+# Fetch the Google Trends signals
 gtrend_signals_df = fetch_gtrend_signals()
 
 if gtrend_signals_df is not None:
     if not gtrend_signals_df.empty:
-        # Display the DataFrame without the index column
-        st.dataframe(gtrend_signals_df, use_container_width=True, hide_index=True)
+        # Convert DataFrame to HTML and apply custom CSS class
+        table_html = gtrend_signals_df.to_html(index=False, classes="pretty-table", border=0)
+
+        # Display the styled table
+        st.markdown(table_html, unsafe_allow_html=True)
     else:
         st.warning("No Google Trends signals found in the database.")
 else:
