@@ -2,15 +2,29 @@ import streamlit as st
 import pandas as pd
 import mysql.connector
 
-# Custom CSS to make the app full-width and responsive
+# Custom CSS to remove the default header and make the app full-width
 st.markdown(
     """
     <style>
+    /* Remove the default header */
+    header[data-testid="stHeader"] {
+        display: none;
+    }
+
+    /* Remove padding and margin around the main block */
     .main > div {
         max-width: 100%;
         padding-left: 5%;
         padding-right: 5%;
+        padding-top: 0 !important;
     }
+
+    /* Ensure the app starts from the very top */
+    .stApp {
+        margin-top: -50px; /* Adjust this value if needed */
+    }
+
+    /* Full-width DataFrame */
     .stDataFrame {
         width: 100% !important;
     }
@@ -25,6 +39,8 @@ st.markdown(
     .stDataFrame th, .stDataFrame td {
         padding: 8px !important;
     }
+
+    /* Full-width buttons and markdown */
     .stButton > button {
         width: 100%;
     }
