@@ -66,8 +66,8 @@ st.markdown(
 )
 
 # Streamlit UI - Portfolio Section
-st.markdown("<h1 style='text-align: center;'>Portfolio</h1>", unsafe_allow_html=True)
-st.write("Easily predict stock market trends and make smarter investment decisions with our intuitive portfolio tool.")
+st.markdown("<h1 style='text-align: center;'>Stock Sentimeter</h1>", unsafe_allow_html=True)
+st.write("Know stock market trends and make smarter investment decisions with our intuitive portfolio tool.")
 
 # **2×2 Grid Layout Using HTML**
 st.markdown(
@@ -103,6 +103,9 @@ if "data" not in st.session_state:
     st.session_state["data"] = None
 if "show_search" not in st.session_state:
     st.session_state["show_search"] = False
+
+# Add spacing before "Select Sentiment Model"
+st.markdown("<br>", unsafe_allow_html=True)
 
 # Toggle buttons for selecting models
 st.write("### Select Sentiment Model")
@@ -164,8 +167,11 @@ def fetch_data(table, limit=5):
 if st.session_state["data"] is None:
     st.session_state["data"] = fetch_data(st.session_state["selected_table"])
 
+# Add spacing before "Portfolio"
+st.markdown("<br>", unsafe_allow_html=True)
+
 # Display formatted table with pretty headers
-st.write("### Watchlist")
+st.write("### Portfolio")
 if st.session_state["data"] is not None:
     table_html = st.session_state["data"].to_html(index=False, classes="pretty-table", escape=False)
     st.markdown(table_html, unsafe_allow_html=True)
