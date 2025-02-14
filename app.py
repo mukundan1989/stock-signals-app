@@ -106,11 +106,15 @@ def fetch_data(table, limit=5):
         cursor.execute(query)
         df = pd.DataFrame(cursor.fetchall(), columns=["Date", "Company", "Symbol", "Signal", "Price"])
         
-        # Format the price column
-        df['Price'] = df['Price'].apply(lambda x: f"${x:,.2f}")
+        # Convert Signal to float before formatting
+        df['Signal'] = pd.to_numeric(df['Signal'], errors='coerce')
         
-        # Format the signal column with + sign and 2 decimal places
-        df['Signal'] = df['Signal'].apply(lambda x: f"+{x:.2f}" if x > 0 else f"{x:.2f}")
+        # Convert Price to float before formatting
+        df['Price'] = pd.to_numeric(df['Price'], errors='coerce')
+        
+        # Format the columns
+        df['Price'] = df['Price'].apply(lambda x: f"${x:,.2f}" if pd.notnull(x) else "")
+        df['Signal'] = df['Signal'].apply(lambda x: f"+{x:.2f}" if pd.notnull(x) and x > 0 else f"{x:.2f}" if pd.notnull(x) else "")
         
         cursor.close()
         conn.close()
