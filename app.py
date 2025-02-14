@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import mysql.connector
 
-# Custom CSS to remove the header, make the app full-width, and enforce a 2x2 grid
+# Custom CSS for forcing a 2×2 grid layout
 st.markdown(
     """
     <style>
@@ -11,30 +11,34 @@ st.markdown(
         display: none;
     }
 
-    /* Full-width app layout */
+    /* Full-width layout */
     .main > div {
         max-width: 100%;
         padding-left: 5%;
         padding-right: 5%;
     }
 
-    /* Force 2×2 Grid Layout on ALL screen sizes */
-    .metric-container {
-        display: grid !important;
-        grid-template-columns: repeat(2, 1fr) !important; /* Always 2 columns */
-        gap: 10px !important;
+    /* Force a 2×2 Grid Layout */
+    .stColumns {
+        display: flex !important;
+        flex-wrap: wrap !important;
         justify-content: center !important;
         align-items: center !important;
     }
+    .stColumns > div {
+        flex: 1 1 48% !important; /* Forces 2 per row */
+        max-width: 48% !important;
+        margin: 1%;
+    }
 
-    /* Ensure each metric box has equal size */
+    /* Styling for Metric Boxes */
     .metric-box {
         background-color: #007BFF;
         padding: 20px;
         border-radius: 10px;
         text-align: center;
         color: white;
-        width: 100% !important;
+        width: 100%;
     }
     </style>
     """,
@@ -59,30 +63,18 @@ TABLES = {
 st.markdown("<h1 style='text-align: center;'>Portfolio</h1>", unsafe_allow_html=True)
 st.write("Easily predict stock market trends and make smarter investment decisions with our intuitive portfolio tool.")
 
-# 2×2 Grid using Custom CSS
-st.markdown('<div class="metric-container">', unsafe_allow_html=True)
+# **2×2 Grid using st.columns(2)**
+col1, col2 = st.columns(2)
+with col1:
+    st.markdown("<div class='metric-box'><h2>43%</h2><p>Above Baseline</p></div>", unsafe_allow_html=True)
+with col2:
+    st.markdown("<div class='metric-box'><h2>$13,813</h2><p>Value Gain on Buy</p></div>", unsafe_allow_html=True)
 
-st.markdown(
-    "<div class='metric-box'><h2>43%</h2><p>Above Baseline</p></div>",
-    unsafe_allow_html=True
-)
-
-st.markdown(
-    "<div class='metric-box'><h2>$13,813</h2><p>Value Gain on Buy</p></div>",
-    unsafe_allow_html=True
-)
-
-st.markdown(
-    "<div class='metric-box'><h2>+0.75</h2><p>Sentiment Score</p></div>",
-    unsafe_allow_html=True
-)
-
-st.markdown(
-    "<div class='metric-box'><h2>87%</h2><p>Prediction Accuracy</p></div>",
-    unsafe_allow_html=True
-)
-
-st.markdown('</div>', unsafe_allow_html=True)  # Close the container
+col3, col4 = st.columns(2)
+with col3:
+    st.markdown("<div class='metric-box'><h2>+0.75</h2><p>Sentiment Score</p></div>", unsafe_allow_html=True)
+with col4:
+    st.markdown("<div class='metric-box'><h2>87%</h2><p>Prediction Accuracy</p></div>", unsafe_allow_html=True)
 
 # Initialize session state for selected table
 if "selected_table" not in st.session_state:
