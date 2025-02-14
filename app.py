@@ -2,23 +2,13 @@ import streamlit as st
 import pandas as pd
 import mysql.connector
 
-# Custom CSS to enforce a 2×2 grid on all screens
+# Custom CSS for styling
 st.markdown(
     """
     <style>
-    /* Remove Streamlit header */
-    header[data-testid="stHeader"] {
-        display: none;
-    }
-
-    /* Full-width layout */
-    .main > div {
-        max-width: 100%;
-        padding-left: 5%;
-        padding-right: 5%;
-    }
-
-    /* Create a 2×2 grid layout */
+    header[data-testid="stHeader"] { display: none; }
+    .main > div { max-width: 100%; padding-left: 5%; padding-right: 5%; }
+    
     .grid-container {
         display: grid;
         grid-template-columns: repeat(2, 1fr);
@@ -27,16 +17,10 @@ st.markdown(
         align-items: center;
     }
 
-    /* Responsive fix: Keep 2×2 layout even on small screens */
     @media (max-width: 600px) {
-        .grid-container {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 5px;
-        }
+        .grid-container { grid-template-columns: repeat(2, 1fr); gap: 5px; }
     }
 
-    /* Styling for metric boxes */
     .metric-box {
         background-color: #007BFF;
         padding: 20px;
@@ -52,29 +36,17 @@ st.markdown(
 )
 
 # Streamlit UI - Portfolio Section
-st.markdown("<h1 style='text-align: center;'>Stock Sentimeter</h1>", unsafe_allow_html=True)
-st.write("Analyze stock market trends and make smarter investment decisions with our intuitive portfolio tool.")
+st.markdown("<h1 style='text-align: center;'>Portfolio</h1>", unsafe_allow_html=True)
+st.write("Easily predict stock market trends and make smarter investment decisions with our intuitive portfolio tool.")
 
 # **2×2 Grid Layout Using HTML**
 st.markdown(
     """
     <div class="grid-container">
-        <div class="metric-box">
-            <h2>43%</h2>
-            <p>Above Baseline</p>
-        </div>
-        <div class="metric-box">
-            <h2>$13,813</h2>
-            <p>Gain on Buy</p>
-        </div>
-        <div class="metric-box">
-            <h2>+0.75</h2>
-            <p>Sentiment Score</p>
-        </div>
-        <div class="metric-box">
-            <h2>87%</h2>
-            <p>Win Rate</p>
-        </div>
+        <div class="metric-box"><h2>43%</h2><p>Above Baseline</p></div>
+        <div class="metric-box"><h2>$13,813</h2><p>Value Gain on Buy</p></div>
+        <div class="metric-box"><h2>+0.75</h2><p>Sentiment Score</p></div>
+        <div class="metric-box"><h2>87%</h2><p>Prediction Accuracy</p></div>
     </div>
     """,
     unsafe_allow_html=True
@@ -102,9 +74,6 @@ if "data" not in st.session_state:
 if "show_search" not in st.session_state:
     st.session_state["show_search"] = False
 
-# Add spacing before "Select Sentiment Model"
-st.markdown("<br>", unsafe_allow_html=True)
-
 # Toggle buttons for selecting models
 st.write("### Select Sentiment Model")
 col1, col2, col3, col4 = st.columns(4)
@@ -131,7 +100,7 @@ with col4:
     if st.toggle("Overall", value=(st.session_state["selected_table"] == "overall_latest_signal")):
         toggle_selection("overall_latest_signal")
 
-# Function to fetch and filter data
+# Function to fetch and format data
 def fetch_data(table, limit=5):
     try:
         conn = mysql.connector.connect(
@@ -146,6 +115,16 @@ def fetch_data(table, limit=5):
         df = pd.DataFrame(cursor.fetchall(), columns=["date", "comp_name", "comp_symbol", "trade_signal", "entry_price"])
         cursor.close()
         conn.close()
+
+        # **Rename columns to user-friendly names**
+        df = df.rename(columns={
+            "date": "Date",
+            "comp_name": "Company Name",
+            "comp_symbol": "Stock Symbol",
+            "trade_signal": "Trade Signal",
+            "entry_price": "Entry Price ($)"
+        })
+
         return df
     except Exception as e:
         st.error(f"Error fetching data: {e}")
@@ -155,13 +134,10 @@ def fetch_data(table, limit=5):
 if st.session_state["data"] is None:
     st.session_state["data"] = fetch_data(st.session_state["selected_table"])
 
-# Add spacing before "Portfolio"
-st.markdown("<br>", unsafe_allow_html=True)
-
-# Display data table
-st.write("### Portfolio")
+# Display formatted table with pretty headers
+st.write("### Watchlist")
 if st.session_state["data"] is not None:
-    st.dataframe(st.session_state["data"], use_container_width=True, hide_index=True)  # Hide the index column
+    st.dataframe(st.session_state["data"], use_container_width=True)
 
 # Add Stock button
 if st.button("Add Stock"):
@@ -187,6 +163,16 @@ if st.session_state["show_search"]:
 
             if result:
                 new_row = pd.DataFrame(result, columns=["date", "comp_name", "comp_symbol", "trade_signal", "entry_price"])
+                
+                # Rename new row to match the table headers
+                new_row = new_row.rename(columns={
+                    "date": "Date",
+                    "comp_name": "Company Name",
+                    "comp_symbol": "Stock Symbol",
+                    "trade_signal": "Trade Signal",
+                    "entry_price": "Entry Price ($)"
+                })
+                
                 st.session_state["data"] = pd.concat([st.session_state["data"], new_row], ignore_index=True)
                 st.session_state["show_search"] = False
                 st.rerun()
