@@ -63,15 +63,16 @@ st.markdown(
 
     /* Updated styling for metric boxes */
     .metric-box {
-        background-color: #f0f0f0; /* Light grey background */
+        background-color: #3a3a3a; /* Dark grey background */
         padding: 20px;
         border-radius: 10px;
         text-align: center;
-        color: #000000; /* Black text */
+        color: #ffffff; /* White text */
         font-size: 18px;
         font-weight: bold;
     }
 
+    /* Grid container for metric boxes */
     .grid-container {
         display: grid;
         grid-template-columns: repeat(2, 1fr);
@@ -82,6 +83,22 @@ st.markdown(
 
     @media (max-width: 600px) {
         .grid-container { grid-template-columns: repeat(2, 1fr); gap: 5px; }
+    }
+
+    /* Styling for the "Add Stock" button */
+    .stButton button {
+        background-color: #000000; /* Black background */
+        color: #ffffff; /* White text */
+        border-radius: 5px;
+        padding: 10px 20px;
+        font-size: 16px;
+        font-weight: bold;
+        border: none;
+        transition: background-color 0.3s ease;
+    }
+
+    .stButton button:hover {
+        background-color: #333333; /* Slightly lighter black on hover */
     }
     </style>
     """,
