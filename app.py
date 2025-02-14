@@ -52,8 +52,8 @@ st.markdown(
 )
 
 # Streamlit UI - Portfolio Section
-st.markdown("<h1 style='text-align: center;'>Portfolio</h1>", unsafe_allow_html=True)
-st.write("Easily predict stock market trends and make smarter investment decisions with our intuitive portfolio tool.")
+st.markdown("<h1 style='text-align: center;'>Stock Sentimeter</h1>", unsafe_allow_html=True)
+st.write("Analyze stock market trends and make smarter investment decisions with our intuitive portfolio tool.")
 
 # **2×2 Grid Layout Using HTML**
 st.markdown(
@@ -65,7 +65,7 @@ st.markdown(
         </div>
         <div class="metric-box">
             <h2>$13,813</h2>
-            <p>Value Gain on Buy</p>
+            <p>Gain on Buy</p>
         </div>
         <div class="metric-box">
             <h2>+0.75</h2>
@@ -73,7 +73,7 @@ st.markdown(
         </div>
         <div class="metric-box">
             <h2>87%</h2>
-            <p>Prediction Accuracy</p>
+            <p>Win Rate</p>
         </div>
     </div>
     """,
