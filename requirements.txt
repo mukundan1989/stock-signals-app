@@ -1,3 +1,6 @@
 streamlit
-pandas
+pandas==2.2.0
 mysql-connector-python
+plotly==5.18.0
+streamlit-option-menu==0.3.12
+pillow==10.2.0
