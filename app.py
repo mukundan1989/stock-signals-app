@@ -19,6 +19,11 @@ st.markdown(
     }
     .stDataFrame table {
         width: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+    .stDataFrame th, .stDataFrame td {
+        padding: 8px !important;
     }
     .stButton > button {
         width: 100%;
@@ -154,7 +159,7 @@ col1, col2, col3, col4 = st.columns(4)
 
 # Display table with only required columns (No extra index)
 if st.session_state["data"] is not None:
-    st.dataframe(st.session_state["data"].to_dict(orient="records"))
+    st.dataframe(st.session_state["data"].to_dict(orient="records"), use_container_width=True)
 
 # Add Stock button (always visible)
 if st.button("Add Stock"):
