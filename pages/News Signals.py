@@ -6,10 +6,10 @@ import mysql.connector
 st.markdown(
     """
     <style>
-    /* Dark grey background for the entire page */
+    /* Light grey background for the site */
     body {
-        background-color: #2a2a2a;
-        color: #ffffff; /* White text for the entire page */
+        background-color: #f0f0f0; /* Light grey background */
+        color: #000000; /* Dark text for the site */
     }
 
     /* Custom CSS for elegant table design */
@@ -101,8 +101,8 @@ def fetch_gtrend_signals():
         return None
 
 # Page title and description
-st.markdown("<h1 style='text-align: center; color: #ffffff;'>Google Trends Signals</h1>", unsafe_allow_html=True)
-st.write("<p style='text-align: center; color: #ffffff;'>View the latest Google Trends sentiment signals for each stock.</p>", unsafe_allow_html=True)
+st.markdown("<h1 style='text-align: center; color: #000000;'>Google Trends Signals</h1>", unsafe_allow_html=True)
+st.write("<p style='text-align: center; color: #000000;'>View the latest Google Trends sentiment signals for each stock.</p>", unsafe_allow_html=True)
 
 # Fetch and display Google Trends signals
 gtrend_signals_df = fetch_gtrend_signals()
