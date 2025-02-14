@@ -15,14 +15,16 @@ st.markdown(
         box-shadow: 0 0 20px rgba(0, 0, 0, 0.15);
         border-radius: 10px;
         overflow: hidden;
+        text-align: center;
     }
     .pretty-table thead tr {
         background-color: #007BFF;
         color: #ffffff;
-        text-align: left;
+        text-align: center;
     }
     .pretty-table th, .pretty-table td {
         padding: 12px 15px;
+        text-align: center;
     }
     .pretty-table tbody tr:nth-of-type(even) {
         background-color: #f3f3f3;
@@ -76,7 +78,7 @@ def fetch_gtrend_signals():
         return None
 
 st.markdown("<h1 style='text-align: center; color: #007BFF;'>Google Trends Signals</h1>", unsafe_allow_html=True)
-st.write("View the latest Google Trends sentiment signals for each stock.")
+st.write("<p style='text-align: center;'>View the latest Google Trends sentiment signals for each stock.</p>", unsafe_allow_html=True)
 
 gtrend_signals_df = fetch_gtrend_signals()
 
