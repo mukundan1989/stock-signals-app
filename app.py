@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import mysql.connector
 
-# Custom CSS to remove the default header and make the app full-width
+# Custom CSS to remove the default header, make the app full-width, and ensure responsive layout
 st.markdown(
     """
     <style>
@@ -46,6 +46,18 @@ st.markdown(
     }
     .stMarkdown {
         width: 100%;
+    }
+
+    /* Responsive CSS for mobile */
+    @media (max-width: 600px) {
+        .stColumns {
+            display: flex;
+            flex-wrap: wrap;
+        }
+        .stColumns > div {
+            flex: 1 1 45%; /* Adjust the width to fit 2 columns */
+            margin: 2.5%; /* Add some margin for spacing */
+        }
     }
     </style>
     """,
