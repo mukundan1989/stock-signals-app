@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import mysql.connector
 
-# Custom CSS to remove the default header, make the app full-width, and ensure responsive layout
+# Custom CSS to remove the default header, make the app full-width, and enforce 2x2 grid on all screen sizes
 st.markdown(
     """
     <style>
@@ -24,22 +24,6 @@ st.markdown(
         margin-top: -50px; /* Adjust this value if needed */
     }
 
-    /* Full-width DataFrame */
-    .stDataFrame {
-        width: 100% !important;
-    }
-    .stDataFrame > div {
-        width: 100% !important;
-    }
-    .stDataFrame table {
-        width: 100% !important;
-        margin: 0 !important;
-        padding: 0 !important;
-    }
-    .stDataFrame th, .stDataFrame td {
-        padding: 8px !important;
-    }
-
     /* Full-width buttons and markdown */
     .stButton > button {
         width: 100%;
@@ -48,14 +32,16 @@ st.markdown(
         width: 100%;
     }
 
-    /* Responsive CSS for mobile */
-    @media (max-width: 600px) {
-        /* Force columns to behave as a 2x2 grid */
-        .stColumns > div {
-            flex: 1 1 40% !important; /* Adjust the width to fit 2 columns */
-            margin: 2.5% !important; /* Add some margin for spacing */
-            max-width: 40% !important; /* Ensure columns don't exceed 45% width */
-        }
+    /* 2x2 Grid Layout on ALL Screen Sizes */
+    .stColumns {
+        display: flex !important;
+        flex-wrap: wrap !important;
+        justify-content: center !important;
+    }
+    .stColumns > div {
+        flex: 1 1 48% !important; /* 2x2 layout */
+        margin: 1% !important;
+        max-width: 48% !important;
     }
     </style>
     """,
@@ -80,7 +66,7 @@ TABLES = {
 st.markdown("<h1 style='text-align: center;'>Portfolio</h1>", unsafe_allow_html=True)
 st.write("Easily predict stock market trends and make smarter investment decisions with our intuitive portfolio tool.")
 
-# Metrics Grid (2x2 Layout with Spacing)
+# Metrics Grid (2x2 Layout)
 col1, col2 = st.columns(2)
 
 with col1:
@@ -96,8 +82,6 @@ with col2:
         "<h2>$13,813</h2><p>Value Gain on Buy</p></div>",
         unsafe_allow_html=True
     )
-
-st.markdown("<br>", unsafe_allow_html=True)
 
 col3, col4 = st.columns(2)
 
@@ -123,10 +107,7 @@ if "data" not in st.session_state:
 if "show_search" not in st.session_state:
     st.session_state["show_search"] = False
 
-# Add spacing before "Select Data Source"
-st.markdown("<br>", unsafe_allow_html=True)
-
-# Toggle buttons (Only one can be active at a time)
+# Toggle buttons for selecting models
 st.write("### Select Sentiment Model")
 col1, col2, col3, col4 = st.columns(4)
 
@@ -176,18 +157,12 @@ def fetch_data(table, limit=5):
 if st.session_state["data"] is None:
     st.session_state["data"] = fetch_data(st.session_state["selected_table"])
 
-# Add spacing before "Watchlist"
-st.markdown("<br>", unsafe_allow_html=True)
-
-# Toggle buttons (Only one can be active at a time)
+# Display data table
 st.write("### Watchlist")
-col1, col2, col3, col4 = st.columns(4)
-
-# Display table with only required columns (No extra index)
 if st.session_state["data"] is not None:
-    st.dataframe(st.session_state["data"].to_dict(orient="records"), use_container_width=True)
+    st.dataframe(st.session_state["data"], use_container_width=True)
 
-# Add Stock button (always visible)
+# Add Stock button
 if st.button("Add Stock"):
     st.session_state["show_search"] = True
 
