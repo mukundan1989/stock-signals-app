@@ -119,18 +119,13 @@ if st.session_state["data"] is None:
 # Add spacing before "Watchlist"
 st.markdown("<br>", unsafe_allow_html=True)
 
-# Table Styling
-st.write(f"## {st.session_state['selected_table'].replace('_', ' ').title()} Data")
+# Toggle buttons (Only one can be active at a time)
+st.write("### Watchlist")
+col1, col2, col3, col4 = st.columns(4)
 
+# Display table with only required columns (No extra index)
 if st.session_state["data"] is not None:
-    def style_table(val):
-        if val == "Buy":
-            return "background-color: #D4EDDA; color: #155724; font-weight: bold; text-align: center;"
-        elif val == "Sell":
-            return "background-color: #F8D7DA; color: #721C24; font-weight: bold; text-align: center;"
-        return "text-align: center;"
-    
-    st.dataframe(st.session_state["data"].style.applymap(style_table, subset=["trade_signal"]))
+    st.dataframe(st.session_state["data"].to_dict(orient="records"))
 
 # Add Stock button (always visible)
 if st.button("Add Stock"):
