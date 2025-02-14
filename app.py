@@ -61,13 +61,13 @@ st.markdown(
         color: #ffffff !important; /* White text for titles and paragraphs */
     }
 
-    /* Additional styling for metric boxes */
+    /* Updated styling for metric boxes */
     .metric-box {
-        background-color: #007BFF;
+        background-color: #f0f0f0; /* Light grey background */
         padding: 20px;
         border-radius: 10px;
         text-align: center;
-        color: white;
+        color: #000000; /* Black text */
         font-size: 18px;
         font-weight: bold;
     }
