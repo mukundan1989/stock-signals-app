@@ -11,10 +11,16 @@ st.markdown(
         padding-left: 5%;
         padding-right: 5%;
     }
-    .stButton > button {
-        width: 100%;
-    }
     .stDataFrame {
+        width: 100% !important;
+    }
+    .stDataFrame > div {
+        width: 100% !important;
+    }
+    .stDataFrame table {
+        width: 100% !important;
+    }
+    .stButton > button {
         width: 100%;
     }
     .stMarkdown {
