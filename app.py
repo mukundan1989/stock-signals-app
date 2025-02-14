@@ -2,35 +2,17 @@ import streamlit as st
 import pandas as pd
 import mysql.connector
 
-# Custom CSS for styling
+# Custom CSS for dark-themed elegant table design
 st.markdown(
     """
     <style>
-    header[data-testid="stHeader"] { display: none; }
-    .main > div { max-width: 100%; padding-left: 5%; padding-right: 5%; }
-    
-    .grid-container {
-        display: grid;
-        grid-template-columns: repeat(2, 1fr);
-        gap: 10px;
-        justify-content: center;
-        align-items: center;
+    /* Target the main container (st-emotion-cache-bm2z3a) and set a dark grey background */
+    .st-emotion-cache-bm2z3a {
+        background-color: #2a2a2a; /* Dark grey background */
+        color: #ffffff; /* White text for the entire page */
     }
 
-    @media (max-width: 600px) {
-        .grid-container { grid-template-columns: repeat(2, 1fr); gap: 5px; }
-    }
-
-    .metric-box {
-        background-color: #007BFF;
-        padding: 20px;
-        border-radius: 10px;
-        text-align: center;
-        color: white;
-        font-size: 18px;
-        font-weight: bold;
-    }
-
+    /* Custom CSS for elegant table design */
     .pretty-table {
         width: 100%;
         border-collapse: collapse;
@@ -42,23 +24,64 @@ st.markdown(
         overflow: hidden;
         text-align: center;
         border: none;
+        color: #ffffff; /* White text for the table */
     }
+
+    /* Black header with white text */
     .pretty-table thead tr {
-        background-color: #007BFF;
-        color: #ffffff;
+        background-color: #000000; /* Black header */
+        color: #ffffff; /* White text */
         text-align: center;
         border: none;
     }
+
+    /* Padding for table cells */
     .pretty-table th, .pretty-table td {
         padding: 12px 15px;
         text-align: center;
         border: none;
     }
-    .pretty-table tbody tr:nth-of-type(even) {
-        background-color: #f3f3f3;
+
+    /* Alternating row colors: light grey and dark grey */
+    .pretty-table tbody tr:nth-of-type(odd) {
+        background-color: #3a3a3a; /* Dark grey */
     }
+
+    .pretty-table tbody tr:nth-of-type(even) {
+        background-color: #4a4a4a; /* Light grey */
+    }
+
+    /* Hover effect for rows */
     .pretty-table tbody tr:hover {
-        background-color: #f1f1f1;
+        background-color: #5a5a5a; /* Slightly lighter grey on hover */
+    }
+
+    /* Ensure the text above the table is white */
+    h1, p {
+        color: #ffffff !important; /* White text for titles and paragraphs */
+    }
+
+    /* Additional styling for metric boxes */
+    .metric-box {
+        background-color: #007BFF;
+        padding: 20px;
+        border-radius: 10px;
+        text-align: center;
+        color: white;
+        font-size: 18px;
+        font-weight: bold;
+    }
+
+    .grid-container {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 10px;
+        justify-content: center;
+        align-items: center;
+    }
+
+    @media (max-width: 600px) {
+        .grid-container { grid-template-columns: repeat(2, 1fr); gap: 5px; }
     }
     </style>
     """,
@@ -67,7 +90,7 @@ st.markdown(
 
 # Streamlit UI - Portfolio Section
 st.markdown("<h1 style='text-align: center;'>Stock Sentimeter</h1>", unsafe_allow_html=True)
-st.write("Know stock market trends and make smarter investment decisions with our intuitive portfolio tool.")
+st.write("<p style='text-align: center;'>Know stock market trends and make smarter investment decisions with our intuitive portfolio tool.</p>", unsafe_allow_html=True)
 
 # **2×2 Grid Layout Using HTML**
 st.markdown(
