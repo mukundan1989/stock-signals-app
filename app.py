@@ -114,16 +114,17 @@ def fetch_data(table, limit=5):
 
 # Load initial data if not set
 if st.session_state["data"] is not None:
-    styled_df = st.session_state["data"].style.set_properties(**{
-        'background-color': '#f9f9f9',
-        'color': '#333',
-        'border': '1px solid #ddd',
-        'text-align': 'center',
-    }).set_table_styles([
-        {'selector': 'thead th', 'props': [('background-color', '#007BFF'), ('color', 'white'), ('font-size', '16px')]}
-    ])
-    
-    st.dataframe(styled_df)
+    df = st.session_state["data"]
+    st.dataframe(
+        df.style.set_properties(**{
+            'background-color': '#f9f9f9',
+            'color': '#333',
+            'border': '1px solid #ddd',
+            'text-align': 'center',
+        }).set_table_styles([
+            {'selector': 'thead th', 'props': [('background-color', '#007BFF'), ('color', 'white'), ('font-size', '16px')]}
+        ])
+    )
 
 # Add spacing before "Watchlist"
 st.markdown("<br>", unsafe_allow_html=True)
