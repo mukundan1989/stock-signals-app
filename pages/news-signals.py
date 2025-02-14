@@ -2,34 +2,38 @@ import streamlit as st
 import pandas as pd
 import mysql.connector
 
-# Custom CSS to make the app full-width and responsive
+# Custom CSS for elegant table design
 st.markdown(
     """
     <style>
-    .main > div {
-        max-width: 100%;
-        padding-left: 5%;
-        padding-right: 5%;
-    }
-    .stDataFrame {
-        width: 100% !important;
-    }
-    .stDataFrame > div {
-        width: 100% !important;
-    }
-    .stDataFrame table {
-        width: 100% !important;
-        margin: 0 !important;
-        padding: 0 !important;
-    }
-    .stDataFrame th, .stDataFrame td {
-        padding: 8px !important;
-    }
-    .stButton > button {
+    .pretty-table {
         width: 100%;
+        border-collapse: collapse;
+        font-size: 0.9em;
+        font-family: sans-serif;
+        min-width: 400px;
+        box-shadow: 0 0 20px rgba(0, 0, 0, 0.15);
+        border-radius: 10px;
+        overflow: hidden;
+        text-align: center;
+        border: none;
     }
-    .stMarkdown {
-        width: 100%;
+    .pretty-table thead tr {
+        background-color: #007BFF;
+        color: #ffffff;
+        text-align: center;
+        border: none;
+    }
+    .pretty-table th, .pretty-table td {
+        padding: 12px 15px;
+        text-align: center;
+        border: none;
+    }
+    .pretty-table tbody tr:nth-of-type(even) {
+        background-color: #f3f3f3;
+    }
+    .pretty-table tbody tr:hover {
+        background-color: #f1f1f1;
     }
     </style>
     """,
@@ -45,7 +49,6 @@ DB_PASSWORD = "stockstream_two"
 # Function to fetch the latest News signals
 def fetch_news_signals():
     try:
-        # Connect to the database
         conn = mysql.connector.connect(
             host=DB_HOST,
             database=DB_NAME,
@@ -54,7 +57,6 @@ def fetch_news_signals():
         )
         cursor = conn.cursor()
 
-        # SQL query to fetch the latest entry for each comp_symbol
         query = """
         SELECT date, comp_symbol, analyzed_articles, sentiment_score, sentiment, entry_price
         FROM news_signals_full
@@ -67,31 +69,26 @@ def fetch_news_signals():
         cursor.execute(query)
         result = cursor.fetchall()
 
-        # Convert the result to a DataFrame
-        columns = ["date", "comp_symbol", "analyzed_articles", "sentiment_score", "sentiment", "entry_price"]
+        columns = ["Date", "Company Symbol", "Analyzed Articles", "Sentiment Score", "Sentiment", "Entry Price"]
         df = pd.DataFrame(result, columns=columns)
 
-        # Close the database connection
         cursor.close()
         conn.close()
 
         return df
-
     except Exception as e:
-        st.error(f"Error fetching Google Trends signals: {e}")
+        st.error(f"Error fetching News signals: {e}")
         return None
 
-# Streamlit UI - Newss Signals Page
-st.markdown("<h1 style='text-align: center;'>News Signals</h1>", unsafe_allow_html=True)
-st.write("View the latest News sentiment signals for each stock.")
+st.markdown("<h1 style='text-align: center; color: #007BFF;'>News Signals</h1>", unsafe_allow_html=True)
+st.write("<p style='text-align: center;'>View the latest News sentiment signals for each stock.</p>", unsafe_allow_html=True)
 
-# Fetch and display the Google Trends signals
 news_signals_df = fetch_news_signals()
 
 if news_signals_df is not None:
     if not news_signals_df.empty:
-        # Display the DataFrame without the index column
-        st.dataframe(news_signals_df, use_container_width=True, hide_index=True)
+        table_html = news_signals_df.to_html(index=False, classes="pretty-table")
+        st.markdown(table_html, unsafe_allow_html=True)
     else:
         st.warning("No News signals found in the database.")
 else:
