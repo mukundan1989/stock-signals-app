@@ -3,7 +3,6 @@ import pandas as pd
 import mysql.connector
 from streamlit_option_menu import option_menu
 from streamlit_extras.metric_cards import style_metric_cards
-from st_aggrid import AgGrid
 from streamlit_lottie import st_lottie
 import requests
 
@@ -83,7 +82,7 @@ def fetch_data(table, limit=5):
 st.write("### Watchlist")
 data = fetch_data("overall_latest_signal")
 if data is not None:
-    AgGrid(data)  # Enhanced interactive table
+    st.data_editor(data, num_rows="dynamic")  # Replaced AgGrid with st.data_editor
 
 # Add Stock Search Feature
 if st.button("Add Stock"):
