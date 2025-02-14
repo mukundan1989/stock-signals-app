@@ -74,9 +74,9 @@ st.markdown(
     """
     <div class="grid-container">
         <div class="metric-box"><h2>43%</h2><p>Above Baseline</p></div>
-        <div class="metric-box"><h2>$13,813</h2><p>Value Gain on Buy</p></div>
+        <div class="metric-box"><h2>$13,813</h2><p>Gain on Buy</p></div>
         <div class="metric-box"><h2>+0.75</h2><p>Sentiment Score</p></div>
-        <div class="metric-box"><h2>87%</h2><p>Prediction Accuracy</p></div>
+        <div class="metric-box"><h2>87%</h2><p>Accuracy</p></div>
     </div>
     """,
     unsafe_allow_html=True
