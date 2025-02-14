@@ -16,15 +16,18 @@ st.markdown(
         border-radius: 10px;
         overflow: hidden;
         text-align: center;
+        border: none;
     }
     .pretty-table thead tr {
         background-color: #007BFF;
         color: #ffffff;
         text-align: center;
+        border: none;
     }
     .pretty-table th, .pretty-table td {
         padding: 12px 15px;
         text-align: center;
+        border: none;
     }
     .pretty-table tbody tr:nth-of-type(even) {
         background-color: #f3f3f3;
@@ -84,7 +87,7 @@ gtrend_signals_df = fetch_gtrend_signals()
 
 if gtrend_signals_df is not None:
     if not gtrend_signals_df.empty:
-        table_html = gtrend_signals_df.to_html(index=False, classes="pretty-table", border=0)
+        table_html = gtrend_signals_df.to_html(index=False, classes="pretty-table")
         st.markdown(table_html, unsafe_allow_html=True)
     else:
         st.warning("No Google Trends signals found in the database.")
