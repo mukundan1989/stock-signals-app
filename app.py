@@ -102,6 +102,9 @@ if "data" not in st.session_state:
 if "show_search" not in st.session_state:
     st.session_state["show_search"] = False
 
+# Add spacing before "Select Sentiment Model"
+st.markdown("<br>", unsafe_allow_html=True)
+
 # Toggle buttons for selecting models
 st.write("### Select Sentiment Model")
 col1, col2, col3, col4 = st.columns(4)
@@ -152,8 +155,11 @@ def fetch_data(table, limit=5):
 if st.session_state["data"] is None:
     st.session_state["data"] = fetch_data(st.session_state["selected_table"])
 
+# Add spacing before "Portfolio"
+st.markdown("<br>", unsafe_allow_html=True)
+
 # Display data table
-st.write("### Watchlist")
+st.write("### Portfolio")
 if st.session_state["data"] is not None:
     st.dataframe(st.session_state["data"], use_container_width=True)
 
