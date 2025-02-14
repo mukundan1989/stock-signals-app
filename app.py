@@ -16,27 +16,6 @@ TABLES = {
     "Overall": "overall_latest_signal"
 }
 
-# Custom CSS for table styling
-st.markdown("""
-    <style>
-    .dataframe {
-        background-color: white;
-        border-radius: 10px;
-        border: 1px solid #e6e6e6;
-    }
-    .dataframe td {
-        padding: 12px !important;
-        font-size: 14px;
-    }
-    .dataframe th {
-        padding: 12px !important;
-        font-size: 15px;
-        font-weight: 600;
-        background-color: #f8f9fa;
-    }
-    </style>
-""", unsafe_allow_html=True)
-
 # Streamlit UI - Metrics Section
 st.markdown("<h1 style='text-align: center;'>Portfolio</h1>", unsafe_allow_html=True)
 st.write("Easily predict stock market trends and make smarter investment decisions with our intuitive portfolio tool.")
@@ -126,6 +105,13 @@ def fetch_data(table, limit=5):
         query = f"SELECT date, comp_name, comp_symbol, trade_signal, entry_price FROM `{DB_NAME}`.`{table}` LIMIT {limit}"
         cursor.execute(query)
         df = pd.DataFrame(cursor.fetchall(), columns=["Date", "Company", "Symbol", "Signal", "Price"])
+        
+        # Format the price column
+        df['Price'] = df['Price'].apply(lambda x: f"${x:,.2f}")
+        
+        # Format the signal column with + sign and 2 decimal places
+        df['Signal'] = df['Signal'].apply(lambda x: f"+{x:.2f}" if x > 0 else f"{x:.2f}")
+        
         cursor.close()
         conn.close()
         return df
@@ -143,35 +129,13 @@ st.markdown("<br>", unsafe_allow_html=True)
 # Watchlist section
 st.write("### Watchlist")
 
-# Display enhanced table with formatting
+# Display table
 if st.session_state["data"] is not None:
-    df = st.session_state["data"].copy()
-    
-    # Format the price column
-    df['Price'] = df['Price'].apply(lambda x: f"${x:,.2f}")
-    
-    # Format signal column and add color
-    def color_signal(val):
-        try:
-            val = float(val)
-            color = '#28a745' if val > 0 else '#dc3545'
-            return f'color: {color}'
-        except:
-            return ''
-    
-    # Apply styling to the dataframe
-    styled_df = df.style\
-        .applymap(color_signal, subset=['Signal'])\
-        .format({'Signal': '{:+.2f}'})\
-        .set_properties(**{
-            'background-color': 'white',
-            'border-color': '#e6e6e6'
-        })
-    
     st.dataframe(
-        styled_df,
+        st.session_state["data"],
         use_container_width=True,
-        height=250
+        height=250,
+        hide_index=True
     )
 
 # Add Stock button (always visible)
