@@ -114,37 +114,16 @@ def fetch_data(table, limit=5):
 
 # Load initial data if not set
 if st.session_state["data"] is not None:
-    table_html = st.session_state["data"].to_html(index=False, classes="styled-table")
-    st.markdown(
-        """
-        <style>
-        .styled-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin: 10px 0;
-            font-size: 14px;
-            text-align: center;
-        }
-        .styled-table th, .styled-table td {
-            padding: 12px;
-            border: 1px solid #ddd;
-        }
-        .styled-table th {
-            background-color: #007BFF;
-            color: white;
-            font-size: 16px;
-        }
-        .styled-table tr:nth-child(even) {
-            background-color: #f2f2f2;
-        }
-        .styled-table tr:hover {
-            background-color: #ddd;
-        }
-        </style>
-        """ + table_html,
-        unsafe_allow_html=True
-    )
-
+    styled_df = st.session_state["data"].style.set_properties(**{
+        'background-color': '#f9f9f9',
+        'color': '#333',
+        'border': '1px solid #ddd',
+        'text-align': 'center',
+    }).set_table_styles([
+        {'selector': 'thead th', 'props': [('background-color', '#007BFF'), ('color', 'white'), ('font-size', '16px')]}
+    ])
+    
+    st.dataframe(styled_df)
 
 # Add spacing before "Watchlist"
 st.markdown("<br>", unsafe_allow_html=True)
