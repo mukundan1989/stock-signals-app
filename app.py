@@ -50,13 +50,11 @@ st.markdown(
 
     /* Responsive CSS for mobile */
     @media (max-width: 600px) {
-        .stColumns {
-            display: flex;
-            flex-wrap: wrap;
-        }
+        /* Force columns to behave as a 2x2 grid */
         .stColumns > div {
-            flex: 1 1 45%; /* Adjust the width to fit 2 columns */
-            margin: 2.5%; /* Add some margin for spacing */
+            flex: 1 1 45% !important; /* Adjust the width to fit 2 columns */
+            margin: 2.5% !important; /* Add some margin for spacing */
+            max-width: 45% !important; /* Ensure columns don't exceed 45% width */
         }
     }
     </style>
