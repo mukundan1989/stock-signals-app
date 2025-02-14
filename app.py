@@ -161,7 +161,7 @@ st.markdown("<br>", unsafe_allow_html=True)
 # Display data table
 st.write("### Portfolio")
 if st.session_state["data"] is not None:
-    st.dataframe(st.session_state["data"], use_container_width=True)
+    st.dataframe(st.session_state["data"], use_container_width=True, hide_index=True)  # Hide the index column
 
 # Add Stock button
 if st.button("Add Stock"):
