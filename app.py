@@ -2,6 +2,29 @@ import streamlit as st
 import pandas as pd
 import mysql.connector
 
+# Custom CSS to make the app full-width and responsive
+st.markdown(
+    """
+    <style>
+    .main > div {
+        max-width: 100%;
+        padding-left: 5%;
+        padding-right: 5%;
+    }
+    .stButton > button {
+        width: 100%;
+    }
+    .stDataFrame {
+        width: 100%;
+    }
+    .stMarkdown {
+        width: 100%;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
 # Database credentials
 DB_HOST = "13.203.191.72"
 DB_NAME = "stockstream_two"
@@ -104,18 +127,7 @@ def fetch_data(table, limit=5):
         cursor = conn.cursor()
         query = f"SELECT date, comp_name, comp_symbol, trade_signal, entry_price FROM `{DB_NAME}`.`{table}` LIMIT {limit}"
         cursor.execute(query)
-        df = pd.DataFrame(cursor.fetchall(), columns=["Date", "Company", "Symbol", "Signal", "Price"])
-        
-        # Convert Signal to float before formatting
-        df['Signal'] = pd.to_numeric(df['Signal'], errors='coerce')
-        
-        # Convert Price to float before formatting
-        df['Price'] = pd.to_numeric(df['Price'], errors='coerce')
-        
-        # Format the columns
-        df['Price'] = df['Price'].apply(lambda x: f"${x:,.2f}" if pd.notnull(x) else "")
-        df['Signal'] = df['Signal'].apply(lambda x: f"+{x:.2f}" if pd.notnull(x) and x > 0 else f"{x:.2f}" if pd.notnull(x) else "")
-        
+        df = pd.DataFrame(cursor.fetchall(), columns=["date", "comp_name", "comp_symbol", "trade_signal", "entry_price"])
         cursor.close()
         conn.close()
         return df
@@ -130,17 +142,13 @@ if st.session_state["data"] is None:
 # Add spacing before "Watchlist"
 st.markdown("<br>", unsafe_allow_html=True)
 
-# Watchlist section
+# Toggle buttons (Only one can be active at a time)
 st.write("### Watchlist")
+col1, col2, col3, col4 = st.columns(4)
 
-# Display table
+# Display table with only required columns (No extra index)
 if st.session_state["data"] is not None:
-    st.dataframe(
-        st.session_state["data"],
-        use_container_width=True,
-        height=250,
-        hide_index=True
-    )
+    st.dataframe(st.session_state["data"].to_dict(orient="records"))
 
 # Add Stock button (always visible)
 if st.button("Add Stock"):
@@ -165,7 +173,7 @@ if st.session_state["show_search"]:
             conn.close()
 
             if result:
-                new_row = pd.DataFrame(result, columns=["Date", "Company", "Symbol", "Signal", "Price"])
+                new_row = pd.DataFrame(result, columns=["date", "comp_name", "comp_symbol", "trade_signal", "entry_price"])
                 st.session_state["data"] = pd.concat([st.session_state["data"], new_row], ignore_index=True)
                 st.session_state["show_search"] = False  # Hide search box after adding stock
                 st.rerun()
