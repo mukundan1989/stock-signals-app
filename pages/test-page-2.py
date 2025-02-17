@@ -1,64 +1,164 @@
 import streamlit as st
-import yfinance as yf
-import pandas as pd
-import plotly.graph_objects as go
 
 # Custom CSS for dark-themed elegant design
 st.markdown(
     """
     <style>
-    /* Dark background for the entire page */
+    /* Target the main container and set a dark grey background */
     .st-emotion-cache-bm2z3a {
-        background-color: #2a2a2a; /* Dark grey background */
-        color: #ffffff; /* White text for the entire page */
+        background-color: #111827; /* Dark grey background */
+        color: white; /* White text for the entire page */
+        font-family: system-ui, -apple-system, sans-serif;
     }
 
-    /* Remove unwanted padding and margins */
-    .st-emotion-cache-1v0mbdj {
-        padding: 0 !important;
-        margin: 0 !important;
-    }
-
-    /* Custom CSS for elegant box design */
-    .custom-box {
-        background-color: #3a3a3a; /* Dark grey box background */
-        border-radius: 10px;
+    /* Container styling */
+    .container {
+        max-width: 400px;
+        margin: 0 auto;
         padding: 20px;
-        margin: 10px 0;
-        box-shadow: 0 0 20px rgba(0, 0, 0, 0.15);
-        color: #ffffff; /* White text inside the box */
     }
 
-    /* Large text for tweet count */
-    .tweet-count {
-        font-size: 48px;
+    /* Stock symbol styling */
+    .stock-symbol {
+        font-size: 2.5rem;
         font-weight: bold;
         text-align: center;
-        margin: 20px 0;
+        margin: 0;
     }
 
-    /* Meter design for sentiment */
-    .meter {
+    /* Company name styling */
+    .company-name {
+        color: #9CA3AF;
+        text-align: center;
+        margin-top: 5px;
+        margin-bottom: 30px;
+    }
+
+    /* Chart and sentiment container styling */
+    .chart-container, .sentiment-container, .overall-sentiment-container, .google-trends-container {
+        background: #1F2937;
+        padding: 20px;
+        border-radius: 8px;
+        margin-bottom: 30px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    /* Sentiment title styling */
+    .sentiment-title {
+        text-align: center;
+        margin-bottom: 20px;
+        font-size: 1.2rem;
+    }
+
+    /* Gauge and thermometer styling */
+    .gauge, .thermometer {
         width: 100%;
-        height: 20px;
-        background: linear-gradient(90deg, #ff4b4b 0%, #4bff4b 100%);
-        border-radius: 10px;
+        height: 160px;
         position: relative;
-        margin: 20px 0;
     }
 
-    .meter-indicator {
-        width: 5px;
-        height: 30px;
-        background-color: #ffffff;
+    /* Tweets and articles analyzed styling */
+    .tweets-analyzed, .articles-analyzed {
+        text-align: center;
+        margin-top: 20px;
+        font-size: 1rem;
+        color: #9CA3AF;
+    }
+
+    .tweets-analyzed span, .articles-analyzed span {
+        font-weight: bold;
+        color: #4ADE80;
+    }
+
+    /* Dual gauge container styling */
+    .dual-gauge-container {
+        display: flex;
+        gap: 20px;
+    }
+
+    .gauge-section {
+        flex: 1;
+    }
+
+    .gauge-subtitle {
+        text-align: center;
+        color: #9CA3AF;
+        margin-bottom: 10px;
+        font-size: 1rem;
+    }
+
+    /* Trends flex container styling */
+    .trends-flex-container {
+        display: flex;
+        gap: 20px;
+        margin-top: 20px;
+        align-items: center;
+        min-height: 200px;
+    }
+
+    /* Thermometer section styling */
+    .thermometer-section {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        height: 200px;
+        position: relative;
+    }
+
+    .thermometer {
+        width: 40px;
+        height: 160px;
+        background: #1a2234;
+        border-radius: 20px;
+        position: relative;
+        margin: 0 auto;
+        overflow: hidden;
+        border: 2px solid #2D3748;
+    }
+
+    .thermometer-fill {
         position: absolute;
-        top: -5px;
-        transform: translateX(-50%);
+        bottom: 0;
+        width: 100%;
+        height: 70%;
+        background: linear-gradient(to top, #4ADE80, #ffffff);
+        border-radius: 20px;
+        transition: height 0.5s ease;
     }
 
-    /* Ensure the text above the boxes is white */
-    h1, p {
-        color: #ffffff !important; /* White text for titles and paragraphs */
+    /* Keyword cloud section styling */
+    .keyword-cloud-section {
+        flex: 2;
+        height: 160px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        gap: 10px;
+        padding: 10px;
+    }
+
+    .keyword-row {
+        display: flex;
+        justify-content: center;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
+    .keyword-tag {
+        background: #374151;
+        color: #ffffff;
+        padding: 8px 16px;
+        border-radius: 16px;
+        font-size: 14px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        transition: all 0.2s ease;
+    }
+
+    .keyword-tag:hover {
+        transform: scale(1.1);
+        background: #404b5f;
+        z-index: 2;
     }
     </style>
     """,
@@ -66,64 +166,64 @@ st.markdown(
 )
 
 # Page title and description
-st.markdown("<h1 style='text-align: center;'>AAPL Stock & Twitter Sentiment</h1>", unsafe_allow_html=True)
-st.write("<p style='text-align: center;'>View the latest stock price and Twitter sentiment for AAPL.</p>", unsafe_allow_html=True)
+st.markdown("<h1 class='stock-symbol'>AAPL</h1>", unsafe_allow_html=True)
+st.markdown("<div class='company-name'>Apple Inc.</div>", unsafe_allow_html=True)
 
-# Fetch AAPL stock data for the last 50 days
-@st.cache_data
-def fetch_stock_data():
-    ticker = "AAPL"
-    data = yf.download(ticker, period="50d")
-    return data
-
-stock_data = fetch_stock_data()
-
-# Calculate percentage change over the last 50 days
-initial_price = stock_data['Close'].iloc[0]
-current_price = stock_data['Close'].iloc[-1]
-percentage_change = ((current_price - initial_price) / initial_price) * 100
-
-# Display stock price chart in a box
+# Chart container
 with st.container():
-    st.markdown("<div class='custom-box'>", unsafe_allow_html=True)
-    st.markdown("<h2 style='text-align: center;'>AAPL Stock Price (Last 50 Days)</h2>", unsafe_allow_html=True)
-
-    # Use Plotly for better chart control
-    fig = go.Figure()
-    fig.add_trace(go.Scatter(x=stock_data.index, y=stock_data['Close'], mode='lines', name='AAPL Price'))
-    fig.update_layout(
-        xaxis_title="Date",
-        yaxis_title="Price (USD)",
-        template="plotly_dark",  # Dark theme for the chart
-        margin=dict(l=20, r=20, t=30, b=20),  # Reduce margins
-        height=300,  # Set chart height
-    )
-    st.plotly_chart(fig, use_container_width=True)  # Make the chart fit the container
-
-    st.markdown(f"<p style='text-align: center;'>Percentage Change: <b>{percentage_change:.2f}%</b></p>", unsafe_allow_html=True)
+    st.markdown("<div class='chart-container'>", unsafe_allow_html=True)
+    st.markdown("<div class='price-chart'><svg viewBox='0 0 400 200'></svg></div>", unsafe_allow_html=True)
     st.markdown("</div>", unsafe_allow_html=True)
 
-# Dummy Twitter sentiment data
-sentiment_score = 0.65  # Dummy sentiment score (range: -1 to 1, where -1 is negative, 1 is positive)
-tweet_count = 1234  # Dummy number of tweets
-
-# Display Twitter sentiment box
+# Sentiment container
 with st.container():
-    st.markdown("<div class='custom-box'>", unsafe_allow_html=True)
-    st.markdown("<h2 style='text-align: center;'>Twitter Sentiment</h2>", unsafe_allow_html=True)
-
-    # Meter-like design for sentiment
-    st.markdown("<div class='meter'>", unsafe_allow_html=True)
-    st.markdown(f"<div class='meter-indicator' style='left: {((sentiment_score + 1) / 2 * 100)}%;'></div>", unsafe_allow_html=True)
+    st.markdown("<div class='sentiment-container'>", unsafe_allow_html=True)
+    st.markdown("<div class='sentiment-title'>Twitter Sentiment</div>", unsafe_allow_html=True)
+    st.markdown("<div class='gauge'><svg viewBox='0 0 200 160'></svg></div>", unsafe_allow_html=True)
+    st.markdown("<div class='tweets-analyzed'>Tweets Analyzed: <span>1,234</span></div>", unsafe_allow_html=True)
     st.markdown("</div>", unsafe_allow_html=True)
 
-    # Labels for the meter
-    st.markdown("<div style='display: flex; justify-content: space-between; margin: 10px 0;'>", unsafe_allow_html=True)
-    st.markdown("<span>Negative</span>", unsafe_allow_html=True)
-    st.markdown("<span>Positive</span>", unsafe_allow_html=True)
+# Overall sentiment container
+with st.container():
+    st.markdown("<div class='overall-sentiment-container'>", unsafe_allow_html=True)
+    st.markdown("<div class='sentiment-title'>Overall Sentiment</div>", unsafe_allow_html=True)
+    st.markdown("<div class='dual-gauge-container'>", unsafe_allow_html=True)
+    
+    # News Sentiment Gauge
+    st.markdown("<div class='gauge-section'>", unsafe_allow_html=True)
+    st.markdown("<div class='gauge-subtitle'>News Sentiment</div>", unsafe_allow_html=True)
+    st.markdown("<div class='gauge'><svg viewBox='0 0 200 160'></svg></div>", unsafe_allow_html=True)
+    st.markdown("<div class='articles-analyzed'>News Articles Analyzed: <span>740</span></div>", unsafe_allow_html=True)
+    st.markdown("</div>", unsafe_allow_html=True)
+    
+    # Sector Sentiment Gauge
+    st.markdown("<div class='gauge-section'>", unsafe_allow_html=True)
+    st.markdown("<div class='gauge-subtitle'>Sector Sentiment</div>", unsafe_allow_html=True)
+    st.markdown("<div class='gauge'><svg viewBox='0 0 200 160'></svg></div>", unsafe_allow_html=True)
+    st.markdown("<div class='articles-analyzed'>Sector Articles Analyzed: <span>44</span></div>", unsafe_allow_html=True)
+    st.markdown("</div>", unsafe_allow_html=True)
+    
+    st.markdown("</div>", unsafe_allow_html=True)
     st.markdown("</div>", unsafe_allow_html=True)
 
-    # Display number of tweets in large font
-    st.markdown(f"<div class='tweet-count'>{tweet_count}</div>", unsafe_allow_html=True)
-    st.markdown("<p style='text-align: center;'>Number of Tweets Analyzed</p>", unsafe_allow_html=True)
+# Google Trends container
+with st.container():
+    st.markdown("<div class='google-trends-container'>", unsafe_allow_html=True)
+    st.markdown("<div class='sentiment-title'>Google Trend Bullishness Indicator</div>", unsafe_allow_html=True)
+    st.markdown("<div class='trends-flex-container'>", unsafe_allow_html=True)
+    
+    # Thermometer section
+    st.markdown("<div class='thermometer-section'>", unsafe_allow_html=True)
+    st.markdown("<div class='thermometer'><div class='thermometer-fill'></div></div>", unsafe_allow_html=True)
+    st.markdown("</div>", unsafe_allow_html=True)
+    
+    # Keyword cloud section
+    st.markdown("<div class='keyword-cloud-section'>", unsafe_allow_html=True)
+    st.markdown("<div class='keyword-row'><div class='keyword-tag'>AAPL earnings</div><div class='keyword-tag'>iPhone sales</div></div>", unsafe_allow_html=True)
+    st.markdown("<div class='keyword-row'><div class='keyword-tag'>Apple Vision</div><div class='keyword-tag'>iOS update</div></div>", unsafe_allow_html=True)
+    st.markdown("<div class='keyword-row'><div class='keyword-tag'>Apple stock</div><div class='keyword-tag'>MacBook Pro</div></div>", unsafe_allow_html=True)
+    st.markdown("<div class='keyword-row'><div class='keyword-tag'>Apple services</div></div>", unsafe_allow_html=True)
+    st.markdown("</div>", unsafe_allow_html=True)
+    
+    st.markdown("</div>", unsafe_allow_html=True)
     st.markdown("</div>", unsafe_allow_html=True)
