@@ -1,145 +1,141 @@
 import streamlit as st
+import plotly.graph_objects as go
 import pandas as pd
 import numpy as np
-import plotly.express as px
-import plotly.graph_objects as go
 from datetime import datetime, timedelta
 
-# Set page config
-st.set_page_config(
-    page_title="Stock Analysis Dashboard",
-    page_icon="📈",
-    layout="wide",
-    initial_sidebar_state="collapsed"
-)
+# Set page config for dark theme
+st.set_page_config(layout="wide", page_title="Stock Analysis Dashboard")
 
-# Custom CSS for a stunning dark theme
-st.markdown(
-    """
+# Custom CSS for dark theme
+st.markdown("""
     <style>
     .stApp {
-        background: linear-gradient(45deg, #000000, #1a1a1a);
-        color: #ffffff;
+        background-color: #0E1117;
+        color: white;
     }
-    h1, h2, h3, h4, h5, h6 {
-        color: #ffffff;
-        font-family: 'Arial', sans-serif;
-    }
-    .st-bq {
-        color: #ffffff;
-    }
-    .st-cb {
-        color: #ffffff;
-    }
-    .stMarkdown {
-        color: #ffffff;
-    }
-    .stPlotlyChart {
-        border-radius: 10px;
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    .css-1d391kg {
+        background-color: #1B2838;
     }
     </style>
-    """,
-    unsafe_allow_html=True
-)
+""", unsafe_allow_html=True)
+
+# Generate dummy stock data
+def generate_stock_data(days=180):
+    dates = [datetime.now() - timedelta(days=x) for x in range(days)]
+    dates.reverse()
+    
+    # Generate synthetic stock prices with trend and volatility
+    initial_price = 100
+    prices = [initial_price]
+    for i in range(1, days):
+        change = np.random.normal(0.0001, 0.02)
+        new_price = prices[-1] * (1 + change)
+        prices.append(new_price)
+    
+    return pd.DataFrame({
+        'Date': dates,
+        'Price': prices
+    })
+
+# Create dummy sentiment scores
+social_media_sentiment = 75  # 0-100 scale
+financial_sentiment = 62     # 0-100 scale
 
 # Title
 st.title("📈 Stock Analysis Dashboard")
 st.markdown("---")
 
-# Dummy stock price data
-def generate_stock_data():
-    dates = pd.date_range(end=datetime.today(), periods=180, freq='D')
-    prices = np.cumsum(np.random.randn(180)) + 100  # Random walk for stock prices
-    return pd.DataFrame({"Date": dates, "Price": prices})
+# Layout in columns
+col1, col2 = st.columns([2, 1])
 
-stock_data = generate_stock_data()
-
-# Stock Price Area Chart
-st.subheader("Stock Price (Last 6 Months)")
-fig = px.area(
-    stock_data,
-    x="Date",
-    y="Price",
-    title="",
-    labels={"Price": "Stock Price ($)", "Date": "Date"},
-    template="plotly_dark",
-    line_shape="spline"
-)
-fig.update_traces(
-    fill='tozeroy',
-    line=dict(color='#00FF00'),
-    fillcolor='rgba(0,255,0,0.2)'
-)
-fig.update_layout(
-    xaxis_title="",
-    yaxis_title="",
-    plot_bgcolor='rgba(0,0,0,0)',
-    paper_bgcolor='rgba(0,0,0,0)',
-    font=dict(color='white'),
-    hovermode="x unified"
-)
-st.plotly_chart(fig, use_container_width=True)
-
-# Sentiment Gauges
-col1, col2 = st.columns(2)
-
-# Social Media Sentiment Gauge
 with col1:
-    st.subheader("Social Media Sentiment")
-    social_media_sentiment = np.random.randint(-100, 100)  # Dummy sentiment value
-    fig = go.Figure(go.Indicator(
-        mode="gauge+number",
-        value=social_media_sentiment,
-        domain={'x': [0, 1], 'y': [0, 1]},
-        title={'text': "Bullish/Bearish", 'font': {'color': 'white', 'size': 20}},
-        gauge={
-            'axis': {'range': [-100, 100], 'tickwidth': 1, 'tickcolor': 'white'},
-            'bar': {'color': 'limegreen' if social_media_sentiment >= 0 else 'red'},
-            'bgcolor': 'black',
-            'borderwidth': 2,
-            'bordercolor': 'gray',
-            'steps': [
-                {'range': [-100, 0], 'color': 'red'},
-                {'range': [0, 100], 'color': 'limegreen'}
-            ],
-        }
+    # Stock Price Chart
+    stock_data = generate_stock_data()
+    
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(
+        x=stock_data['Date'],
+        y=stock_data['Price'],
+        fill='tozeroy',
+        fillcolor='rgba(0, 255, 0, 0.1)',
+        line=dict(color='#00ff00', width=1),
+        name='Stock Price'
     ))
+    
     fig.update_layout(
+        template='plotly_dark',
         paper_bgcolor='rgba(0,0,0,0)',
-        font={'color': 'white'},
-        height=300
+        plot_bgcolor='rgba(0,0,0,0)',
+        title={
+            'text': 'Stock Price Evolution',
+            'y':0.95,
+            'x':0.5,
+            'xanchor': 'center',
+            'yanchor': 'top'
+        },
+        height=400,
+        margin=dict(t=50, b=50, l=50, r=50),
+        xaxis_title="Date",
+        yaxis_title="Price ($)",
+        showlegend=False
     )
+    
     st.plotly_chart(fig, use_container_width=True)
 
-# Annual Results Sentiment Gauge
 with col2:
-    st.subheader("Annual Results Sentiment")
-    annual_sentiment = np.random.randint(0, 100)  # Dummy sentiment value
-    fig = go.Figure(go.Indicator(
-        mode="gauge+number",
-        value=annual_sentiment,
-        domain={'x': [0, 1], 'y': [0, 1]},
-        title={'text': "Bullish/Bearish", 'font': {'color': 'white', 'size': 20}},
-        gauge={
-            'axis': {'range': [0, 100], 'tickwidth': 1, 'tickcolor': 'white'},
-            'bar': {'color': 'limegreen'},
-            'bgcolor': 'black',
+    # Social Media Sentiment Gauge
+    fig_social = go.Figure(go.Indicator(
+        mode = "gauge+number",
+        value = social_media_sentiment,
+        domain = {'x': [0, 1], 'y': [0, 1]},
+        title = {'text': "Social Media Sentiment", 'font': {'size': 24, 'color': 'white'}},
+        gauge = {
+            'axis': {'range': [0, 100], 'tickwidth': 1, 'tickcolor': "white"},
+            'bar': {'color': "#00ff00"},
+            'bgcolor': "gray",
             'borderwidth': 2,
-            'bordercolor': 'gray',
+            'bordercolor': "white",
             'steps': [
-                {'range': [0, 50], 'color': 'red'},
-                {'range': [50, 100], 'color': 'limegreen'}
+                {'range': [0, 33], 'color': '#ff0000'},
+                {'range': [33, 66], 'color': '#ffff00'},
+                {'range': [66, 100], 'color': '#00ff00'}
             ],
         }
     ))
-    fig.update_layout(
+    
+    fig_social.update_layout(
         paper_bgcolor='rgba(0,0,0,0)',
-        font={'color': 'white'},
-        height=300
+        height=300,
+        margin=dict(t=50, b=0, l=30, r=30)
     )
-    st.plotly_chart(fig, use_container_width=True)
-
-# Footer
-st.markdown("---")
-st.markdown("© 2023 Stock Analysis Dashboard | Made with Streamlit")
+    
+    st.plotly_chart(fig_social, use_container_width=True)
+    
+    # Financial Analysis Sentiment Gauge
+    fig_financial = go.Figure(go.Indicator(
+        mode = "gauge+number",
+        value = financial_sentiment,
+        domain = {'x': [0, 1], 'y': [0, 1]},
+        title = {'text': "Financial Analysis Sentiment", 'font': {'size': 24, 'color': 'white'}},
+        gauge = {
+            'axis': {'range': [0, 100], 'tickwidth': 1, 'tickcolor': "white"},
+            'bar': {'color': "#00ff00"},
+            'bgcolor': "gray",
+            'borderwidth': 2,
+            'bordercolor': "white",
+            'steps': [
+                {'range': [0, 33], 'color': '#ff0000'},
+                {'range': [33, 66], 'color': '#ffff00'},
+                {'range': [66, 100], 'color': '#00ff00'}
+            ],
+        }
+    ))
+    
+    fig_financial.update_layout(
+        paper_bgcolor='rgba(0,0,0,0)',
+        height=300,
+        margin=dict(t=50, b=0, l=30, r=30)
+    )
+    
+    st.plotly_chart(fig_financial, use_container_width=True)
