@@ -13,22 +13,30 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# Custom CSS for dark theme
+# Custom CSS for a stunning dark theme
 st.markdown(
     """
     <style>
     .stApp {
-        background-color: #000000;
+        background: linear-gradient(45deg, #000000, #1a1a1a);
         color: #ffffff;
     }
     h1, h2, h3, h4, h5, h6 {
         color: #ffffff;
+        font-family: 'Arial', sans-serif;
     }
     .st-bq {
         color: #ffffff;
     }
     .st-cb {
         color: #ffffff;
+    }
+    .stMarkdown {
+        color: #ffffff;
+    }
+    .stPlotlyChart {
+        border-radius: 10px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
     }
     </style>
     """,
@@ -58,13 +66,18 @@ fig = px.area(
     template="plotly_dark",
     line_shape="spline"
 )
-fig.update_traces(fill='tozeroy', line=dict(color='#00FF00'), fillcolor='rgba(0,255,0,0.2)')
+fig.update_traces(
+    fill='tozeroy',
+    line=dict(color='#00FF00'),
+    fillcolor='rgba(0,255,0,0.2)'
+)
 fig.update_layout(
     xaxis_title="",
     yaxis_title="",
     plot_bgcolor='rgba(0,0,0,0)',
     paper_bgcolor='rgba(0,0,0,0)',
-    font=dict(color='white')
+    font=dict(color='white'),
+    hovermode="x unified"
 )
 st.plotly_chart(fig, use_container_width=True)
 
@@ -79,7 +92,7 @@ with col1:
         mode="gauge+number",
         value=social_media_sentiment,
         domain={'x': [0, 1], 'y': [0, 1]},
-        title={'text': "Bullish/Bearish", 'font': {'color': 'white'}},
+        title={'text': "Bullish/Bearish", 'font': {'color': 'white', 'size': 20}},
         gauge={
             'axis': {'range': [-100, 100], 'tickwidth': 1, 'tickcolor': 'white'},
             'bar': {'color': 'limegreen' if social_media_sentiment >= 0 else 'red'},
@@ -94,7 +107,8 @@ with col1:
     ))
     fig.update_layout(
         paper_bgcolor='rgba(0,0,0,0)',
-        font={'color': 'white'}
+        font={'color': 'white'},
+        height=300
     )
     st.plotly_chart(fig, use_container_width=True)
 
@@ -106,7 +120,7 @@ with col2:
         mode="gauge+number",
         value=annual_sentiment,
         domain={'x': [0, 1], 'y': [0, 1]},
-        title={'text': "Bullish/Bearish", 'font': {'color': 'white'}},
+        title={'text': "Bullish/Bearish", 'font': {'color': 'white', 'size': 20}},
         gauge={
             'axis': {'range': [0, 100], 'tickwidth': 1, 'tickcolor': 'white'},
             'bar': {'color': 'limegreen'},
@@ -121,7 +135,8 @@ with col2:
     ))
     fig.update_layout(
         paper_bgcolor='rgba(0,0,0,0)',
-        font={'color': 'white'}
+        font={'color': 'white'},
+        height=300
     )
     st.plotly_chart(fig, use_container_width=True)
 
