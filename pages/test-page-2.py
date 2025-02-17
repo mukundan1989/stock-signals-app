@@ -42,7 +42,7 @@ st.markdown("---")
 # Dummy stock price data
 def generate_stock_data():
     dates = pd.date_range(end=datetime.today(), periods=180, freq='D')
-    prices = np.cumsum(np.random.randn(180) + 100  # Random walk for stock prices
+    prices = np.cumsum(np.random.randn(180)) + 100  # Random walk for stock prices
     return pd.DataFrame({"Date": dates, "Price": prices})
 
 stock_data = generate_stock_data()
