@@ -1,112 +1,71 @@
 import streamlit as st
 import pandas as pd
-import matplotlib.pyplot as plt
 import numpy as np
+import plotly.express as px
+import yfinance as yf
 
-# Custom CSS for dark theme and styling
-st.markdown(
-    """
-    <style>
-    body {
-        background: #111827;
-        color: white;
-        font-family: system-ui, -apple-system, sans-serif;
+# Set page title and layout
+st.set_page_config(page_title="Stock Analysis Dashboard", layout="wide")
+
+# Title
+st.title("Stock Analysis Dashboard")
+st.markdown("""
+This dashboard provides a visual analysis of stock data using dummy datasets.
+""")
+
+# Sidebar for user inputs
+st.sidebar.header("User Input Features")
+
+# Create dummy stock data
+@st.cache_data
+def load_data():
+    dates = pd.date_range("2023-01-01", "2023-10-01")
+    stocks = {
+        "AAPL": np.random.normal(150, 10, len(dates)),
+        "GOOGL": np.random.normal(2800, 100, len(dates)),
+        "MSFT": np.random.normal(300, 15, len(dates)),
+        "AMZN": np.random.normal(120, 5, len(dates)),
     }
-    .container {
-        max-width: 400px;
-        margin: 0 auto;
-    }
-    .pretty-box {
-        background: #1F2937;
-        padding: 20px;
-        border-radius: 8px;
-        margin-bottom: 30px;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        text-align: center;
-    }
-    .gauge-container {
-        display: flex;
-        justify-content: center;
-        align-items: center;
-    }
-    .gauge-svg {
-        width: 200px;
-        height: 160px;
-    }
-    </style>
-    """,
-    unsafe_allow_html=True
-)
+    df = pd.DataFrame(stocks, index=dates)
+    df = df.reset_index().rename(columns={"index": "Date"})
+    return df
 
-# Page layout
-st.markdown("<h1 class='stock-symbol'>AAPL</h1>", unsafe_allow_html=True)
-st.markdown("<div class='company-name'>Apple Inc.</div>", unsafe_allow_html=True)
+df = load_data()
 
-# Sample Price Chart
-def plot_price_chart():
-    fig, ax = plt.subplots()
-    x = np.arange(5)
-    y = np.random.randint(140, 170, size=5)
-    ax.plot(x, y, marker='o', linestyle='-', color='#4ADE80')
-    ax.set_xticks(x)
-    ax.set_xticklabels(['Mon', 'Tue', 'Wed', 'Thu', 'Fri'])
-    ax.set_ylabel("Price ($)")
-    st.pyplot(fig)
+# Display raw data
+if st.sidebar.checkbox("Show Raw Data"):
+    st.subheader("Raw Data")
+    st.write(df)
 
-st.markdown("<div class='pretty-box'>Price Chart</div>", unsafe_allow_html=True)
-plot_price_chart()
+# Select stocks to analyze
+selected_stocks = st.sidebar.multiselect("Select Stocks", df.columns[1:], default=["AAPL"])
 
-# Speedometer Gauge SVG
-def render_gauge(rotation=0):
-    svg = f"""
-    <svg viewBox="0 0 200 160" class='gauge-svg'>
-        <defs>
-            <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y1="0%">
-                <stop offset="0%" stop-color="#ef4444" />
-                <stop offset="50%" stop-color="#ffffff" />
-                <stop offset="100%" stop-color="#4ade80" />
-            </linearGradient>
-        </defs>
-        <path d="M20 140 A80 80 0 0 1 180 140" fill="none" stroke="#1a2234" stroke-width="12" stroke-linecap="round"/>
-        <path d="M20 140 A80 80 0 0 1 180 140" fill="none" stroke="url(#gradient)" stroke-width="10" stroke-linecap="round"/>
-        <g transform="translate(100, 140)">
-            <line x1="0" y1="0" x2="0" y2="-70" stroke="white" stroke-width="3" transform="rotate({rotation})"/>
-            <circle cx="0" cy="0" r="6" fill="white"/>
-        </g>
-    </svg>
-    """
-    return svg
+# Filter data based on selected stocks
+filtered_df = df[["Date"] + selected_stocks]
 
-st.markdown("<div class='pretty-box'>Twitter Sentiment Gauge</div>", unsafe_allow_html=True)
-st.markdown(render_gauge(40), unsafe_allow_html=True)
+# Plot stock prices over time
+st.subheader("Stock Price Over Time")
+fig = px.line(filtered_df, x="Date", y=selected_stocks, title="Stock Price Trends")
+st.plotly_chart(fig, use_container_width=True)
 
-st.markdown("<div class='pretty-box'>News Sentiment Gauge</div>", unsafe_allow_html=True)
-st.markdown(render_gauge(60), unsafe_allow_html=True)
+# Calculate and display daily returns
+st.subheader("Daily Returns")
+returns_df = filtered_df.set_index("Date").pct_change().dropna()
+fig2 = px.line(returns_df, x=returns_df.index, y=selected_stocks, title="Daily Returns")
+st.plotly_chart(fig2, use_container_width=True)
 
-st.markdown("<div class='pretty-box'>Sector Sentiment Gauge</div>", unsafe_allow_html=True)
-st.markdown(render_gauge(20), unsafe_allow_html=True)
+# Display summary statistics
+st.subheader("Summary Statistics")
+st.write(returns_df.describe())
 
-# Google Trends Thermometer
-def render_thermometer(fill_percentage=70):
-    height = fill_percentage * 1.6
-    svg = f"""
-    <div style='display: flex; justify-content: center;'>
-        <div style='width: 40px; height: 160px; background: #1a2234; border-radius: 20px; overflow: hidden; border: 2px solid #2D3748;'>
-            <div style='position: absolute; bottom: 0; width: 100%; height: {height}px; background: linear-gradient(to top, #4ADE80, #ffffff); border-radius: 20px;'></div>
-        </div>
-    </div>
-    """
-    return svg
+# Correlation heatmap
+st.subheader("Correlation Heatmap")
+corr = filtered_df.set_index("Date").corr()
+fig3 = px.imshow(corr, text_auto=True, title="Stock Correlation Heatmap")
+st.plotly_chart(fig3, use_container_width=True)
 
-st.markdown("<div class='pretty-box'>Google Trend Bullishness Indicator</div>", unsafe_allow_html=True)
-st.markdown(render_thermometer(70), unsafe_allow_html=True)
-
-# Keyword Cloud
-keywords = ["AAPL earnings", "iPhone sales", "Apple Vision", "iOS update", "Apple stock", "MacBook Pro", "Apple services"]
-keyword_html = "<div style='display: flex; flex-wrap: wrap; justify-content: center; gap: 10px;'>"
-for keyword in keywords:
-    keyword_html += f"<div style='background: #374151; color: #ffffff; padding: 8px 16px; border-radius: 16px; font-size: 14px; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); transition: all 0.2s ease;'>{keyword}</div>"
-keyword_html += "</div>"
-
-st.markdown("<div class='pretty-box'>Keyword Cloud</div>", unsafe_allow_html=True)
-st.markdown(keyword_html, unsafe_allow_html=True)
+# Add a footer
+st.markdown("""
+---
+**Note:** This dashboard uses dummy data for demonstration purposes.
+""")
