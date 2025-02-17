@@ -13,6 +13,12 @@ st.markdown(
         color: #ffffff; /* White text for the entire page */
     }
 
+    /* Remove unwanted padding and margins */
+    .st-emotion-cache-1v0mbdj {
+        padding: 0 !important;
+        margin: 0 !important;
+    }
+
     /* Custom CSS for elegant box design */
     .custom-box {
         background-color: #3a3a3a; /* Dark grey box background */
@@ -81,7 +87,19 @@ percentage_change = ((current_price - initial_price) / initial_price) * 100
 with st.container():
     st.markdown("<div class='custom-box'>", unsafe_allow_html=True)
     st.markdown("<h2 style='text-align: center;'>AAPL Stock Price (Last 50 Days)</h2>", unsafe_allow_html=True)
-    st.line_chart(stock_data['Close'])
+
+    # Use Plotly for better chart control
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(x=stock_data.index, y=stock_data['Close'], mode='lines', name='AAPL Price'))
+    fig.update_layout(
+        xaxis_title="Date",
+        yaxis_title="Price (USD)",
+        template="plotly_dark",  # Dark theme for the chart
+        margin=dict(l=20, r=20, t=30, b=20),  # Reduce margins
+        height=300,  # Set chart height
+    )
+    st.plotly_chart(fig, use_container_width=True)  # Make the chart fit the container
+
     st.markdown(f"<p style='text-align: center;'>Percentage Change: <b>{percentage_change:.2f}%</b></p>", unsafe_allow_html=True)
     st.markdown("</div>", unsafe_allow_html=True)
 
