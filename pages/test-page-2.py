@@ -1,5 +1,7 @@
 import streamlit as st
 import pandas as pd
+import matplotlib.pyplot as plt
+import numpy as np
 
 # Custom CSS for dark theme and styling
 st.markdown(
@@ -43,17 +45,28 @@ st.markdown(
 st.markdown("<h1 class='stock-symbol'>AAPL</h1>", unsafe_allow_html=True)
 st.markdown("<div class='company-name'>Apple Inc.</div>", unsafe_allow_html=True)
 
-# Placeholder for price chart
-st.markdown("<div class='pretty-box'>Price Chart (To be implemented)</div>", unsafe_allow_html=True)
+# Sample Price Chart
+def plot_price_chart():
+    fig, ax = plt.subplots()
+    x = np.arange(5)
+    y = np.random.randint(140, 170, size=5)
+    ax.plot(x, y, marker='o', linestyle='-', color='#4ADE80')
+    ax.set_xticks(x)
+    ax.set_xticklabels(['Mon', 'Tue', 'Wed', 'Thu', 'Fri'])
+    ax.set_ylabel("Price ($)")
+    st.pyplot(fig)
+
+st.markdown("<div class='pretty-box'>Price Chart</div>", unsafe_allow_html=True)
+plot_price_chart()
 
 # Placeholder for Twitter Sentiment
-st.markdown("<div class='pretty-box'>Twitter Sentiment Gauge (To be implemented)</div>", unsafe_allow_html=True)
+st.markdown("<div class='pretty-box'>Twitter Sentiment Gauge (Coming Soon)</div>", unsafe_allow_html=True)
 
 # Placeholder for Overall Sentiment (News & Sector)
-st.markdown("<div class='pretty-box'>Overall Sentiment Gauges (To be implemented)</div>", unsafe_allow_html=True)
+st.markdown("<div class='pretty-box'>Overall Sentiment Gauges (Coming Soon)</div>", unsafe_allow_html=True)
 
 # Placeholder for Google Trends Sentiment
-st.markdown("<div class='pretty-box'>Google Trend Bullishness Indicator (To be implemented)</div>", unsafe_allow_html=True)
+st.markdown("<div class='pretty-box'>Google Trend Bullishness Indicator (Coming Soon)</div>", unsafe_allow_html=True)
 
 # Placeholder for Keyword Cloud
-st.markdown("<div class='pretty-box'>Keyword Cloud (To be implemented)</div>", unsafe_allow_html=True)
+st.markdown("<div class='pretty-box'>Keyword Cloud (Coming Soon)</div>", unsafe_allow_html=True)
