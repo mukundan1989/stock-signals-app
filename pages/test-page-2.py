@@ -2,70 +2,129 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import plotly.express as px
-import yfinance as yf
+import plotly.graph_objects as go
+from datetime import datetime, timedelta
 
-# Set page title and layout
-st.set_page_config(page_title="Stock Analysis Dashboard", layout="wide")
+# Set page config
+st.set_page_config(
+    page_title="Stock Analysis Dashboard",
+    page_icon="📈",
+    layout="wide",
+    initial_sidebar_state="collapsed"
+)
+
+# Custom CSS for dark theme
+st.markdown(
+    """
+    <style>
+    .stApp {
+        background-color: #000000;
+        color: #ffffff;
+    }
+    h1, h2, h3, h4, h5, h6 {
+        color: #ffffff;
+    }
+    .st-bq {
+        color: #ffffff;
+    }
+    .st-cb {
+        color: #ffffff;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
 
 # Title
-st.title("Stock Analysis Dashboard")
-st.markdown("""
-This dashboard provides a visual analysis of stock data using dummy datasets.
-""")
+st.title("📈 Stock Analysis Dashboard")
+st.markdown("---")
 
-# Sidebar for user inputs
-st.sidebar.header("User Input Features")
+# Dummy stock price data
+def generate_stock_data():
+    dates = pd.date_range(end=datetime.today(), periods=180, freq='D')
+    prices = np.cumsum(np.random.randn(180) + 100  # Random walk for stock prices
+    return pd.DataFrame({"Date": dates, "Price": prices})
 
-# Create dummy stock data
-@st.cache_data
-def load_data():
-    dates = pd.date_range("2023-01-01", "2023-10-01")
-    stocks = {
-        "AAPL": np.random.normal(150, 10, len(dates)),
-        "GOOGL": np.random.normal(2800, 100, len(dates)),
-        "MSFT": np.random.normal(300, 15, len(dates)),
-        "AMZN": np.random.normal(120, 5, len(dates)),
-    }
-    df = pd.DataFrame(stocks, index=dates)
-    df = df.reset_index().rename(columns={"index": "Date"})
-    return df
+stock_data = generate_stock_data()
 
-df = load_data()
-
-# Display raw data
-if st.sidebar.checkbox("Show Raw Data"):
-    st.subheader("Raw Data")
-    st.write(df)
-
-# Select stocks to analyze
-selected_stocks = st.sidebar.multiselect("Select Stocks", df.columns[1:], default=["AAPL"])
-
-# Filter data based on selected stocks
-filtered_df = df[["Date"] + selected_stocks]
-
-# Plot stock prices over time
-st.subheader("Stock Price Over Time")
-fig = px.line(filtered_df, x="Date", y=selected_stocks, title="Stock Price Trends")
+# Stock Price Area Chart
+st.subheader("Stock Price (Last 6 Months)")
+fig = px.area(
+    stock_data,
+    x="Date",
+    y="Price",
+    title="",
+    labels={"Price": "Stock Price ($)", "Date": "Date"},
+    template="plotly_dark",
+    line_shape="spline"
+)
+fig.update_traces(fill='tozeroy', line=dict(color='#00FF00'), fillcolor='rgba(0,255,0,0.2)')
+fig.update_layout(
+    xaxis_title="",
+    yaxis_title="",
+    plot_bgcolor='rgba(0,0,0,0)',
+    paper_bgcolor='rgba(0,0,0,0)',
+    font=dict(color='white')
+)
 st.plotly_chart(fig, use_container_width=True)
 
-# Calculate and display daily returns
-st.subheader("Daily Returns")
-returns_df = filtered_df.set_index("Date").pct_change().dropna()
-fig2 = px.line(returns_df, x=returns_df.index, y=selected_stocks, title="Daily Returns")
-st.plotly_chart(fig2, use_container_width=True)
+# Sentiment Gauges
+col1, col2 = st.columns(2)
 
-# Display summary statistics
-st.subheader("Summary Statistics")
-st.write(returns_df.describe())
+# Social Media Sentiment Gauge
+with col1:
+    st.subheader("Social Media Sentiment")
+    social_media_sentiment = np.random.randint(-100, 100)  # Dummy sentiment value
+    fig = go.Figure(go.Indicator(
+        mode="gauge+number",
+        value=social_media_sentiment,
+        domain={'x': [0, 1], 'y': [0, 1]},
+        title={'text': "Bullish/Bearish", 'font': {'color': 'white'}},
+        gauge={
+            'axis': {'range': [-100, 100], 'tickwidth': 1, 'tickcolor': 'white'},
+            'bar': {'color': 'limegreen' if social_media_sentiment >= 0 else 'red'},
+            'bgcolor': 'black',
+            'borderwidth': 2,
+            'bordercolor': 'gray',
+            'steps': [
+                {'range': [-100, 0], 'color': 'red'},
+                {'range': [0, 100], 'color': 'limegreen'}
+            ],
+        }
+    ))
+    fig.update_layout(
+        paper_bgcolor='rgba(0,0,0,0)',
+        font={'color': 'white'}
+    )
+    st.plotly_chart(fig, use_container_width=True)
 
-# Correlation heatmap
-st.subheader("Correlation Heatmap")
-corr = filtered_df.set_index("Date").corr()
-fig3 = px.imshow(corr, text_auto=True, title="Stock Correlation Heatmap")
-st.plotly_chart(fig3, use_container_width=True)
+# Annual Results Sentiment Gauge
+with col2:
+    st.subheader("Annual Results Sentiment")
+    annual_sentiment = np.random.randint(0, 100)  # Dummy sentiment value
+    fig = go.Figure(go.Indicator(
+        mode="gauge+number",
+        value=annual_sentiment,
+        domain={'x': [0, 1], 'y': [0, 1]},
+        title={'text': "Bullish/Bearish", 'font': {'color': 'white'}},
+        gauge={
+            'axis': {'range': [0, 100], 'tickwidth': 1, 'tickcolor': 'white'},
+            'bar': {'color': 'limegreen'},
+            'bgcolor': 'black',
+            'borderwidth': 2,
+            'bordercolor': 'gray',
+            'steps': [
+                {'range': [0, 50], 'color': 'red'},
+                {'range': [50, 100], 'color': 'limegreen'}
+            ],
+        }
+    ))
+    fig.update_layout(
+        paper_bgcolor='rgba(0,0,0,0)',
+        font={'color': 'white'}
+    )
+    st.plotly_chart(fig, use_container_width=True)
 
-# Add a footer
-st.markdown("""
----
-**Note:** This dashboard uses dummy data for demonstration purposes.
-""")
+# Footer
+st.markdown("---")
+st.markdown("© 2023 Stock Analysis Dashboard | Made with Streamlit")
