@@ -3,36 +3,8 @@ import pandas as pd
 import mysql.connector
 import plotly.graph_objects as go
 
-# Set page config with dark theme
-st.set_page_config(
-    layout="wide",
-    page_title="Performance Summary",
-    initial_sidebar_state="collapsed",
-    theme={"base": "dark"}
-)
-
-# Apply custom styling for dark theme
-st.markdown(
-    """
-    <style>
-        body {
-            background-color: #121212;
-            color: #e0e0e0;
-        }
-        .stTextInput, .stButton>button {
-            background-color: #333333;
-            color: white;
-        }
-        .stDataFrame {
-            background-color: #222222;
-        }
-        .stMetric {
-            color: white !important;
-        }
-    </style>
-    """,
-    unsafe_allow_html=True
-)
+# Set page config
+st.set_page_config(layout="wide", page_title="Performance Summary", initial_sidebar_state="collapsed")
 
 # Database credentials
 DB_HOST = "13.203.191.72"
@@ -50,7 +22,7 @@ def fetch_model_data(comp_symbol, model_name):
             password=DB_PASSWORD
         )
         cursor = conn.cursor()
-
+        
         query = """
         SELECT date, sentiment, entry_price, `30d_pl`, `60d_pl`
         FROM models_performance
@@ -61,7 +33,7 @@ def fetch_model_data(comp_symbol, model_name):
         result = cursor.fetchall()
         columns = ["Date", "Sentiment", "Entry Price", "30D P/L", "60D P/L"]
         df = pd.DataFrame(result, columns=columns)
-
+        
         cursor.close()
         conn.close()
         
@@ -80,7 +52,7 @@ def fetch_performance_metrics(comp_symbol):
             password=DB_PASSWORD
         )
         cursor = conn.cursor()
-
+        
         queries = {
             "win_percentage": """
                 SELECT (COUNT(CASE WHEN (`30d_pl` > 0 OR `60d_pl` > 0) AND sentiment != 'neutral' THEN 1 END) 
@@ -97,13 +69,13 @@ def fetch_performance_metrics(comp_symbol):
                 AS profit_factor FROM models_performance WHERE comp_symbol = %s;
             """
         }
-
+        
         results = {}
         for key, query in queries.items():
             cursor.execute(query, (comp_symbol,))
             result = cursor.fetchone()
             results[key] = result[0] if result and result[0] is not None else "N/A"
-
+        
         cursor.close()
         conn.close()
         
@@ -122,7 +94,7 @@ def fetch_cumulative_pl(comp_symbol):
             password=DB_PASSWORD
         )
         cursor = conn.cursor()
-
+        
         query = """
         SELECT date, SUM(`30d_pl`) AS daily_pl
         FROM models_performance
@@ -132,10 +104,10 @@ def fetch_cumulative_pl(comp_symbol):
         
         cursor.execute(query, (comp_symbol,))
         result = cursor.fetchall()
-
+        
         df = pd.DataFrame(result, columns=["Date", "Daily P/L"])
         df["Cumulative P/L"] = df["Daily P/L"].cumsum()
-
+        
         cursor.close()
         conn.close()
         
@@ -151,7 +123,7 @@ def create_cumulative_pl_chart(df):
         x=df["Date"], 
         y=df["Cumulative P/L"],
         mode='lines+markers',
-        line=dict(color='cyan' if df["Cumulative P/L"].iloc[-1] > 0 else 'red', width=2),
+        line=dict(color='green' if df["Cumulative P/L"].iloc[-1] > 0 else 'red', width=2),
         marker=dict(size=5),
         name='Cumulative P/L'
     ))
@@ -159,9 +131,8 @@ def create_cumulative_pl_chart(df):
         title="Cumulative Profit/Loss Over Time",
         xaxis_title="Date",
         yaxis_title="Cumulative P/L",
-        plot_bgcolor='#121212',
-        paper_bgcolor='#121212',
-        font=dict(color='white'),
+        plot_bgcolor='#f9f9f9',
+        paper_bgcolor='#ffffff',
         height=400
     )
     return fig
@@ -174,7 +145,7 @@ with col1:
     symbol = st.text_input("Enter Stock Symbol", value="AAPL")
 with col2:
     st.write("")  # Add a small space to align with input label
-    go_clicked = st.button("Go")
+    go_clicked = st.button("Go", type="primary")
 
 # Create tabs
 tab_names = ["GTrends", "News", "Twitter", "Overall"]
