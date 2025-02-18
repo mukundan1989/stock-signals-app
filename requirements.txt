@@ -7,3 +7,4 @@ pillow==10.2.0
 yfinance
 matplotlib
 numpy
+seaborn
