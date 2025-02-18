@@ -54,8 +54,8 @@ DB_NAME = "stockstream_two"
 DB_USER = "stockstream_two"
 DB_PASSWORD = "stockstream_two"
 
-# Function to fetch data from the database
-def fetch_model_data(comp_symbol, model_name):
+# Function to fetch performance metrics
+def fetch_performance_metrics(comp_symbol):
     try:
         conn = mysql.connector.connect(
             host=DB_HOST,
@@ -66,22 +66,26 @@ def fetch_model_data(comp_symbol, model_name):
         cursor = conn.cursor()
         
         query = """
-        SELECT date, sentiment, entry_price, `30d_pl`, `60d_pl`
-        FROM models_performance
-        WHERE comp_symbol = %s AND model = %s AND sentiment != 'neutral'
+        SELECT COUNT(*) AS total_trades, 
+               (COUNT(CASE WHEN `30d_pl` > 0 OR `60d_pl` > 0 THEN 1 END) / COUNT(*)) * 100 AS win_percentage,
+               COALESCE(SUM(CASE WHEN `30d_pl` > 0 THEN `30d_pl` ELSE 0 END) / 
+               NULLIF(ABS(SUM(CASE WHEN `30d_pl` < 0 THEN `30d_pl` ELSE 0 END)), 0), 0) AS profit_factor
+        FROM models_performance WHERE comp_symbol = %s;
         """
         
-        cursor.execute(query, (comp_symbol, model_name))
-        result = cursor.fetchall()
-        columns = ["Date", "Sentiment", "Entry Price", "30D P/L", "60D P/L"]
-        df = pd.DataFrame(result, columns=columns)
+        cursor.execute(query, (comp_symbol,))
+        result = cursor.fetchone()
         
         cursor.close()
         conn.close()
         
-        return df
+        return {
+            "total_trades": result[0] if result else "N/A",
+            "win_percentage": f"{result[1]:.2f}%" if result else "N/A",
+            "profit_factor": f"{result[2]:.2f}" if result else "N/A"
+        }
     except Exception as e:
-        st.error(f"Error fetching data: {e}")
+        st.error(f"Error fetching performance metrics: {e}")
         return None
 
 # Title and search section
@@ -99,6 +103,14 @@ tab_names = ["GTrends", "News", "Twitter", "Overall"]
 tabs = st.tabs(tab_names)
 
 if go_clicked:
+    metrics = fetch_performance_metrics(symbol)
+    if metrics:
+        st.subheader("Performance Metrics")
+        col1, col2, col3 = st.columns(3)
+        col1.metric("Win %", metrics['win_percentage'])
+        col2.metric("No. of Trades", metrics['total_trades'])
+        col3.metric("Profit Factor", metrics['profit_factor'])
+    
     for tab, model_name in zip(tabs, ["gtrends", "news", "twitter", "overall"]):
         with tab:
             st.subheader(f"{model_name.capitalize()} Data")
