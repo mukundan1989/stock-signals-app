@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go
 from datetime import datetime, timedelta
+import mysql.connector
 
 # Set page config
 st.set_page_config(layout="wide", page_title="Performance Summary", initial_sidebar_state="collapsed")
@@ -78,6 +79,43 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
+# Database credentials
+DB_HOST = "13.203.191.72"
+DB_NAME = "stockstream_two"
+DB_USER = "stockstream_two"
+DB_PASSWORD = "stockstream_two"
+
+# Function to fetch performance data for a specific model and symbol
+def fetch_model_performance(symbol, model):
+    try:
+        conn = mysql.connector.connect(
+            host=DB_HOST,
+            database=DB_NAME,
+            user=DB_USER,
+            password=DB_PASSWORD
+        )
+        cursor = conn.cursor()
+
+        query = """
+        SELECT date, sentiment, entry_price, 30d_pl, 60d_pl
+        FROM models_performance
+        WHERE comp_symbol = %s AND model = %s
+        ORDER BY date DESC;
+        """
+        cursor.execute(query, (symbol, model))
+        result = cursor.fetchall()
+
+        columns = ["Date", "Sentiment", "Entry Price", "30d P/L", "60d P/L"]
+        df = pd.DataFrame(result, columns=columns)
+
+        cursor.close()
+        conn.close()
+
+        return df
+    except Exception as e:
+        st.error(f"Error fetching data for {model}: {e}")
+        return None
+
 # Title and search section
 st.title("Performance Summary")
 
@@ -86,7 +124,9 @@ with col1:
     symbol = st.text_input("Enter Stock Symbol", value="AAPL")
 with col2:
     st.write("")  # Add a small space to align with input label
-    st.button("Go", type="primary")
+    if st.button("Go", type="primary"):
+        # Fetch data for the entered symbol
+        pass
 
 # Create tabs
 tabs = st.tabs(["GTrends", "News", "Twitter", "Overall"])
@@ -163,25 +203,26 @@ def create_metrics_grid():
                 </div>
             ''', unsafe_allow_html=True)
 
-def create_trade_table():
-    data = {
-        'Date': ['2024-02-18', '2024-02-17', '2024-02-16', '2024-02-15'],
-        'Trade Type': ['Long', 'Short', 'Long', 'Short'],
-        'Holding Period': ['2d', '3d', '1d', '4d'],
-        '%P/L': ['+2.5%', '-1.2%', '+3.1%', '+0.8%']
-    }
-    df = pd.DataFrame(data)
-    st.dataframe(df, hide_index=True, use_container_width=True)
+def create_trade_table(data):
+    st.dataframe(data, hide_index=True, use_container_width=True)
 
 # Populate each tab with the same components
 for i, tab in enumerate(tabs):
     with tab:
-        # Price performance chart with unique key for each tab
-        st.plotly_chart(create_price_chart(), use_container_width=True, key=f"chart_{i}")
-        
-        # Metrics grid
-        create_metrics_grid()
-        
-        # Trade table
-        st.subheader("Trade History")
-        create_trade_table()
+        model_name = tabs[i].lower()  # Get the model name from the tab label
+        if symbol:
+            model_data = fetch_model_performance(symbol, model_name)
+            if model_data is not None:
+                # Price performance chart with unique key for each tab
+                st.plotly_chart(create_price_chart(), use_container_width=True, key=f"chart_{i}")
+                
+                # Metrics grid
+                create_metrics_grid()
+                
+                # Trade table
+                st.subheader("Trade History")
+                create_trade_table(model_data)
+            else:
+                st.warning(f"No data found for {model_name} model.")
+        else:
+            st.warning("Please enter a stock symbol to fetch data.")
