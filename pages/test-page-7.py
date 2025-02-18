@@ -40,6 +40,17 @@ st.markdown("""
         background-color: #1A1F2F;
         color: #E6E6E6;
     }
+    .stDataFrame th {
+        background-color: #2D3347 !important;
+        color: #E6E6E6 !important;
+    }
+    .stDataFrame td {
+        background-color: #1A1F2F !important;
+        color: #E6E6E6 !important;
+    }
+    .stDataFrame tr:hover {
+        background-color: #2D3347 !important;
+    }
     </style>
     """, unsafe_allow_html=True)
 
@@ -110,7 +121,8 @@ if go_clicked:
     if cumulative_pl_df is not None and not cumulative_pl_df.empty:
         st.plotly_chart(create_cumulative_pl_chart(cumulative_pl_df), use_container_width=True)
     
-    for tab, model_name in zip(st.tabs(["GTrends", "News", "Twitter", "Overall"]), ["gtrends", "news", "twitter", "overall"]):
+    tabs = st.tabs(["GTrends", "News", "Twitter", "Overall"])
+    for tab, model_name in zip(tabs, ["gtrends", "news", "twitter", "overall"]):
         with tab:
             st.subheader(f"{model_name.capitalize()} Data")
             df = fetch_model_data(symbol, model_name)
