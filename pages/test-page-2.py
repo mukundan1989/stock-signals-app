@@ -1,64 +1,182 @@
 import streamlit as st
 import plotly.graph_objects as go
+import plotly.express as px
+import numpy as np
+import pandas as pd
+import seaborn as sns
 
-# Function to create a stylish gauge chart with a black background
-def create_gauge(value, title, min_value=0, max_value=100):
-    fig = go.Figure(go.Indicator(
-        mode="gauge+number",
-        value=value,
-        title={'text': title, 'font': {'color': 'white', 'size': 20}},
-        number={'font': {'color': 'white', 'size': 40}},
-        gauge={
-            'axis': {'range': [min_value, max_value], 'tickcolor': 'white', 'tickfont': {'color': 'white'}},
-            'bar': {'color': 'cyan'},  # Bright color for the bar
-            'bgcolor': 'black',  # Background color of the gauge
-            'borderwidth': 2,
-            'bordercolor': 'gray',
-            'steps': [
-                {'range': [min_value, max_value * 0.5], 'color': 'darkgray'},
-                {'range': [max_value * 0.5, max_value * 0.75], 'color': 'gray'},
-                {'range': [max_value * 0.75, max_value], 'color': 'lightgray'}
-            ],
-            'threshold': {
-                'line': {'color': 'red', 'width': 4},
-                'thickness': 0.75,
-                'value': value
-            }
-        }
-    ))
-    fig.update_layout(
-        paper_bgcolor='black',  # Background color of the chart
-        plot_bgcolor='black',   # Background color of the plot area
-        margin=dict(l=50, r=50, t=50, b=50),
-        height=300,
-        font={'color': 'white'}  # Global font color
-    )
-    return fig
+# Set page config
+st.set_page_config(layout="wide", page_title="Dark Dashboard")
 
-# Streamlit app
-st.set_page_config(page_title="Elegant Gauge Dashboard", layout="wide")
-
-# Custom CSS to set the background color of the entire app to black
-st.markdown(
-    """
+# Custom CSS for dark theme
+st.markdown("""
     <style>
     .stApp {
-        background-color: black;
-        color: white;
+        background-color: #0E1117;
+        color: #FFFFFF;
+    }
+    .css-1d391kg {
+        background-color: #1E2329;
+    }
+    .stTabs [data-baseweb="tab-list"] {
+        gap: 2px;
+        background-color: #0E1117;
+    }
+    .stTabs [data-baseweb="tab"] {
+        background-color: #1E2329;
+        color: #FFFFFF;
     }
     </style>
-    """,
-    unsafe_allow_html=True
-)
+""", unsafe_allow_html=True)
 
 # Title
-st.title("Elegant Gauge Dashboard")
-st.markdown("---")
+st.title("📊 Dark Analytics Dashboard")
 
-# Example values
-value = st.slider("Select a value", 0, 100, 50, key="gauge_value")
-title = "Speedometer"
+# Create sample data
+np.random.seed(42)
+dates = pd.date_range(start='2024-01-01', end='2024-12-31', freq='D')
+data = {
+    'Date': dates,
+    'Sales': np.random.normal(1000, 100, len(dates)),
+    'Traffic': np.random.normal(5000, 500, len(dates)),
+    'Conversion': np.random.uniform(1, 5, len(dates))
+}
+df = pd.DataFrame(data)
 
-# Create and display the gauge chart
-gauge_chart = create_gauge(value, title)
-st.plotly_chart(gauge_chart, use_container_width=True)
+# Layout with columns
+col1, col2 = st.columns(2)
+
+# 1. Gauge Chart
+with col1:
+    st.subheader("Performance Gauge")
+    current_value = 75
+    fig_gauge = go.Figure(go.Indicator(
+        mode="gauge+number",
+        value=current_value,
+        domain={'x': [0, 1], 'y': [0, 1]},
+        gauge={
+            'axis': {'range': [None, 100], 'tickcolor': "white"},
+            'bar': {'color': "#00FF00"},
+            'bgcolor': "gray",
+            'steps': [
+                {'range': [0, 50], 'color': '#FF0000'},
+                {'range': [50, 75], 'color': '#FFFF00'},
+                {'range': [75, 100], 'color': '#00FF00'}
+            ]
+        }
+    ))
+    fig_gauge.update_layout(
+        paper_bgcolor='rgba(0,0,0,0)',
+        plot_bgcolor='rgba(0,0,0,0)',
+        font={'color': 'white'},
+        height=250
+    )
+    st.plotly_chart(fig_gauge, use_container_width=True)
+
+# 2. Speedometer
+with col2:
+    st.subheader("Speed Indicator")
+    speed_value = 65
+    fig_speed = go.Figure(go.Indicator(
+        mode="gauge+number",
+        value=speed_value,
+        domain={'x': [0, 1], 'y': [0, 1]},
+        gauge={
+            'axis': {'range': [None, 100], 'tickcolor': "white"},
+            'bar': {'color': "#00FFFF"},
+            'bgcolor': "gray",
+            'borderwidth': 2,
+            'bordercolor': "white",
+            'steps': [
+                {'range': [0, 30], 'color': '#00FFFF'},
+                {'range': [30, 70], 'color': '#00CCCC'},
+                {'range': [70, 100], 'color': '#009999'}
+            ]
+        }
+    ))
+    fig_speed.update_layout(
+        paper_bgcolor='rgba(0,0,0,0)',
+        plot_bgcolor='rgba(0,0,0,0)',
+        font={'color': 'white'},
+        height=250
+    )
+    st.plotly_chart(fig_speed, use_container_width=True)
+
+# 3. Heatmap
+st.subheader("Activity Heatmap")
+# Generate sample heatmap data
+heatmap_data = np.random.rand(10, 10)
+fig_heatmap = px.imshow(
+    heatmap_data,
+    color_continuous_scale='Viridis'
+)
+fig_heatmap.update_layout(
+    paper_bgcolor='rgba(0,0,0,0)',
+    plot_bgcolor='rgba(0,0,0,0)',
+    font={'color': 'white'}
+)
+st.plotly_chart(fig_heatmap, use_container_width=True)
+
+# 4. Area Graph
+st.subheader("Sales Trend")
+fig_area = px.area(
+    df, 
+    x='Date', 
+    y='Sales',
+    line_shape="spline"
+)
+fig_area.update_layout(
+    paper_bgcolor='rgba(0,0,0,0)',
+    plot_bgcolor='rgba(0,0,0,0)',
+    font={'color': 'white'},
+    xaxis={'gridcolor': 'rgba(255,255,255,0.1)'},
+    yaxis={'gridcolor': 'rgba(255,255,255,0.1)'}
+)
+st.plotly_chart(fig_area, use_container_width=True)
+
+# 5. Multiple Graphs
+col3, col4 = st.columns(2)
+
+with col3:
+    st.subheader("Traffic Analysis")
+    fig_line = px.line(
+        df, 
+        x='Date', 
+        y='Traffic',
+        line_shape="spline"
+    )
+    fig_line.update_layout(
+        paper_bgcolor='rgba(0,0,0,0)',
+        plot_bgcolor='rgba(0,0,0,0)',
+        font={'color': 'white'},
+        xaxis={'gridcolor': 'rgba(255,255,255,0.1)'},
+        yaxis={'gridcolor': 'rgba(255,255,255,0.1)'}
+    )
+    st.plotly_chart(fig_line, use_container_width=True)
+
+with col4:
+    st.subheader("Conversion Rate")
+    fig_bar = px.bar(
+        df.resample('M', on='Date').mean(),
+        y='Conversion'
+    )
+    fig_bar.update_layout(
+        paper_bgcolor='rgba(0,0,0,0)',
+        plot_bgcolor='rgba(0,0,0,0)',
+        font={'color': 'white'},
+        xaxis={'gridcolor': 'rgba(255,255,255,0.1)'},
+        yaxis={'gridcolor': 'rgba(255,255,255,0.1)'}
+    )
+    st.plotly_chart(fig_bar, use_container_width=True)
+
+# 6. Table
+st.subheader("Monthly Summary")
+monthly_summary = df.resample('M', on='Date').agg({
+    'Sales': ['mean', 'min', 'max'],
+    'Traffic': ['mean', 'min', 'max'],
+    'Conversion': 'mean'
+}).round(2)
+monthly_summary.columns = ['Avg Sales', 'Min Sales', 'Max Sales', 
+                         'Avg Traffic', 'Min Traffic', 'Max Traffic', 
+                         'Avg Conversion']
+st.dataframe(monthly_summary, use_container_width=True)
