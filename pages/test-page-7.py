@@ -1,8 +1,6 @@
 import streamlit as st
 import pandas as pd
 import mysql.connector
-import plotly.graph_objects as go
-from datetime import datetime, timedelta
 
 # Set page config
 st.set_page_config(layout="wide", page_title="Performance Summary", initial_sidebar_state="collapsed")
@@ -27,7 +25,7 @@ def fetch_model_data(comp_symbol, model_name):
         query = """
         SELECT date, sentiment, entry_price, `30d_pl`, `60d_pl`
         FROM models_performance
-        WHERE comp_symbol = %s AND model = %s
+        WHERE comp_symbol = %s AND model = %s AND sentiment != 'neutral'
         """
         
         cursor.execute(query, (comp_symbol, model_name))
@@ -43,31 +41,52 @@ def fetch_model_data(comp_symbol, model_name):
         st.error(f"Error fetching data: {e}")
         return None
 
-# Function to create dummy price chart
-def create_price_chart():
-    dates = pd.date_range(start='2024-01-01', periods=30, freq='D')
-    prices = [100 + i * 0.5 for i in range(len(dates))]
-    
-    fig = go.Figure()
-    fig.add_trace(go.Scatter(x=dates, y=prices, fill='tozeroy', line=dict(color='#00FF94', width=2), name='Price'))
-    fig.update_layout(plot_bgcolor='#1A1F2F', paper_bgcolor='#1A1F2F', font=dict(color='#E6E6E6'), height=350)
-    return fig
-
-# Function to create dummy metric boxes
-def create_metrics_grid():
-    col1, col2 = st.columns(2)
-    with col1:
-        m1, m2 = st.columns(2)
-        with m1:
-            st.metric(label="Win %", value="75.5%")
-        with m2:
-            st.metric(label="No. of Trades", value="142")
-    with col2:
-        m3, m4 = st.columns(2)
-        with m3:
-            st.metric(label="Profit Factor", value="2.4")
-        with m4:
-            st.metric(label="vs S&P", value="+12.3%")
+# Function to calculate performance metrics
+def fetch_performance_metrics(comp_symbol):
+    try:
+        conn = mysql.connector.connect(
+            host=DB_HOST,
+            database=DB_NAME,
+            user=DB_USER,
+            password=DB_PASSWORD
+        )
+        cursor = conn.cursor()
+        
+        queries = {
+            "win_percentage": """
+                SELECT (COUNT(CASE WHEN (`30d_pl` > 0 OR `60d_pl` > 0) AND sentiment != 'neutral' THEN 1 END) 
+                / COUNT(CASE WHEN sentiment != 'neutral' THEN 1 END)) * 100 AS win_percentage
+                FROM models_performance WHERE comp_symbol = %s;
+            """,
+            "total_trades": """
+                SELECT COUNT(*) AS total_trades FROM models_performance
+                WHERE comp_symbol = %s AND sentiment != 'neutral';
+            """,
+            "profit_factor": """
+                SELECT COALESCE(SUM(CASE WHEN `30d_pl` > 0 AND sentiment != 'neutral' THEN `30d_pl` ELSE 0 END), 0) / 
+                NULLIF(ABS(SUM(CASE WHEN `30d_pl` < 0 AND sentiment != 'neutral' THEN `30d_pl` ELSE 0 END)), 0) 
+                AS profit_factor FROM models_performance WHERE comp_symbol = %s;
+            """,
+            "vs_sp500": """
+                SELECT (AVG(`30d_pl`) - (SELECT AVG(sp500_return) FROM sp500_performance 
+                WHERE date IN (SELECT DISTINCT date FROM models_performance WHERE comp_symbol = %s AND sentiment != 'neutral'))) 
+                AS vs_sp500 FROM models_performance WHERE comp_symbol = %s AND sentiment != 'neutral';
+            """
+        }
+        
+        results = {}
+        for key, query in queries.items():
+            cursor.execute(query, (comp_symbol, comp_symbol))
+            result = cursor.fetchone()
+            results[key] = result[0] if result and result[0] is not None else "N/A"
+        
+        cursor.close()
+        conn.close()
+        
+        return results
+    except Exception as e:
+        st.error(f"Error fetching performance metrics: {e}")
+        return None
 
 # Title and search section
 st.title("Performance Summary")
@@ -84,11 +103,19 @@ tab_names = ["GTrends", "News", "Twitter", "Overall"]
 tabs = st.tabs(tab_names)
 
 if go_clicked:
+    metrics = fetch_performance_metrics(symbol)
+    
+    if metrics:
+        st.subheader("Performance Metrics")
+        col1, col2, col3, col4 = st.columns(4)
+        col1.metric("Win %", f"{metrics['win_percentage']}%")
+        col2.metric("No. of Trades", f"{metrics['total_trades']}")
+        col3.metric("Profit Factor", f"{metrics['profit_factor']}")
+        col4.metric("vs S&P", f"{metrics['vs_sp500']}")
+    
     for tab, model_name in zip(tabs, ["gtrends", "news", "twitter", "overall"]):
         with tab:
             st.subheader(f"{model_name.capitalize()} Data")
-            st.plotly_chart(create_price_chart(), use_container_width=True)
-            create_metrics_grid()
             df = fetch_model_data(symbol, model_name)
             if df is not None and not df.empty:
                 st.dataframe(df, use_container_width=True)
