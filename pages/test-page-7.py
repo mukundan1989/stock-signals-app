@@ -42,6 +42,48 @@ def fetch_model_data(comp_symbol, model_name):
         st.error(f"Error fetching data: {e}")
         return None
 
+# Function to fetch performance metrics
+def fetch_performance_metrics(comp_symbol):
+    try:
+        conn = mysql.connector.connect(
+            host=DB_HOST,
+            database=DB_NAME,
+            user=DB_USER,
+            password=DB_PASSWORD
+        )
+        cursor = conn.cursor()
+        
+        queries = {
+            "win_percentage": """
+                SELECT (COUNT(CASE WHEN (`30d_pl` > 0 OR `60d_pl` > 0) AND sentiment != 'neutral' THEN 1 END) 
+                / COUNT(CASE WHEN sentiment != 'neutral' THEN 1 END)) * 100 AS win_percentage
+                FROM models_performance WHERE comp_symbol = %s;
+            """,
+            "total_trades": """
+                SELECT COUNT(*) AS total_trades FROM models_performance
+                WHERE comp_symbol = %s AND sentiment != 'neutral';
+            """,
+            "profit_factor": """
+                SELECT COALESCE(SUM(CASE WHEN `30d_pl` > 0 AND sentiment != 'neutral' THEN `30d_pl` ELSE 0 END), 0) / 
+                NULLIF(ABS(SUM(CASE WHEN `30d_pl` < 0 AND sentiment != 'neutral' THEN `30d_pl` ELSE 0 END)), 0) 
+                AS profit_factor FROM models_performance WHERE comp_symbol = %s;
+            """
+        }
+        
+        results = {}
+        for key, query in queries.items():
+            cursor.execute(query, (comp_symbol,))
+            result = cursor.fetchone()
+            results[key] = result[0] if result and result[0] is not None else "N/A"
+        
+        cursor.close()
+        conn.close()
+        
+        return results
+    except Exception as e:
+        st.error(f"Error fetching performance metrics: {e}")
+        return None
+
 # Function to fetch and compute cumulative P/L data
 def fetch_cumulative_pl(comp_symbol):
     try:
@@ -110,6 +152,14 @@ tab_names = ["GTrends", "News", "Twitter", "Overall"]
 tabs = st.tabs(tab_names)
 
 if go_clicked:
+    metrics = fetch_performance_metrics(symbol)
+    if metrics:
+        st.subheader("Performance Metrics")
+        col1, col2, col3 = st.columns(3)
+        col1.metric("Win %", f"{metrics['win_percentage']}%")
+        col2.metric("No. of Trades", f"{metrics['total_trades']}")
+        col3.metric("Profit Factor", f"{metrics['profit_factor']}")
+    
     cumulative_pl_df = fetch_cumulative_pl(symbol)
     if cumulative_pl_df is not None and not cumulative_pl_df.empty:
         st.plotly_chart(create_cumulative_pl_chart(cumulative_pl_df), use_container_width=True)
