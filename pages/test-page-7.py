@@ -49,8 +49,8 @@ DB_NAME = "stockstream_two"
 DB_USER = "stockstream_two"
 DB_PASSWORD = "stockstream_two"
 
-# Function to fetch model data
-def fetch_model_data(comp_symbol, model_name):
+# Function to fetch performance metrics
+def fetch_performance_metrics(comp_symbol):
     try:
         conn = mysql.connector.connect(
             host=DB_HOST,
@@ -59,70 +59,32 @@ def fetch_model_data(comp_symbol, model_name):
             password=DB_PASSWORD
         )
         cursor = conn.cursor()
+        
         query = """
-        SELECT date, sentiment, entry_price, `30d_pl`, `60d_pl`
-        FROM models_performance
-        WHERE comp_symbol = %s AND model = %s AND sentiment != 'neutral'
+        SELECT (COUNT(CASE WHEN (`30d_pl` > 0 OR `60d_pl` > 0) AND sentiment != 'neutral' THEN 1 END) 
+                / COUNT(CASE WHEN sentiment != 'neutral' THEN 1 END)) * 100 AS win_percentage,
+               COUNT(*) AS total_trades,
+               COALESCE(SUM(CASE WHEN `30d_pl` > 0 THEN `30d_pl` ELSE 0 END), 0) / 
+               NULLIF(ABS(SUM(CASE WHEN `30d_pl` < 0 THEN `30d_pl` ELSE 0 END)), 0) AS profit_factor
+        FROM models_performance WHERE comp_symbol = %s;
         """
-        cursor.execute(query, (comp_symbol, model_name))
-        result = cursor.fetchall()
-        columns = ["Date", "Sentiment", "Entry Price", "30D P/L", "60D P/L"]
-        df = pd.DataFrame(result, columns=columns)
-        cursor.close()
-        conn.close()
-        return df
-    except Exception as e:
-        st.error(f"Error fetching data: {e}")
-        return None
-
-# Function to fetch and compute cumulative P/L
-def fetch_cumulative_pl(comp_symbol):
-    try:
-        conn = mysql.connector.connect(
-            host=DB_HOST,
-            database=DB_NAME,
-            user=DB_USER,
-            password=DB_PASSWORD
-        )
-        cursor = conn.cursor()
-        query = """
-        SELECT date, SUM(`30d_pl`) AS daily_pl
-        FROM models_performance
-        WHERE comp_symbol = %s AND sentiment != 'neutral'
-        GROUP BY date ORDER BY date;
-        """
+        
         cursor.execute(query, (comp_symbol,))
-        result = cursor.fetchall()
-        df = pd.DataFrame(result, columns=["Date", "Daily P/L"])
-        df["Cumulative P/L"] = df["Daily P/L"].cumsum()
+        result = cursor.fetchone()
+        
+        metrics = {
+            "win_percentage": result[0] if result and result[0] is not None else "N/A",
+            "total_trades": result[1] if result and result[1] is not None else "N/A",
+            "profit_factor": result[2] if result and result[2] is not None else "N/A"
+        }
+        
         cursor.close()
         conn.close()
-        return df
+        
+        return metrics
     except Exception as e:
-        st.error(f"Error fetching cumulative P/L data: {e}")
+        st.error(f"Error fetching performance metrics: {e}")
         return None
-
-# Function to create cumulative P/L chart
-def create_cumulative_pl_chart(df):
-    fig = go.Figure()
-    fig.add_trace(go.Scatter(
-        x=df["Date"], 
-        y=df["Cumulative P/L"],
-        mode='lines+markers',
-        line=dict(color='green' if df["Cumulative P/L"].iloc[-1] > 0 else 'red', width=2),
-        marker=dict(size=5),
-        name='Cumulative P/L'
-    ))
-    fig.update_layout(
-        title="Cumulative Profit/Loss Over Time",
-        xaxis_title="Date",
-        yaxis_title="Cumulative P/L",
-        plot_bgcolor='#1A1F2F',
-        paper_bgcolor='#1A1F2F',
-        font=dict(color='#E6E6E6'),
-        height=400
-    )
-    return fig
 
 # Title and search section
 st.title("Performance Summary")
@@ -134,17 +96,21 @@ with col2:
     st.write("")
     go_clicked = st.button("Go", type="primary")
 
-# Create tabs
-tab_names = ["GTrends", "News", "Twitter", "Overall"]
-tabs = st.tabs(tab_names)
-
 if go_clicked:
+    metrics = fetch_performance_metrics(symbol)
+    if metrics:
+        st.subheader("Performance Metrics")
+        col1, col2, col3 = st.columns(3)
+        col1.metric("Win %", f"{metrics['win_percentage']}%")
+        col2.metric("No. of Trades", f"{metrics['total_trades']}")
+        col3.metric("Profit Factor", f"{metrics['profit_factor']}")
+    
+    st.subheader("Cumulative Profit/Loss Chart")
     cumulative_pl_df = fetch_cumulative_pl(symbol)
     if cumulative_pl_df is not None and not cumulative_pl_df.empty:
-        st.subheader("Cumulative Profit/Loss Chart")
         st.plotly_chart(create_cumulative_pl_chart(cumulative_pl_df), use_container_width=True)
     
-    for tab, model_name in zip(tabs, ["gtrends", "news", "twitter", "overall"]):
+    for tab, model_name in zip(st.tabs(["GTrends", "News", "Twitter", "Overall"]), ["gtrends", "news", "twitter", "overall"]):
         with tab:
             st.subheader(f"{model_name.capitalize()} Data")
             df = fetch_model_data(symbol, model_name)
