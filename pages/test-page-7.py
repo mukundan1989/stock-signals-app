@@ -3,8 +3,35 @@ import pandas as pd
 import mysql.connector
 import plotly.graph_objects as go
 
-# Set page config
+# Set page config with dark theme
 st.set_page_config(layout="wide", page_title="Performance Summary", initial_sidebar_state="collapsed")
+
+# Apply custom CSS for dark mode
+def apply_dark_theme():
+    st.markdown(
+        """
+        <style>
+            body {
+                background-color: #1e1e1e;
+                color: white;
+            }
+            .stApp {
+                background-color: #1e1e1e;
+            }
+            .stDataFrame, .stTable {
+                background-color: #2e2e2e;
+                color: white;
+                border-color: gray;
+            }
+            .stMetric {
+                background-color: #2e2e2e;
+                color: white;
+            }
+        </style>
+        """,
+        unsafe_allow_html=True
+    )
+apply_dark_theme()
 
 # Database credentials
 DB_HOST = "13.203.191.72"
@@ -42,16 +69,6 @@ def fetch_model_data(comp_symbol, model_name):
         st.error(f"Error fetching data: {e}")
         return None
 
-# Apply dark style to tables
-def style_dataframe(df):
-    return df.style.set_properties(
-        **{
-            'background-color': '#2e2e2e',
-            'color': 'white',
-            'border-color': 'gray'
-        }
-    )
-
 # Title and search section
 st.title("Performance Summary")
 
@@ -72,6 +89,6 @@ if go_clicked:
             st.subheader(f"{model_name.capitalize()} Data")
             df = fetch_model_data(symbol, model_name)
             if df is not None and not df.empty:
-                st.dataframe(style_dataframe(df), use_container_width=True)
+                st.dataframe(df, use_container_width=True)
             else:
                 st.warning(f"No data found for {model_name.capitalize()}.")
