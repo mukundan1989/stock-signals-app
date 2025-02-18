@@ -123,18 +123,24 @@ def create_cumulative_pl_chart(df):
         x=df["Date"], 
         y=df["Cumulative P/L"],
         mode='lines+markers',
-        line=dict(color='green' if df["Cumulative P/L"].iloc[-1] > 0 else 'red', width=2),
+        line=dict(color='cyan' if df["Cumulative P/L"].iloc[-1] > 0 else 'red', width=2),
         marker=dict(size=5),
         name='Cumulative P/L'
     ))
+    
+    # Apply dark mode styling
     fig.update_layout(
         title="Cumulative Profit/Loss Over Time",
         xaxis_title="Date",
         yaxis_title="Cumulative P/L",
-        plot_bgcolor='#f9f9f9',
-        paper_bgcolor='#ffffff',
+        plot_bgcolor="#121212",  # Dark background for plot area
+        paper_bgcolor="#121212",  # Dark background for outer area
+        font=dict(color="white"),  # White text for visibility
+        xaxis=dict(showgrid=True, gridcolor="#333333", zerolinecolor="#444444"),
+        yaxis=dict(showgrid=True, gridcolor="#333333", zerolinecolor="#444444"),
         height=400
     )
+    
     return fig
 
 # Title and search section
