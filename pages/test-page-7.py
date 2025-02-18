@@ -66,20 +66,12 @@ def fetch_performance_metrics(comp_symbol):
                 SELECT COALESCE(SUM(CASE WHEN `30d_pl` > 0 AND sentiment != 'neutral' THEN `30d_pl` ELSE 0 END), 0) / 
                 NULLIF(ABS(SUM(CASE WHEN `30d_pl` < 0 AND sentiment != 'neutral' THEN `30d_pl` ELSE 0 END)), 0) 
                 AS profit_factor FROM models_performance WHERE comp_symbol = %s;
-            """,
-            "vs_sp500": """
-                SELECT (AVG(`30d_pl`) - (SELECT AVG(sp500_return) FROM sp500_performance 
-                WHERE date IN (SELECT DISTINCT date FROM models_performance WHERE comp_symbol = %s AND sentiment != 'neutral'))) 
-                AS vs_sp500 FROM models_performance WHERE comp_symbol = %s AND sentiment != 'neutral';
             """
         }
         
         results = {}
         for key, query in queries.items():
-            if key == "vs_sp500":
-                cursor.execute(query, (comp_symbol, comp_symbol))
-            else:
-                cursor.execute(query, (comp_symbol,))
+            cursor.execute(query, (comp_symbol,))
             result = cursor.fetchone()
             results[key] = result[0] if result and result[0] is not None else "N/A"
         
@@ -110,11 +102,10 @@ if go_clicked:
     
     if metrics:
         st.subheader("Performance Metrics")
-        col1, col2, col3, col4 = st.columns(4)
+        col1, col2, col3 = st.columns(3)
         col1.metric("Win %", f"{metrics['win_percentage']}%")
         col2.metric("No. of Trades", f"{metrics['total_trades']}")
         col3.metric("Profit Factor", f"{metrics['profit_factor']}")
-        col4.metric("vs S&P", f"{metrics['vs_sp500']}")
     
     for tab, model_name in zip(tabs, ["gtrends", "news", "twitter", "overall"]):
         with tab:
