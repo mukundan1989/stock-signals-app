@@ -1,6 +1,8 @@
 import streamlit as st
 import pandas as pd
 import mysql.connector
+import plotly.graph_objects as go
+from datetime import datetime, timedelta
 
 # Set page config
 st.set_page_config(layout="wide", page_title="Performance Summary", initial_sidebar_state="collapsed")
@@ -41,6 +43,32 @@ def fetch_model_data(comp_symbol, model_name):
         st.error(f"Error fetching data: {e}")
         return None
 
+# Function to create dummy price chart
+def create_price_chart():
+    dates = pd.date_range(start='2024-01-01', periods=30, freq='D')
+    prices = [100 + i * 0.5 for i in range(len(dates))]
+    
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(x=dates, y=prices, fill='tozeroy', line=dict(color='#00FF94', width=2), name='Price'))
+    fig.update_layout(plot_bgcolor='#1A1F2F', paper_bgcolor='#1A1F2F', font=dict(color='#E6E6E6'), height=350)
+    return fig
+
+# Function to create dummy metric boxes
+def create_metrics_grid():
+    col1, col2 = st.columns(2)
+    with col1:
+        m1, m2 = st.columns(2)
+        with m1:
+            st.metric(label="Win %", value="75.5%")
+        with m2:
+            st.metric(label="No. of Trades", value="142")
+    with col2:
+        m3, m4 = st.columns(2)
+        with m3:
+            st.metric(label="Profit Factor", value="2.4")
+        with m4:
+            st.metric(label="vs S&P", value="+12.3%")
+
 # Title and search section
 st.title("Performance Summary")
 
@@ -59,6 +87,8 @@ if go_clicked:
     for tab, model_name in zip(tabs, ["gtrends", "news", "twitter", "overall"]):
         with tab:
             st.subheader(f"{model_name.capitalize()} Data")
+            st.plotly_chart(create_price_chart(), use_container_width=True)
+            create_metrics_grid()
             df = fetch_model_data(symbol, model_name)
             if df is not None and not df.empty:
                 st.dataframe(df, use_container_width=True)
