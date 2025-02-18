@@ -6,6 +6,29 @@ import plotly.graph_objects as go
 # Set page config
 st.set_page_config(layout="wide", page_title="Performance Summary", initial_sidebar_state="collapsed")
 
+# Apply dark theme using custom CSS
+st.markdown(
+    """
+    <style>
+        body {
+            background-color: #121212 !important;
+            color: #e0e0e0 !important;
+        }
+        .stTextInput>div>div>input, .stButton>button {
+            background-color: #333333 !important;
+            color: white !important;
+        }
+        .stDataFrame {
+            background-color: #222222 !important;
+        }
+        .stMetric {
+            color: white !important;
+        }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
 # Database credentials
 DB_HOST = "13.203.191.72"
 DB_NAME = "stockstream_two"
@@ -22,7 +45,7 @@ def fetch_model_data(comp_symbol, model_name):
             password=DB_PASSWORD
         )
         cursor = conn.cursor()
-        
+
         query = """
         SELECT date, sentiment, entry_price, `30d_pl`, `60d_pl`
         FROM models_performance
@@ -33,7 +56,7 @@ def fetch_model_data(comp_symbol, model_name):
         result = cursor.fetchall()
         columns = ["Date", "Sentiment", "Entry Price", "30D P/L", "60D P/L"]
         df = pd.DataFrame(result, columns=columns)
-        
+
         cursor.close()
         conn.close()
         
@@ -76,7 +99,7 @@ def fetch_performance_metrics(comp_symbol):
             result = cursor.fetchone()
             value = result[0] if result and result[0] is not None else "N/A"
 
-            # Round off profit factor to 2 decimal places
+            # Round profit factor to 2 decimal places
             if key == "profit_factor" and isinstance(value, (int, float)):
                 value = round(value, 2)
 
@@ -100,7 +123,7 @@ def fetch_cumulative_pl(comp_symbol):
             password=DB_PASSWORD
         )
         cursor = conn.cursor()
-        
+
         query = """
         SELECT date, SUM(`30d_pl`) AS daily_pl
         FROM models_performance
@@ -110,10 +133,10 @@ def fetch_cumulative_pl(comp_symbol):
         
         cursor.execute(query, (comp_symbol,))
         result = cursor.fetchall()
-        
+
         df = pd.DataFrame(result, columns=["Date", "Daily P/L"])
         df["Cumulative P/L"] = df["Daily P/L"].cumsum()
-        
+
         cursor.close()
         conn.close()
         
@@ -157,13 +180,14 @@ with col1:
     symbol = st.text_input("Enter Stock Symbol", value="AAPL")
 with col2:
     st.write("")  # Add a small space to align with input label
-    go_clicked = st.button("Go", type="primary")
+    go_clicked = st.button("Go")
 
 # Create tabs
 tab_names = ["GTrends", "News", "Twitter", "Overall"]
 tabs = st.tabs(tab_names)
 
 if go_clicked:
+    # 1️⃣ Show Performance Metrics first
     metrics = fetch_performance_metrics(symbol)
     if metrics:
         st.subheader("Performance Metrics")
@@ -171,12 +195,14 @@ if go_clicked:
         col1.metric("Win %", f"{metrics['win_percentage']}%")
         col2.metric("No. of Trades", f"{metrics['total_trades']}")
         col3.metric("Profit Factor", f"{metrics['profit_factor']}")
-    
+
+    # 2️⃣ Show Equity Curve next
     cumulative_pl_df = fetch_cumulative_pl(symbol)
     if cumulative_pl_df is not None and not cumulative_pl_df.empty:
-        st.subheader("Equity Curve")  # Add this line for the title
+        st.subheader("Equity Curve")
         st.plotly_chart(create_cumulative_pl_chart(cumulative_pl_df), use_container_width=True)
-    
+
+    # 3️⃣ Show the model data table last
     for tab, model_name in zip(tabs, ["gtrends", "news", "twitter", "overall"]):
         with tab:
             st.subheader(f"{model_name.capitalize()} Data")
