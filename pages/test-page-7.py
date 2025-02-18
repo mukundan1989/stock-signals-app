@@ -174,6 +174,7 @@ if go_clicked:
     
     cumulative_pl_df = fetch_cumulative_pl(symbol)
     if cumulative_pl_df is not None and not cumulative_pl_df.empty:
+        st.subheader("Equity Curve")  # Add this line for the title
         st.plotly_chart(create_cumulative_pl_chart(cumulative_pl_df), use_container_width=True)
     
     for tab, model_name in zip(tabs, ["gtrends", "news", "twitter", "overall"]):
