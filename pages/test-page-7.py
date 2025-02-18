@@ -52,14 +52,15 @@ with col2:
     go_clicked = st.button("Go", type="primary")
 
 # Create tabs
-tabs = {"GTrends": "gtrends", "News": "news", "Twitter": "twitter", "Overall": "overall"}
+tab_names = ["GTrends", "News", "Twitter", "Overall"]
+tabs = st.tabs(tab_names)
 
 if go_clicked:
-    for tab_name, model_name in tabs.items():
-        with st.tab(tab_name):
-            st.subheader(f"{tab_name} Data")
+    for tab, model_name in zip(tabs, ["gtrends", "news", "twitter", "overall"]):
+        with tab:
+            st.subheader(f"{model_name.capitalize()} Data")
             df = fetch_model_data(symbol, model_name)
             if df is not None and not df.empty:
                 st.dataframe(df, use_container_width=True)
             else:
-                st.warning(f"No data found for {tab_name}.")
+                st.warning(f"No data found for {model_name.capitalize()}.")
