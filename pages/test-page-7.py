@@ -52,7 +52,7 @@ def fetch_performance_metrics(comp_symbol):
             password=DB_PASSWORD
         )
         cursor = conn.cursor()
-        
+
         queries = {
             "win_percentage": """
                 SELECT (COUNT(CASE WHEN (`30d_pl` > 0 OR `60d_pl` > 0) AND sentiment != 'neutral' THEN 1 END) 
@@ -69,13 +69,19 @@ def fetch_performance_metrics(comp_symbol):
                 AS profit_factor FROM models_performance WHERE comp_symbol = %s;
             """
         }
-        
+
         results = {}
         for key, query in queries.items():
             cursor.execute(query, (comp_symbol,))
             result = cursor.fetchone()
-            results[key] = result[0] if result and result[0] is not None else "N/A"
-        
+            value = result[0] if result and result[0] is not None else "N/A"
+
+            # Round off profit factor to 2 decimal places
+            if key == "profit_factor" and isinstance(value, (int, float)):
+                value = round(value, 2)
+
+            results[key] = value
+
         cursor.close()
         conn.close()
         
