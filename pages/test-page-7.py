@@ -62,6 +62,12 @@ st.markdown("""
     /* Table styling */
     .stDataFrame {
         background-color: #1A1F2F;
+        border: 1px solid #2D3347;
+        border-radius: 8px;
+        padding: 10px;
+    }
+    .stDataFrame th, .stDataFrame td {
+        color: #E6E6E6;
     }
     </style>
     """, unsafe_allow_html=True)
