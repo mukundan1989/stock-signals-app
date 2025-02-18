@@ -76,7 +76,10 @@ def fetch_performance_metrics(comp_symbol):
         
         results = {}
         for key, query in queries.items():
-            cursor.execute(query, (comp_symbol, comp_symbol))
+            if key == "vs_sp500":
+                cursor.execute(query, (comp_symbol, comp_symbol))
+            else:
+                cursor.execute(query, (comp_symbol,))
             result = cursor.fetchone()
             results[key] = result[0] if result and result[0] is not None else "N/A"
         
