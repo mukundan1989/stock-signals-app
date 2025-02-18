@@ -202,10 +202,10 @@ if go_clicked:
         st.subheader("Equity Curve")
         st.plotly_chart(create_cumulative_pl_chart(cumulative_pl_df), use_container_width=True)
 
-    # 3️⃣ Show the model data table last
+    # 3️⃣ Show the model data table last (ensuring it appears at the bottom)
+    st.subheader("Model Data")
     for tab, model_name in zip(tabs, ["gtrends", "news", "twitter", "overall"]):
         with tab:
-            st.subheader(f"{model_name.capitalize()} Data")
             df = fetch_model_data(symbol, model_name)
             if df is not None and not df.empty:
                 st.dataframe(df, use_container_width=True)
