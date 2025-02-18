@@ -62,12 +62,18 @@ st.markdown("""
     /* Table styling */
     .stDataFrame {
         background-color: #1A1F2F;
-        border: 1px solid #2D3347;
-        border-radius: 8px;
-        padding: 10px;
-    }
-    .stDataFrame th, .stDataFrame td {
         color: #E6E6E6;
+    }
+    .stDataFrame th {
+        background-color: #2D3347 !important;
+        color: #E6E6E6 !important;
+    }
+    .stDataFrame td {
+        background-color: #1A1F2F !important;
+        color: #E6E6E6 !important;
+    }
+    .stDataFrame tr:hover {
+        background-color: #2D3347 !important;
     }
     </style>
     """, unsafe_allow_html=True)
