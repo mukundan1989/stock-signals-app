@@ -61,15 +61,17 @@ st.markdown(
         color: #ffffff !important; /* White text for titles and paragraphs */
     }
 
-    /* Updated styling for metric boxes */
+    /* Updated styling for metric boxes with gradient background */
     .metric-box {
-        background-color: #3a3a3a; /* Dark grey background */
+        background: linear-gradient(135deg, #3a3a3a, #2a2a2a); /* Dark grey gradient */
         padding: 20px;
         border-radius: 10px;
         text-align: center;
         color: #ffffff; /* White text */
         font-size: 18px;
         font-weight: bold;
+        border: 1px solid #4a4a4a; /* Subtle border */
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Soft shadow */
     }
 
     /* Grid container for metric boxes */
