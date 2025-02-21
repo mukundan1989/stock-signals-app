@@ -15,13 +15,13 @@ st.markdown("""
         box-shadow: 0 4px 6px rgba(0,0,0,0.3);
         margin-bottom: 20px;
         border: 1px solid #333333;
+        text-align: center;
     }
     .metric-value {
         font-size: 48px;
         font-weight: bold;
         text-align: center;
         color: #bb86fc;
-        line-height: 1.2;
     }
     .metric-label {
         font-size: 16px;
@@ -31,34 +31,18 @@ st.markdown("""
     }
     .box-title {
         color: #bb86fc;
-        text-align: center;
         font-size: 24px;
-        margin-bottom: 20px;
-    }
-    .company-info {
-        text-align: center;
-        color: #ffffff;
-    }
-    .company-symbol {
-        font-size: 32px;
-        font-weight: bold;
-        color: #bb86fc;
-    }
-    .company-price {
-        font-size: 28px;
-        color: #bb86fc;
-        font-weight: bold;
+        margin-bottom: 10px;
     }
     .sentiment-icon {
         font-size: 48px;
         text-align: center;
-        line-height: 200px;  /* Matches chart height */
     }
     .metric-container {
-        height: 200px;  /* Fixed height to match chart */
         display: flex;
         flex-direction: column;
         justify-content: center;
+        align-items: center;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -85,7 +69,7 @@ def create_donut_chart():
     fig.update_layout(
         showlegend=True,
         margin=dict(t=0, b=0, l=0, r=0),
-        height=200,  # Fixed height
+        height=200,
         paper_bgcolor='rgba(0,0,0,0)',
         plot_bgcolor='rgba(0,0,0,0)',
         font=dict(color='#ffffff'),
@@ -99,32 +83,30 @@ def create_donut_chart():
 # Main title
 st.title("Stock Signal Page")
 
-# Box 1: Company Information
+# Box 1: Company Information (Title Only)
 st.markdown("""
     <div class="box-container">
-        <div class="company-info">
-            <h2 class="box-title">Company Information</h2>
-            <div class="company-symbol">AAPL</div>
-            <div style="margin: 10px 0;">Apple Inc.</div>
-            <div class="company-price">$175.34</div>
-        </div>
+        <h2 class="box-title">Company Information</h2>
     </div>
 """, unsafe_allow_html=True)
 
-# Box 2: Twitter Trends
-# Twitter Trends Title Box
+# Company Info Content (Outside the Box)
+st.markdown("""
+    <div style="text-align: center; color: white;">
+        <div class="company-symbol" style="font-size: 32px; font-weight: bold; color: #bb86fc;">AAPL</div>
+        <div style="margin: 10px 0;">Apple Inc.</div>
+        <div class="company-price" style="font-size: 28px; color: #bb86fc; font-weight: bold;">$175.34</div>
+    </div>
+""", unsafe_allow_html=True)
+
+# Box 2: Twitter Trends (Title Only)
 st.markdown("""
     <div class="box-container">
         <h2 class="box-title">Twitter Trend Insight</h2>
     </div>
 """, unsafe_allow_html=True)
 
-# Twitter Trends Data Box (Separate)
-st.markdown("""
-    <div class="box-container">
-        <div style="display: flex; justify-content: space-around; align-items: center; text-align: center;">
-""", unsafe_allow_html=True)
-
+# Twitter Trend Content (Outside the Box)
 col1, col2, col3 = st.columns([1, 2, 1])
 
 with col1:
@@ -141,18 +123,14 @@ with col2:
 with col3:
     st.markdown('<div class="sentiment-icon">🐂</div>', unsafe_allow_html=True)
 
-# Closing the second box-container after adding all elements
-st.markdown("""
-        </div>
-    </div>
-""", unsafe_allow_html=True)
-
-# Box 3: Google Trends (same structure as Box 2)
+# Box 3: Google Trends (Title Only)
 st.markdown("""
     <div class="box-container">
         <h2 class="box-title">Google Trend Insight</h2>
+    </div>
 """, unsafe_allow_html=True)
 
+# Google Trend Content (Outside the Box)
 col1, col2, col3 = st.columns([1, 2, 1])
 
 with col1:
@@ -169,14 +147,14 @@ with col2:
 with col3:
     st.markdown('<div class="sentiment-icon">🐻</div>', unsafe_allow_html=True)
 
-st.markdown('</div>', unsafe_allow_html=True)
-
-# Box 4: News Analysis (same structure as Box 2)
+# Box 4: News Analysis (Title Only)
 st.markdown("""
     <div class="box-container">
         <h2 class="box-title">News Analysis</h2>
+    </div>
 """, unsafe_allow_html=True)
 
+# News Analysis Content (Outside the Box)
 col1, col2, col3 = st.columns([1, 2, 1])
 
 with col1:
@@ -192,5 +170,3 @@ with col2:
 
 with col3:
     st.markdown('<div class="sentiment-icon">🐻</div>', unsafe_allow_html=True)
-
-st.markdown('</div>', unsafe_allow_html=True)
