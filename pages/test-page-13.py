@@ -115,7 +115,7 @@ st.markdown("""
 st.markdown("""
     <div class="box-container">
         <h2 class="box-title">Twitter Trend Insight</h2>
-        <div class="columns-container" style="display: flex; justify-content: space-around; align-items: center;">
+        <div style="display: flex; justify-content: space-around; align-items: center; text-align: center;">
 """, unsafe_allow_html=True)
 
 col1, col2, col3 = st.columns([1, 2, 1])
@@ -129,12 +129,13 @@ with col1:
     """, unsafe_allow_html=True)
 
 with col2:
+    st.markdown('<div style="height: 200px;"></div>', unsafe_allow_html=True)  # Placeholder for alignment
     st.plotly_chart(create_donut_chart(), use_container_width=True)
 
 with col3:
     st.markdown('<div class="sentiment-icon">🐂</div>', unsafe_allow_html=True)
 
-# ✅ Closing the box-container **AFTER** all elements have been added
+# Closing the box-container AFTER all elements are inside
 st.markdown("""
         </div>
     </div>
