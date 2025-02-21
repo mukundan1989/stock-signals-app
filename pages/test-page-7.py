@@ -9,7 +9,6 @@ st.set_page_config(layout="wide", page_title="Performance Summary", initial_side
 # Apply modern glassmorphism CSS
 st.markdown("""
     <style>
-    /* Glassmorphism Metric Card */
     .metric-card {
         background: rgba(255, 255, 255, 0.05);
         backdrop-filter: blur(10px);
@@ -28,7 +27,6 @@ st.markdown("""
     .metric-label {
         font-size: 0.85rem;
         color: rgba(255, 255, 255, 0.6);
-        letter-spacing: 0.1em;
         text-transform: uppercase;
     }
     
@@ -47,9 +45,8 @@ st.markdown("""
         gap: 5px;
     }
 
-    /* Trend Colors */
-    .positive { color: #00ff9f; }  /* Green */
-    .negative { color: #ff4b4b; }  /* Red */
+    .positive { color: #00ff9f; }
+    .negative { color: #ff4b4b; }
     </style>
 """, unsafe_allow_html=True)
 
@@ -59,14 +56,10 @@ DB_NAME = "stockstream_two"
 DB_USER = "stockstream_two"
 DB_PASSWORD = "stockstream_two"
 
-# Function to fetch performance metrics
 def fetch_performance_metrics(comp_symbol):
     try:
         conn = mysql.connector.connect(
-            host=DB_HOST,
-            database=DB_NAME,
-            user=DB_USER,
-            password=DB_PASSWORD
+            host=DB_HOST, database=DB_NAME, user=DB_USER, password=DB_PASSWORD
         )
         cursor = conn.cursor()
 
@@ -77,7 +70,7 @@ def fetch_performance_metrics(comp_symbol):
                 FROM models_performance WHERE comp_symbol = %s;
             """,
             "total_trades": """
-                SELECT COUNT(*) AS total_trades FROM models_performance
+                SELECT COUNT(*) FROM models_performance
                 WHERE comp_symbol = %s AND sentiment != 'neutral';
             """,
             "profit_factor": """
@@ -93,7 +86,6 @@ def fetch_performance_metrics(comp_symbol):
             result = cursor.fetchone()
             value = result[0] if result and result[0] is not None else "N/A"
 
-            # Round off profit factor to 2 decimal places
             if key == "profit_factor" and isinstance(value, (int, float)):
                 value = round(value, 2)
 
@@ -101,20 +93,43 @@ def fetch_performance_metrics(comp_symbol):
 
         cursor.close()
         conn.close()
-        
         return results
     except Exception as e:
         st.error(f"Error fetching performance metrics: {e}")
         return None
 
-# Title and search section
+def fetch_model_data(comp_symbol, model_name):
+    try:
+        conn = mysql.connector.connect(
+            host=DB_HOST, database=DB_NAME, user=DB_USER, password=DB_PASSWORD
+        )
+        cursor = conn.cursor()
+
+        query = """
+        SELECT date, sentiment, entry_price, `30d_pl`, `60d_pl`
+        FROM models_performance
+        WHERE comp_symbol = %s AND model = %s AND sentiment != 'neutral'
+        """
+        
+        cursor.execute(query, (comp_symbol, model_name))
+        result = cursor.fetchall()
+        columns = ["Date", "Sentiment", "Entry Price", "30D P/L", "60D P/L"]
+        df = pd.DataFrame(result, columns=columns)
+
+        cursor.close()
+        conn.close()
+        return df
+    except Exception as e:
+        st.error(f"Error fetching data: {e}")
+        return None
+
 st.title("Performance Summary")
 
 col1, col2 = st.columns([4, 1])
 with col1:
     symbol = st.text_input("Enter Stock Symbol", value="AAPL")
 with col2:
-    st.write("")  # Add a small space to align with input label
+    st.write("")
     go_clicked = st.button("Go", type="primary")
 
 if go_clicked:
@@ -122,11 +137,9 @@ if go_clicked:
     if metrics:
         st.subheader("Performance Metrics")
 
-        # Determine trend styling
         win_class = "positive" if metrics['win_percentage'] >= 50 else "negative"
         profit_class = "positive" if metrics['profit_factor'] > 1 else "negative"
 
-        # Create the 3 styled metric cards
         cols = st.columns(3)
         metric_data = [
             {"label": "Win %", "value": f"{metrics['win_percentage']}%", "trend": "", "class": win_class},
@@ -146,63 +159,16 @@ if go_clicked:
                     </div>
                 """, unsafe_allow_html=True)
 
-# Add cumulative P/L graph
-def fetch_cumulative_pl(comp_symbol):
-    try:
-        conn = mysql.connector.connect(
-            host=DB_HOST,
-            database=DB_NAME,
-            user=DB_USER,
-            password=DB_PASSWORD
-        )
-        cursor = conn.cursor()
-        
-        query = """
-        SELECT date, SUM(`30d_pl`) AS daily_pl
-        FROM models_performance
-        WHERE comp_symbol = %s AND sentiment != 'neutral'
-        GROUP BY date ORDER BY date;
-        """
-        
-        cursor.execute(query, (comp_symbol,))
-        result = cursor.fetchall()
-        
-        df = pd.DataFrame(result, columns=["Date", "Daily P/L"])
-        df["Cumulative P/L"] = df["Daily P/L"].cumsum()
-        
-        cursor.close()
-        conn.close()
-        
-        return df
-    except Exception as e:
-        st.error(f"Error fetching cumulative P/L data: {e}")
-        return None
+    # Restore data table for model performance
+    st.subheader("Model Performance Data")
+    tabs = st.tabs(["GTrends", "News", "Twitter", "Overall"])
 
-def create_cumulative_pl_chart(df):
-    fig = go.Figure()
-    fig.add_trace(go.Scatter(
-        x=df["Date"], 
-        y=df["Cumulative P/L"],
-        mode='lines+markers',
-        line=dict(color='cyan' if df["Cumulative P/L"].iloc[-1] > 0 else 'red', width=2),
-        marker=dict(size=5),
-        name='Cumulative P/L'
-    ))
+    for tab, model_name in zip(tabs, ["gtrends", "news", "twitter", "overall"]):
+        with tab:
+            st.subheader(f"{model_name.capitalize()} Data")
+            df = fetch_model_data(symbol, model_name)
+            if df is not None and not df.empty:
+                st.dataframe(df, use_container_width=True)
+            else:
+                st.warning(f"No data found for {model_name.capitalize()}.")
 
-    fig.update_layout(
-        title="Cumulative Profit/Loss Over Time",
-        xaxis_title="Date",
-        yaxis_title="Cumulative P/L",
-        height=400,
-        plot_bgcolor="#121212",
-        paper_bgcolor="#121212",
-        font=dict(color="white")
-    )
-
-    return fig
-
-if go_clicked:
-    cumulative_pl_df = fetch_cumulative_pl(symbol)
-    if cumulative_pl_df is not None and not cumulative_pl_df.empty:
-        st.subheader("Equity Curve")
-        st.plotly_chart(create_cumulative_pl_chart(cumulative_pl_df), use_container_width=True)
