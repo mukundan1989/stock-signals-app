@@ -29,10 +29,18 @@ st.markdown("""
         font-weight: bold;
         margin-bottom: 20px;
     }
+    .insight-box {
+        background-color: #ffffff;
+        border-radius: 10px;
+        padding: 20px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        margin-bottom: 20px;
+    }
     </style>
 """, unsafe_allow_html=True)
 
 # Box 1: Company Information
+st.markdown('<div class="insight-box">', unsafe_allow_html=True)
 with st.container():
     st.markdown("## Company Information")
     col1, col2, col3 = st.columns([1,1,1])
@@ -40,6 +48,7 @@ with st.container():
         st.markdown("### AAPL")
         st.markdown("Apple Inc.")
         st.markdown("### $175.34")
+st.markdown('</div>', unsafe_allow_html=True)
 
 # Create dummy data for pie charts
 def create_sentiment_data():
@@ -49,7 +58,7 @@ def create_sentiment_data():
     })
 
 # Box 2: Twitter Trends
-st.markdown("---")
+st.markdown('<div class="insight-box">', unsafe_allow_html=True)
 with st.container():
     st.markdown('<p class="box-title">Twitter Trend Insight</p>', unsafe_allow_html=True)
     col1, col2, col3 = st.columns([1,2,1])
@@ -67,9 +76,10 @@ with st.container():
     
     with col3:
         st.markdown('<p style="color: green; font-size: 48px;">🐂</p>', unsafe_allow_html=True)
+st.markdown('</div>', unsafe_allow_html=True)
 
 # Box 3: Google Trends
-st.markdown("---")
+st.markdown('<div class="insight-box">', unsafe_allow_html=True)
 with st.container():
     st.markdown('<p class="box-title">Google Trend Insight</p>', unsafe_allow_html=True)
     col1, col2, col3 = st.columns([1,2,1])
@@ -87,9 +97,10 @@ with st.container():
     
     with col3:
         st.markdown('<p style="color: red; font-size: 48px;">🐻</p>', unsafe_allow_html=True)
+st.markdown('</div>', unsafe_allow_html=True)
 
 # Box 4: News Analysis
-st.markdown("---")
+st.markdown('<div class="insight-box">', unsafe_allow_html=True)
 with st.container():
     st.markdown('<p class="box-title">News Analysis</p>', unsafe_allow_html=True)
     col1, col2, col3 = st.columns([1,2,1])
@@ -107,3 +118,4 @@ with st.container():
     
     with col3:
         st.markdown('<p style="color: red; font-size: 48px;">🐻</p>', unsafe_allow_html=True)
+st.markdown('</div>', unsafe_allow_html=True)
