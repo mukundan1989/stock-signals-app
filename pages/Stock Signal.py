@@ -2,6 +2,7 @@ import streamlit as st
 import plotly.express as px
 import plotly.graph_objects as go
 import pandas as pd
+import numpy as np
 import uuid  # For unique chart identifiers
 
 # Page config
@@ -37,9 +38,9 @@ st.markdown("""
         margin-bottom: 10px;
     }
     .sentiment-icon {
-        font-size: 48px;
+        font-size: 64px; /* Increased size */
         text-align: center;
-        color: #00ff00;
+        color: #00bfa5; /* Bluish Green */
     }
     .metric-container {
         display: flex;
@@ -50,11 +51,14 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# Function to create stock price trend chart
+# Function to create realistic stock price trend chart
 def create_stock_price_chart():
+    np.random.seed(42)
     dates = pd.date_range(start="2024-01-01", periods=30, freq="D")
-    stock_prices = [175 + (i * 0.5) for i in range(30)]
-    df_stock = pd.DataFrame({'Date': dates, 'Stock Price': stock_prices})
+    prices = [175]
+    for _ in range(29):
+        prices.append(prices[-1] * (1 + np.random.uniform(-0.02, 0.02)))  # Simulating real-life price fluctuations
+    df_stock = pd.DataFrame({'Date': dates, 'Stock Price': prices})
     
     fig = px.line(df_stock, x='Date', y='Stock Price', title="Stock Price Trend")
     fig.update_traces(line=dict(color='#00ff9f', width=2))
@@ -66,40 +70,8 @@ def create_stock_price_chart():
         showlegend=False,
         xaxis=dict(showgrid=True, gridwidth=0.5, gridcolor='rgba(255,255,255,0.1)'),
         yaxis=dict(showgrid=True, gridwidth=0.5, gridcolor='rgba(255,255,255,0.1)'),
-        height=200
+        height=300
     )
-    return fig
-
-# Function to create a donut chart
-def create_donut_chart():
-    data = pd.DataFrame({'Sentiment': ['Positive', 'Negative', 'Neutral'], 'Percentage': [45, 30, 25]})
-    fig = px.pie(data, values='Percentage', names='Sentiment', hole=0.6, color_discrete_map={
-        'Positive': '#00ff00', 'Negative': '#ff0000', 'Neutral': '#808080'
-    })
-    fig.update_layout(
-        showlegend=True, margin=dict(t=20, b=20, l=20, r=20), height=180, width=180,
-        paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
-        font=dict(color='#ffffff'), legend=dict(font=dict(color='#ffffff'), bgcolor='rgba(0,0,0,0)')
-    )
-    fig.for_each_trace(lambda trace: trace.update(name=str(uuid.uuid4())))
-    return fig
-
-# Function to create a speedometer
-def create_speedometer():
-    fig = go.Figure(go.Indicator(
-        mode="gauge+number", value=70,
-        domain={'x': [0, 1], 'y': [0, 1]},
-        gauge={
-            'axis': {'range': [0, 100]}, 'bar': {'color': "#006400"},
-            'steps': [
-                {'range': [0, 50], 'color': "#cddc39"},
-                {'range': [50, 75], 'color': "#8bc34a"},
-                {'range': [75, 100], 'color': "#006400"}
-            ],
-            'threshold': {'line': {'color': "white", 'width': 4}, 'thickness': 0.75, 'value': 85}
-        }
-    ))
-    fig.update_layout(height=180, width=180, margin=dict(t=20, b=20, l=20, r=20), paper_bgcolor='rgba(0,0,0,0)', font=dict(color='#ffffff'))
     return fig
 
 # Title (Now in White)
@@ -107,24 +79,18 @@ st.markdown("""
     <h1 style="text-align: center; color: white;">Stock Signal Page</h1>
 """, unsafe_allow_html=True)
 
-# Company Information Block
-st.markdown("""
-    <div class="box-container">
-        <h2 class="box-title">Company Information</h2>
-    </div>
-""", unsafe_allow_html=True)
+# News Insight Block
+st.markdown("<div class='box-container'><h2 class='box-title'>News Insight</h2></div>", unsafe_allow_html=True)
+col1, col2, col3 = st.columns([1, 2, 1])
 
-col1, col2 = st.columns([1, 2])
 with col1:
-    st.markdown("""
-        <div style="text-align: left; color: white;">
-            <div class="company-symbol" style="font-size: 32px; font-weight: bold; color: #bb86fc;">AAPL</div>
-            <div style="margin: 10px 0; font-size: 20px;">Apple Inc.</div>
-            <div class="company-price" style="font-size: 28px; color: #00ff9f; font-weight: bold;">$175.34</div>
-        </div>
-    """, unsafe_allow_html=True)
+    st.markdown("<div class='metric-value'>145</div><div class='metric-label'>Keywords</div>", unsafe_allow_html=True)
+
 with col2:
     st.plotly_chart(create_stock_price_chart(), use_container_width=True, key=str(uuid.uuid4()))
+
+with col3:
+    st.markdown("<div class='sentiment-icon'>&#9650;</div>", unsafe_allow_html=True)  # Large Bluish Green Triangle Up Arrow
 
 # Twitter Trends Block
 st.markdown("""
@@ -133,17 +99,12 @@ st.markdown("""
     </div>
 """, unsafe_allow_html=True)
 col1, col2, col3 = st.columns([1, 2, 1])
+
 with col1:
     st.markdown("<div class='metric-value'>145</div><div class='metric-label'>Keywords</div>", unsafe_allow_html=True)
-with col2:
-    st.plotly_chart(create_donut_chart(), use_container_width=True, key=str(uuid.uuid4()))
-with col3:
-    st.markdown("<div class='sentiment-icon'>&#9650;</div>", unsafe_allow_html=True)  # Large Green Triangle Up Arrow
 
-# News Insight Block
-st.markdown("<div class='box-container'><h2 class='box-title'>News Insight</h2></div>", unsafe_allow_html=True)
-col1, col2, col3 = st.columns([1, 2, 1])
 with col2:
-    st.plotly_chart(create_speedometer(), use_container_width=True, key=str(uuid.uuid4()))
+    st.plotly_chart(create_stock_price_chart(), use_container_width=True, key=str(uuid.uuid4()))
+
 with col3:
-    st.markdown("<div class='sentiment-icon'>&#9650;</div>", unsafe_allow_html=True)  # Large Green Triangle Up Arrow
+    st.markdown("<div class='sentiment-icon'>&#9650;</div>", unsafe_allow_html=True)  # Large Bluish Green Triangle Up Arrow
