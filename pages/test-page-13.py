@@ -115,25 +115,30 @@ st.markdown("""
 st.markdown("""
     <div class="box-container">
         <h2 class="box-title">Twitter Trend Insight</h2>
-    </div>
+        <div class="columns-container" style="display: flex; justify-content: space-around; align-items: center;">
 """, unsafe_allow_html=True)
 
-with st.container():
-    col1, col2, col3 = st.columns([1, 2, 1])
+col1, col2, col3 = st.columns([1, 2, 1])
 
-    with col1:
-        st.markdown("""
-            <div class="metric-container">
-                <div class="metric-value">145</div>
-                <div class="metric-label">Keywords</div>
-            </div>
-        """, unsafe_allow_html=True)
+with col1:
+    st.markdown("""
+        <div class="metric-container">
+            <div class="metric-value">145</div>
+            <div class="metric-label">Keywords</div>
+        </div>
+    """, unsafe_allow_html=True)
 
-    with col2:
-        st.plotly_chart(create_donut_chart(), use_container_width=True)
+with col2:
+    st.plotly_chart(create_donut_chart(), use_container_width=True)
 
-    with col3:
-        st.markdown('<div class="sentiment-icon">🐂</div>', unsafe_allow_html=True)
+with col3:
+    st.markdown('<div class="sentiment-icon">🐂</div>', unsafe_allow_html=True)
+
+# ✅ Closing the box-container **AFTER** all elements have been added
+st.markdown("""
+        </div>
+    </div>
+""", unsafe_allow_html=True)
 
 # Box 3: Google Trends (same structure as Box 2)
 st.markdown("""
