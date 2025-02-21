@@ -21,20 +21,19 @@ st.markdown("""
         font-weight: bold;
         text-align: center;
         color: #bb86fc;
+        line-height: 1.2;
     }
     .metric-label {
         font-size: 16px;
         text-align: center;
         color: #ffffff;
+        margin-top: 5px;
     }
     .box-title {
         color: #bb86fc;
         text-align: center;
         font-size: 24px;
         margin-bottom: 20px;
-    }
-    .center-align {
-        text-align: center;
     }
     .company-info {
         text-align: center;
@@ -49,6 +48,17 @@ st.markdown("""
         font-size: 28px;
         color: #bb86fc;
         font-weight: bold;
+    }
+    .sentiment-icon {
+        font-size: 48px;
+        text-align: center;
+        line-height: 200px;  /* Matches chart height */
+    }
+    .metric-container {
+        height: 200px;  /* Fixed height to match chart */
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -75,7 +85,7 @@ def create_donut_chart():
     fig.update_layout(
         showlegend=True,
         margin=dict(t=0, b=0, l=0, r=0),
-        height=250,
+        height=200,  # Fixed height
         paper_bgcolor='rgba(0,0,0,0)',
         plot_bgcolor='rgba(0,0,0,0)',
         font=dict(color='#ffffff'),
@@ -90,65 +100,85 @@ def create_donut_chart():
 st.title("Stock Signal Page")
 
 # Box 1: Company Information
-with st.container():
+st.markdown("""
+    <div class="box-container">
+        <div class="company-info">
+            <h2 class="box-title">Company Information</h2>
+            <div class="company-symbol">AAPL</div>
+            <div style="margin: 10px 0;">Apple Inc.</div>
+            <div class="company-price">$175.34</div>
+        </div>
+    </div>
+""", unsafe_allow_html=True)
+
+# Box 2: Twitter Trends
+st.markdown("""
+    <div class="box-container">
+        <h2 class="box-title">Twitter Trend Insight</h2>
+""", unsafe_allow_html=True)
+
+col1, col2, col3 = st.columns([1, 2, 1])
+
+with col1:
     st.markdown("""
-        <div class="box-container">
-            <div class="company-info">
-                <h2 class="box-title">Company Information</h2>
-                <div class="company-symbol">AAPL</div>
-                <div style="margin: 10px 0;">Apple Inc.</div>
-                <div class="company-price">$175.34</div>
-            </div>
+        <div class="metric-container">
+            <div class="metric-value">145</div>
+            <div class="metric-label">Keywords</div>
         </div>
     """, unsafe_allow_html=True)
 
-# Box 2: Twitter Trends
-with st.container():
-    st.markdown('<div class="box-container">', unsafe_allow_html=True)
-    st.markdown('<h2 class="box-title">Twitter Trend Insight</h2>', unsafe_allow_html=True)
-    cols = st.columns([1, 2, 1])
-    
-    with cols[0]:
-        st.markdown('<div class="metric-value">145</div>', unsafe_allow_html=True)
-        st.markdown('<div class="metric-label">Keywords</div>', unsafe_allow_html=True)
-    
-    with cols[1]:
-        st.plotly_chart(create_donut_chart(), use_container_width=True)
-    
-    with cols[2]:
-        st.markdown('<div class="center-align" style="font-size: 48px;">🐂</div>', unsafe_allow_html=True)
-    st.markdown('</div>', unsafe_allow_html=True)
+with col2:
+    st.plotly_chart(create_donut_chart(), use_container_width=True)
 
-# Box 3: Google Trends
-with st.container():
-    st.markdown('<div class="box-container">', unsafe_allow_html=True)
-    st.markdown('<h2 class="box-title">Google Trend Insight</h2>', unsafe_allow_html=True)
-    cols = st.columns([1, 2, 1])
-    
-    with cols[0]:
-        st.markdown('<div class="metric-value">15</div>', unsafe_allow_html=True)
-        st.markdown('<div class="metric-label">Keywords</div>', unsafe_allow_html=True)
-    
-    with cols[1]:
-        st.plotly_chart(create_donut_chart(), use_container_width=True)
-    
-    with cols[2]:
-        st.markdown('<div class="center-align" style="font-size: 48px;">🐻</div>', unsafe_allow_html=True)
-    st.markdown('</div>', unsafe_allow_html=True)
+with col3:
+    st.markdown('<div class="sentiment-icon">🐂</div>', unsafe_allow_html=True)
 
-# Box 4: News Analysis
-with st.container():
-    st.markdown('<div class="box-container">', unsafe_allow_html=True)
-    st.markdown('<h2 class="box-title">News Analysis</h2>', unsafe_allow_html=True)
-    cols = st.columns([1, 2, 1])
-    
-    with cols[0]:
-        st.markdown('<div class="metric-value">30</div>', unsafe_allow_html=True)
-        st.markdown('<div class="metric-label">Articles</div>', unsafe_allow_html=True)
-    
-    with cols[1]:
-        st.plotly_chart(create_donut_chart(), use_container_width=True)
-    
-    with cols[2]:
-        st.markdown('<div class="center-align" style="font-size: 48px;">🐻</div>', unsafe_allow_html=True)
-    st.markdown('</div>', unsafe_allow_html=True)
+st.markdown('</div>', unsafe_allow_html=True)
+
+# Box 3: Google Trends (same structure as Box 2)
+st.markdown("""
+    <div class="box-container">
+        <h2 class="box-title">Google Trend Insight</h2>
+""", unsafe_allow_html=True)
+
+col1, col2, col3 = st.columns([1, 2, 1])
+
+with col1:
+    st.markdown("""
+        <div class="metric-container">
+            <div class="metric-value">15</div>
+            <div class="metric-label">Keywords</div>
+        </div>
+    """, unsafe_allow_html=True)
+
+with col2:
+    st.plotly_chart(create_donut_chart(), use_container_width=True)
+
+with col3:
+    st.markdown('<div class="sentiment-icon">🐻</div>', unsafe_allow_html=True)
+
+st.markdown('</div>', unsafe_allow_html=True)
+
+# Box 4: News Analysis (same structure as Box 2)
+st.markdown("""
+    <div class="box-container">
+        <h2 class="box-title">News Analysis</h2>
+""", unsafe_allow_html=True)
+
+col1, col2, col3 = st.columns([1, 2, 1])
+
+with col1:
+    st.markdown("""
+        <div class="metric-container">
+            <div class="metric-value">30</div>
+            <div class="metric-label">Articles</div>
+        </div>
+    """, unsafe_allow_html=True)
+
+with col2:
+    st.plotly_chart(create_donut_chart(), use_container_width=True)
+
+with col3:
+    st.markdown('<div class="sentiment-icon">🐻</div>', unsafe_allow_html=True)
+
+st.markdown('</div>', unsafe_allow_html=True)
