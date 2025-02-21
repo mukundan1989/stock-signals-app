@@ -1,23 +1,24 @@
 import streamlit as st
 import pandas as pd
 import mysql.connector
-import config  # Import your configuration file
-
-# Apply custom styling from config
-st.markdown(config.STYLES, unsafe_allow_html=True)
 
 # Streamlit UI - Portfolio Section
-st.markdown("<h1 style='text-align: center;'>Stock Sentimeter</h1>", unsafe_allow_html=True)
-st.write("<p style='text-align: center;'>Know stock market trends and make smarter investment decisions with our intuitive portfolio tool.</p>", unsafe_allow_html=True)
+st.title("Stock Sentimeter")
+st.write("Know stock market trends and make smarter investment decisions with our intuitive portfolio tool.")
 
-# Database credentials from config
-DB_HOST = config.DB_HOST
-DB_NAME = config.DB_NAME
-DB_USER = config.DB_USER
-DB_PASSWORD = config.DB_PASSWORD
+# Database credentials
+DB_HOST = "13.203.191.72"
+DB_NAME = "stockstream_two"
+DB_USER = "stockstream_two"
+DB_PASSWORD = "stockstream_two"
 
 # Available tables
-TABLES = config.TABLES
+TABLES = {
+    "Google Trends": "gtrend_latest_signal",
+    "News": "news_latest_signal",
+    "Twitter": "twitter_latest_signal",
+    "Overall": "overall_latest_signal"
+}
 
 # Initialize session state for selected table
 if "selected_table" not in st.session_state:
@@ -65,17 +66,9 @@ def fetch_data(table, limit=5):
         cursor = conn.cursor()
         query = f"SELECT date, comp_name, comp_symbol, trade_signal, entry_price FROM `{DB_NAME}`.`{table}` LIMIT {limit}"
         cursor.execute(query)
-        df = pd.DataFrame(cursor.fetchall(), columns=["date", "comp_name", "comp_symbol", "trade_signal", "entry_price"])
+        df = pd.DataFrame(cursor.fetchall(), columns=["Date", "Company Name", "Stock Symbol", "Trade Signal", "Entry Price ($)"])
         cursor.close()
         conn.close()
-
-        df = df.rename(columns={
-            "date": "Date",
-            "comp_name": "Company Name",
-            "comp_symbol": "Stock Symbol",
-            "trade_signal": "Trade Signal",
-            "entry_price": "Entry Price ($)"
-        })
         return df
     except Exception as e:
         st.error(f"Error fetching data: {e}")
@@ -85,15 +78,16 @@ def fetch_data(table, limit=5):
 if st.session_state["data"] is None:
     st.session_state["data"] = fetch_data(st.session_state["selected_table"])
 
-# Display table
+# Display table without custom styling
 st.write("### Portfolio")
 if st.session_state["data"] is not None:
-    st.dataframe(st.session_state["data"])  # Using Streamlit's built-in table rendering
+    st.dataframe(st.session_state["data"])
 
 # Add Stock button
 if st.button("Add Stock"):
     st.session_state["show_search"] = True
 
+# Show search box when "Add Stock" is clicked
 if st.session_state["show_search"]:
     symbol = st.text_input("Enter Stock Symbol:")
     if symbol:
@@ -112,14 +106,7 @@ if st.session_state["show_search"]:
             conn.close()
 
             if result:
-                new_row = pd.DataFrame(result, columns=["date", "comp_name", "comp_symbol", "trade_signal", "entry_price"])
-                new_row = new_row.rename(columns={
-                    "date": "Date",
-                    "comp_name": "Company Name",
-                    "comp_symbol": "Stock Symbol",
-                    "trade_signal": "Trade Signal",
-                    "entry_price": "Entry Price ($)"
-                })
+                new_row = pd.DataFrame(result, columns=["Date", "Company Name", "Stock Symbol", "Trade Signal", "Entry Price ($)"])
                 st.session_state["data"] = pd.concat([st.session_state["data"], new_row], ignore_index=True)
                 st.session_state["show_search"] = False
                 st.rerun()
