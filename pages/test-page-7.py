@@ -6,41 +6,58 @@ import plotly.graph_objects as go
 # Set page config
 st.set_page_config(layout="wide", page_title="Performance Summary", initial_sidebar_state="collapsed")
 
+# Apply modern glassmorphism CSS
+st.markdown("""
+    <style>
+    /* Glassmorphism Metric Card */
+    .metric-card {
+        background: rgba(255, 255, 255, 0.05);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 20px;
+        padding: 20px;
+        transition: transform 0.3s ease;
+        text-align: center;
+        margin: 10px;
+    }
+    
+    .metric-card:hover {
+        transform: translateY(-5px);
+    }
+
+    .metric-label {
+        font-size: 0.85rem;
+        color: rgba(255, 255, 255, 0.6);
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+    }
+    
+    .metric-value {
+        font-size: 2rem;
+        font-weight: 700;
+        color: #ffffff;
+        margin: 8px 0;
+    }
+    
+    .metric-trend {
+        font-size: 0.85rem;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 5px;
+    }
+
+    /* Trend Colors */
+    .positive { color: #00ff9f; }  /* Green */
+    .negative { color: #ff4b4b; }  /* Red */
+    </style>
+""", unsafe_allow_html=True)
+
 # Database credentials
 DB_HOST = "13.203.191.72"
 DB_NAME = "stockstream_two"
 DB_USER = "stockstream_two"
 DB_PASSWORD = "stockstream_two"
-
-# Function to fetch data from the database
-def fetch_model_data(comp_symbol, model_name):
-    try:
-        conn = mysql.connector.connect(
-            host=DB_HOST,
-            database=DB_NAME,
-            user=DB_USER,
-            password=DB_PASSWORD
-        )
-        cursor = conn.cursor()
-        
-        query = """
-        SELECT date, sentiment, entry_price, `30d_pl`, `60d_pl`
-        FROM models_performance
-        WHERE comp_symbol = %s AND model = %s AND sentiment != 'neutral'
-        """
-        
-        cursor.execute(query, (comp_symbol, model_name))
-        result = cursor.fetchall()
-        columns = ["Date", "Sentiment", "Entry Price", "30D P/L", "60D P/L"]
-        df = pd.DataFrame(result, columns=columns)
-        
-        cursor.close()
-        conn.close()
-        
-        return df
-    except Exception as e:
-        st.error(f"Error fetching data: {e}")
-        return None
 
 # Function to fetch performance metrics
 def fetch_performance_metrics(comp_symbol):
@@ -90,122 +107,127 @@ def fetch_performance_metrics(comp_symbol):
         st.error(f"Error fetching performance metrics: {e}")
         return None
 
-# --------------------------- Performance Metrics Styling --------------------------- #
+# Function to fetch and display model performance data
+def fetch_model_data(comp_symbol):
+    try:
+        conn = mysql.connector.connect(
+            host=DB_HOST,
+            database=DB_NAME,
+            user=DB_USER,
+            password=DB_PASSWORD
+        )
+        cursor = conn.cursor()
+        
+        query = """
+        SELECT date, sentiment, entry_price, `30d_pl`, `60d_pl`
+        FROM models_performance
+        WHERE comp_symbol = %s AND sentiment != 'neutral'
+        """
+        
+        cursor.execute(query, (comp_symbol,))
+        result = cursor.fetchall()
+        columns = ["Date", "Sentiment", "Entry Price", "30D P/L", "60D P/L"]
+        df = pd.DataFrame(result, columns=columns)
+        
+        cursor.close()
+        conn.close()
+        
+        return df
+    except Exception as e:
+        st.error(f"Error fetching model data: {e}")
+        return None
 
-# Custom CSS for Glassmorphism effect
-st.markdown("""
-    <style>
-    /* Glassmorphism Metric Card */
-    .metric-card {
-        background: rgba(255, 255, 255, 0.05);
-        backdrop-filter: blur(10px);
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        border-radius: 20px;
-        padding: 20px;
-        margin: 10px 0;
-        transition: transform 0.3s ease;
-        text-align: center;
-        box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.1);
-    }
+# Function to fetch cumulative P/L data
+def fetch_cumulative_pl(comp_symbol):
+    try:
+        conn = mysql.connector.connect(
+            host=DB_HOST,
+            database=DB_NAME,
+            user=DB_USER,
+            password=DB_PASSWORD
+        )
+        cursor = conn.cursor()
+        
+        query = """
+        SELECT date, SUM(`30d_pl`) AS daily_pl
+        FROM models_performance
+        WHERE comp_symbol = %s AND sentiment != 'neutral'
+        GROUP BY date ORDER BY date;
+        """
+        
+        cursor.execute(query, (comp_symbol,))
+        result = cursor.fetchall()
+        
+        df = pd.DataFrame(result, columns=["Date", "Daily P/L"])
+        df["Cumulative P/L"] = df["Daily P/L"].cumsum()
+        
+        cursor.close()
+        conn.close()
+        
+        return df
+    except Exception as e:
+        st.error(f"Error fetching cumulative P/L data: {e}")
+        return None
 
-    .metric-card:hover {
-        transform: translateY(-5px);
-    }
+# Function to create cumulative P/L graph
+def create_cumulative_pl_chart(df):
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(
+        x=df["Date"], 
+        y=df["Cumulative P/L"],
+        mode='lines+markers',
+        line=dict(color='cyan' if df["Cumulative P/L"].iloc[-1] > 0 else 'red', width=2),
+        marker=dict(size=5),
+        name='Cumulative P/L'
+    ))
 
-    .metric-label {
-        font-size: 0.85rem;
-        color: rgba(255, 255, 255, 0.6);
-        letter-spacing: 0.1em;
-        text-transform: uppercase;
-    }
+    fig.update_layout(
+        title="Cumulative Profit/Loss Over Time",
+        xaxis_title="Date",
+        yaxis_title="Cumulative P/L",
+        height=400,
+        plot_bgcolor="#121212",
+        paper_bgcolor="#121212",
+        font=dict(color="white")
+    )
 
-    .metric-value {
-        font-size: 1.8rem;
-        font-weight: 700;
-        color: #ffffff;
-        margin: 8px 0;
-    }
+    return fig
 
-    .metric-trend {
-        font-size: 0.85rem;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        gap: 5px;
-    }
-    </style>
-""", unsafe_allow_html=True)
-
-# Title and search section
+# UI Elements
 st.title("Performance Summary")
-
-col1, col2 = st.columns([4, 1])
-with col1:
-    symbol = st.text_input("Enter Stock Symbol", value="AAPL")
-with col2:
-    st.write("")
-    go_clicked = st.button("Go", type="primary")
-
-# Create tabs
-tab_names = ["GTrends", "News", "Twitter", "Overall"]
-tabs = st.tabs(tab_names)
-
-# --------------------------- Fetch and Display Performance Metrics --------------------------- #
+symbol = st.text_input("Enter Stock Symbol", value="AAPL")
+go_clicked = st.button("Go", type="primary")
 
 if go_clicked:
     metrics = fetch_performance_metrics(symbol)
     if metrics:
         st.subheader("Performance Metrics")
+        win_class = "positive" if metrics['win_percentage'] >= 50 else "negative"
+        profit_class = "positive" if metrics['profit_factor'] > 1 else "negative"
 
-        win_percent = metrics["win_percentage"]
-        total_trades = metrics["total_trades"]
-        profit_factor = metrics["profit_factor"]
+        cols = st.columns(3)
+        metric_data = [
+            {"label": "Win %", "value": f"{metrics['win_percentage']}%", "trend": "", "class": win_class},
+            {"label": "No. of Trades", "value": f"{metrics['total_trades']}", "trend": "", "class": "positive"},
+            {"label": "Profit Factor", "value": f"{metrics['profit_factor']}", "trend": "↑" if metrics['profit_factor'] > 1 else "↓", "class": profit_class}
+        ]
 
-        win_color = "#00ff9f" if win_percent >= 50 else "#ff4b4b"
-        profit_color = "#00ff9f" if profit_factor > 1 else "#ff4b4b"
-
-        col1, col2, col3 = st.columns(3)
-
-        with col1:
-            st.markdown(f"""
-                <div class="metric-card">
-                    <div class="metric-label">Win %</div>
-                    <div class="metric-value" style="color: {win_color};">{win_percent}%</div>
-                </div>
-            """, unsafe_allow_html=True)
-
-        with col2:
-            st.markdown(f"""
-                <div class="metric-card">
-                    <div class="metric-label">No. of Trades</div>
-                    <div class="metric-value">{total_trades}</div>
-                </div>
-            """, unsafe_allow_html=True)
-
-        with col3:
-            profit_trend = "↑" if profit_factor > 1 else "↓"
-            st.markdown(f"""
-                <div class="metric-card">
-                    <div class="metric-label">Profit Factor</div>
-                    <div class="metric-value" style="color: {profit_color};">{profit_factor}</div>
-                    <div class="metric-trend" style="color: {profit_color};">
-                        {profit_trend}
+        for col, metric in zip(cols, metric_data):
+            with col:
+                st.markdown(f"""
+                    <div class="metric-card">
+                        <div class="metric-label">{metric['label']}</div>
+                        <div class="metric-value">{metric['value']}</div>
+                        <div class="metric-trend {metric['class']}">{metric['trend']}</div>
                     </div>
-                </div>
-            """, unsafe_allow_html=True)
-
-# --------------------------- Ensure Table Display --------------------------- #
+                """, unsafe_allow_html=True)
 
     cumulative_pl_df = fetch_cumulative_pl(symbol)
     if cumulative_pl_df is not None and not cumulative_pl_df.empty:
         st.subheader("Equity Curve")
         st.plotly_chart(create_cumulative_pl_chart(cumulative_pl_df), use_container_width=True)
-    
-    for tab, model_name in zip(tabs, ["gtrends", "news", "twitter", "overall"]):
-        with tab:
-            st.subheader(f"{model_name.capitalize()} Data")
-            df = fetch_model_data(symbol, model_name)
-            if df is not None and not df.empty:
-                st.dataframe(df, use_container_width=True)
-            else:
-                st.warning(f"No data found for {model_name.capitalize()}.")
+
+    df = fetch_model_data(symbol)
+    if df is not None and not df.empty:
+        st.subheader("Performance Data Table")
+        st.dataframe(df, use_container_width=True)
