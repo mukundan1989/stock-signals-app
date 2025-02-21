@@ -107,24 +107,10 @@ if go_clicked:
     metrics = fetch_performance_metrics(symbol)
     if metrics:
         st.subheader("Performance Metrics")
-        cols = st.columns(3)
-        metric_details = [
-            {"label": "Win %", "value": f"{metrics['win_percentage']}%", "trend": "positive"},
-            {"label": "No. of Trades", "value": f"{metrics['total_trades']}", "trend": "neutral"},
-            {"label": "Profit Factor", "value": f"{metrics['profit_factor']}", "trend": "positive" if metrics['profit_factor'] != 'N/A' and metrics['profit_factor'] > 1 else "negative"}
-        ]
-        
-        for col, metric in zip(cols, metric_details):
-            with col:
-                st.markdown(f"""
-                    <div class="metric-card">
-                        <div class="metric-label">{metric['label']}</div>
-                        <div class="metric-value">{metric['value']}</div>
-                        <div class="metric-trend" style="color: {'#00ff9f' if metric['trend'] == 'positive' else '#ff4b4b'}">
-                            {'↑' if metric['trend'] == 'positive' else ('↓' if metric['trend'] == 'negative' else '-')}
-                        </div>
-                    </div>
-                """, unsafe_allow_html=True)
+        col1, col2, col3 = st.columns(3)
+        col1.metric("Win %", f"{metrics['win_percentage']}%")
+        col2.metric("No. of Trades", f"{metrics['total_trades']}")
+        col3.metric("Profit Factor", f"{metrics['profit_factor']}")
     
     for tab, model_name in zip(tabs, ["gtrends", "news", "twitter", "overall"]):
         with tab:
