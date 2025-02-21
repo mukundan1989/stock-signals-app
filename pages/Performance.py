@@ -197,7 +197,7 @@ def create_cumulative_pl_chart(df):
 
 # UI Elements
 st.title("Performance Summary")
-symbol = st.text_input("Enter Stock Symbol", value="AAPL")
+symbol = st.text_input("Enter Stock Symbol", value="APRN")
 go_clicked = st.button("Go", type="primary")
 
 if go_clicked:
