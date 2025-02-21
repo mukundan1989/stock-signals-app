@@ -1,7 +1,7 @@
 import streamlit as st
 import plotly.express as px
 import pandas as pd
-import uuid  # For unique chart IDs
+import uuid  # For unique chart identifiers
 
 # Page config
 st.set_page_config(page_title="Stock Signal Page", layout="wide")
@@ -48,9 +48,8 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# Function to create a unique donut chart without displaying the unique ID
+# Function to create a unique donut chart
 def create_donut_chart():
-    _ = str(uuid.uuid4())  # Generate a unique ID but don't display it
     data = pd.DataFrame({
         'Sentiment': ['Positive', 'Negative', 'Neutral'],
         'Percentage': [45, 30, 25]
@@ -66,7 +65,7 @@ def create_donut_chart():
                  })
     fig.update_layout(
         showlegend=True,
-        margin=dict(t=30, b=10, l=10, r=10),  # Adjust margins
+        margin=dict(t=30, b=10, l=10, r=10),
         height=250,
         paper_bgcolor='rgba(0,0,0,0)',
         plot_bgcolor='rgba(0,0,0,0)',
@@ -76,7 +75,9 @@ def create_donut_chart():
             bgcolor='rgba(0,0,0,0)'
         )
     )
-    return fig  # Ensure every call returns a fresh figure instance
+    # Force unique chart identifier
+    fig.for_each_trace(lambda trace: trace.update(name=str(uuid.uuid4())))
+    return fig
 
 # Main title
 st.title("Stock Signal Page")
@@ -116,7 +117,7 @@ with col1:
     """, unsafe_allow_html=True)
 
 with col2:
-    st.plotly_chart(create_donut_chart(), use_container_width=False)  # Unique instance
+    st.plotly_chart(create_donut_chart(), use_container_width=True, key=str(uuid.uuid4()))  # Unique key
 
 with col3:
     st.markdown('<div class="sentiment-icon">🐂</div>', unsafe_allow_html=True)
@@ -140,7 +141,7 @@ with col1:
     """, unsafe_allow_html=True)
 
 with col2:
-    st.plotly_chart(create_donut_chart(), use_container_width=False)  # Unique instance
+    st.plotly_chart(create_donut_chart(), use_container_width=True, key=str(uuid.uuid4()))  # Unique key
 
 with col3:
     st.markdown('<div class="sentiment-icon">🐻</div>', unsafe_allow_html=True)
@@ -164,7 +165,7 @@ with col1:
     """, unsafe_allow_html=True)
 
 with col2:
-    st.plotly_chart(create_donut_chart(), use_container_width=False)  # Unique instance
+    st.plotly_chart(create_donut_chart(), use_container_width=True, key=str(uuid.uuid4()))  # Unique key
 
 with col3:
     st.markdown('<div class="sentiment-icon">🐂</div>', unsafe_allow_html=True)
