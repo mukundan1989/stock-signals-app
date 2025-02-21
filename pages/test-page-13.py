@@ -120,7 +120,7 @@ def create_speedometer():
             'steps': [
                 {'range': [0, 50], 'color': "#a3ffb3"},  # Light Green
                 {'range': [50, 75], 'color': "#4caf50"},  # Medium Green
-                {'range': [75, 100], 'color': "#008000"}  # Strong Green
+                {'range': [75, 100], 'color': "#1f7264"}  # Strong Green
             ],
             'threshold': {'line': {'color': "white", 'width': 4}, 'thickness': 0.75, 'value': 85}
         }
