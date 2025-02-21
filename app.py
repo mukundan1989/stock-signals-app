@@ -1,142 +1,23 @@
 import streamlit as st
 import pandas as pd
 import mysql.connector
+import config  # Import your configuration file
 
-# Custom CSS for dark-themed elegant table design
-st.markdown(
-    """
-    <style>
-    /* Target the main container (st-emotion-cache-bm2z3a) and set a dark grey background */
-    .st-emotion-cache-bm2z3a {
-        background-color: #2a2a2a; /* Dark grey background */
-        color: #ffffff; /* White text for the entire page */
-    }
-
-    /* Custom CSS for elegant table design */
-    .pretty-table {
-        width: 100%;
-        border-collapse: collapse;
-        font-size: 0.9em;
-        font-family: sans-serif;
-        min-width: 400px;
-        box-shadow: 0 0 20px rgba(0, 0, 0, 0.15);
-        border-radius: 10px;
-        overflow: hidden;
-        text-align: center;
-        border: none;
-        color: #ffffff; /* White text for the table */
-    }
-
-    /* Black header with white text */
-    .pretty-table thead tr {
-        background-color: #000000; /* Black header */
-        color: #ffffff; /* White text */
-        text-align: center;
-        border: none;
-    }
-
-    /* Padding for table cells */
-    .pretty-table th, .pretty-table td {
-        padding: 12px 15px;
-        text-align: center;
-        border: none;
-    }
-
-    /* Alternating row colors: light grey and dark grey */
-    .pretty-table tbody tr:nth-of-type(odd) {
-        background-color: #3a3a3a; /* Dark grey */
-    }
-
-    .pretty-table tbody tr:nth-of-type(even) {
-        background-color: #4a4a4a; /* Light grey */
-    }
-
-    /* Hover effect for rows */
-    .pretty-table tbody tr:hover {
-        background-color: #5a5a5a; /* Slightly lighter grey on hover */
-    }
-
-    /* Ensure the text above the table is white */
-    h1, p {
-        color: #ffffff !important; /* White text for titles and paragraphs */
-    }
-
-    /* Updated styling for metric boxes with gradient background */
-    .metric-box {
-        background: linear-gradient(135deg, #3a3a3a, #2a2a2a); /* Dark grey gradient */
-        padding: 20px;
-        border-radius: 10px;
-        text-align: center;
-        color: #ffffff; /* White text */
-        font-size: 18px;
-        font-weight: bold;
-        border: 1px solid #4a4a4a; /* Subtle border */
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Soft shadow */
-    }
-
-    /* Grid container for metric boxes */
-    .grid-container {
-        display: grid;
-        grid-template-columns: repeat(2, 1fr);
-        gap: 10px;
-        justify-content: center;
-        align-items: center;
-    }
-
-    @media (max-width: 600px) {
-        .grid-container { grid-template-columns: repeat(2, 1fr); gap: 5px; }
-    }
-
-    /* Styling for the "Add Stock" button */
-    .stButton button {
-        background-color: #000000; /* Black background */
-        color: #ffffff; /* White text */
-        border-radius: 5px;
-        padding: 10px 20px;
-        font-size: 16px;
-        font-weight: bold;
-        border: none;
-        transition: background-color 0.3s ease;
-    }
-
-    .stButton button:hover {
-        background-color: #333333; /* Slightly lighter black on hover */
-    }
-    </style>
-    """,
-    unsafe_allow_html=True
-)
+# Apply custom styling from config
+st.markdown(config.STYLES, unsafe_allow_html=True)
 
 # Streamlit UI - Portfolio Section
 st.markdown("<h1 style='text-align: center;'>Stock Sentimeter</h1>", unsafe_allow_html=True)
 st.write("<p style='text-align: center;'>Know stock market trends and make smarter investment decisions with our intuitive portfolio tool.</p>", unsafe_allow_html=True)
 
-# **2×2 Grid Layout Using HTML**
-st.markdown(
-    """
-    <div class="grid-container">
-        <div class="metric-box"><h2>43%</h2><p>Above Baseline</p></div>
-        <div class="metric-box"><h2>$13,813</h2><p>Gain on Buy</p></div>
-        <div class="metric-box"><h2>+0.75</h2><p>Sentiment Score</p></div>
-        <div class="metric-box"><h2>87%</h2><p>Accuracy</p></div>
-    </div>
-    """,
-    unsafe_allow_html=True
-)
-
-# Database credentials
-DB_HOST = "13.203.191.72"
-DB_NAME = "stockstream_two"
-DB_USER = "stockstream_two"
-DB_PASSWORD = "stockstream_two"
+# Database credentials from config
+DB_HOST = config.DB_HOST
+DB_NAME = config.DB_NAME
+DB_USER = config.DB_USER
+DB_PASSWORD = config.DB_PASSWORD
 
 # Available tables
-TABLES = {
-    "Google Trends": "gtrend_latest_signal",
-    "News": "news_latest_signal",
-    "Twitter": "twitter_latest_signal",
-    "Overall": "overall_latest_signal"
-}
+TABLES = config.TABLES
 
 # Initialize session state for selected table
 if "selected_table" not in st.session_state:
@@ -145,9 +26,6 @@ if "data" not in st.session_state:
     st.session_state["data"] = None
 if "show_search" not in st.session_state:
     st.session_state["show_search"] = False
-
-# Add spacing before "Select Sentiment Model"
-st.markdown("<br>", unsafe_allow_html=True)
 
 # Toggle buttons for selecting models
 st.write("### Select Sentiment Model")
@@ -191,7 +69,6 @@ def fetch_data(table, limit=5):
         cursor.close()
         conn.close()
 
-        # **Rename columns to user-friendly names**
         df = df.rename(columns={
             "date": "Date",
             "comp_name": "Company Name",
@@ -199,7 +76,6 @@ def fetch_data(table, limit=5):
             "trade_signal": "Trade Signal",
             "entry_price": "Entry Price ($)"
         })
-
         return df
     except Exception as e:
         st.error(f"Error fetching data: {e}")
@@ -209,20 +85,15 @@ def fetch_data(table, limit=5):
 if st.session_state["data"] is None:
     st.session_state["data"] = fetch_data(st.session_state["selected_table"])
 
-# Add spacing before "Portfolio"
-st.markdown("<br>", unsafe_allow_html=True)
-
-# Display formatted table with pretty headers
+# Display table
 st.write("### Portfolio")
 if st.session_state["data"] is not None:
-    table_html = st.session_state["data"].to_html(index=False, classes="pretty-table", escape=False)
-    st.markdown(table_html, unsafe_allow_html=True)
+    st.dataframe(st.session_state["data"])  # Using Streamlit's built-in table rendering
 
 # Add Stock button
 if st.button("Add Stock"):
     st.session_state["show_search"] = True
 
-# Show search box when "Add Stock" is clicked
 if st.session_state["show_search"]:
     symbol = st.text_input("Enter Stock Symbol:")
     if symbol:
@@ -242,8 +113,6 @@ if st.session_state["show_search"]:
 
             if result:
                 new_row = pd.DataFrame(result, columns=["date", "comp_name", "comp_symbol", "trade_signal", "entry_price"])
-                
-                # Rename new row to match the table headers
                 new_row = new_row.rename(columns={
                     "date": "Date",
                     "comp_name": "Company Name",
@@ -251,7 +120,6 @@ if st.session_state["show_search"]:
                     "trade_signal": "Trade Signal",
                     "entry_price": "Entry Price ($)"
                 })
-                
                 st.session_state["data"] = pd.concat([st.session_state["data"], new_row], ignore_index=True)
                 st.session_state["show_search"] = False
                 st.rerun()
