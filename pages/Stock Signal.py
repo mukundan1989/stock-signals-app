@@ -3,6 +3,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 import pandas as pd
 import uuid  # For unique chart identifiers
+import numpy as np  # For realistic stock price simulation
 
 # Page config
 st.set_page_config(page_title="Stock Signal Page", layout="wide")
@@ -52,13 +53,14 @@ st.markdown("""
 
 # Function to create a realistic stock price trend chart
 def create_stock_price_chart():
+    np.random.seed(42)
     dates = pd.date_range(start="2024-01-01", periods=30, freq="D")
-    stock_prices = [175 + (i * 0.5 + (-1) ** i * 2) for i in range(30)]  # Simulated realistic price movement
+    stock_prices = 175 + np.cumsum(np.random.normal(0, 1.5, size=30))  # Simulated realistic stock price movement
     df_stock = pd.DataFrame({'Date': dates, 'Stock Price': stock_prices})
     
     fig = go.Figure()
-    fig.add_trace(go.Scatter(x=df_stock['Date'], y=df_stock['Stock Price'], mode='lines+markers',
-                             line=dict(color='#00ff9f', width=2), marker=dict(size=4, color='#ffffff')))
+    fig.add_trace(go.Scatter(x=df_stock['Date'], y=df_stock['Stock Price'], mode='lines',
+                             line=dict(color='#00ff9f', width=2)))
     
     fig.update_layout(
         plot_bgcolor='rgba(0,0,0,0)',
@@ -66,9 +68,7 @@ def create_stock_price_chart():
         font_color='#ffffff',
         title_font_size=16,
         showlegend=False,
-        xaxis=dict(showgrid=True, gridwidth=0.5, gridcolor='rgba(255,255,255,0.1)'),
-        yaxis=dict(showgrid=True, gridwidth=0.5, gridcolor='rgba(255,255,255,0.1)'),
-        height=300
+        xaxis=dict(showgrid=True, gridwidth=0.5, gridcolor='rgba(255,255,255,0.1)')
     )
     return fig
 
