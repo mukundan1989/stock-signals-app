@@ -1,5 +1,6 @@
 import streamlit as st
 import plotly.express as px
+import plotly.graph_objects as go
 import pandas as pd
 import uuid  # For unique chart identifiers
 
@@ -48,7 +49,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# Function to create a unique donut chart with smaller size
+# Function to create a unique donut chart
 def create_donut_chart():
     data = pd.DataFrame({
         'Sentiment': ['Positive', 'Negative', 'Neutral'],
@@ -65,9 +66,9 @@ def create_donut_chart():
                  })
     fig.update_layout(
         showlegend=True,
-        margin=dict(t=20, b=20, l=20, r=20),  # Adjust margins
-        height=180,  # Reduce chart height
-        width=180,   # Reduce chart width
+        margin=dict(t=20, b=20, l=20, r=20),
+        height=180,
+        width=180,
         paper_bgcolor='rgba(0,0,0,0)',
         plot_bgcolor='rgba(0,0,0,0)',
         font=dict(color='#ffffff'),
@@ -76,8 +77,35 @@ def create_donut_chart():
             bgcolor='rgba(0,0,0,0)'
         )
     )
-    # Force unique chart identifier
     fig.for_each_trace(lambda trace: trace.update(name=str(uuid.uuid4())))
+    return fig
+
+# Function to create a speedometer (Gauge Chart)
+def create_speedometer():
+    fig = go.Figure(go.Indicator(
+        mode="gauge+number",
+        value=70,  # Example Value
+        domain={'x': [0, 1], 'y': [0, 1]},
+        gauge={
+            'axis': {'range': [0, 100]},
+            'bar': {'color': "#00ff00"},  # Green bar
+            'steps': [
+                {'range': [0, 50], 'color': "red"},
+                {'range': [50, 75], 'color': "yellow"},
+                {'range': [75, 100], 'color': "green"}
+            ],
+            'threshold': {'line': {'color': "white", 'width': 4}, 'thickness': 0.75, 'value': 85}
+        }
+    ))
+    
+    fig.update_layout(
+        height=180,
+        width=180,
+        margin=dict(t=20, b=20, l=20, r=20),
+        paper_bgcolor='rgba(0,0,0,0)',
+        font=dict(color='#ffffff')
+    )
+    
     return fig
 
 # Main title
@@ -154,7 +182,7 @@ st.markdown("""
     </div>
 """, unsafe_allow_html=True)
 
-# News Insight Content (Outside the Box)
+# News Insight Content (Outside the Box with Speedometer)
 col1, col2, col3 = st.columns([1, 2, 1])
 
 with col1:
@@ -166,7 +194,7 @@ with col1:
     """, unsafe_allow_html=True)
 
 with col2:
-    st.plotly_chart(create_donut_chart(), use_container_width=True, key=str(uuid.uuid4()))  # Unique key
+    st.plotly_chart(create_speedometer(), use_container_width=True, key=str(uuid.uuid4()))  # Speedometer
 
 with col3:
     st.markdown('<div class="sentiment-icon" style="color: #00ff00;">⬆️</div>', unsafe_allow_html=True)  # Green Up Arrow
