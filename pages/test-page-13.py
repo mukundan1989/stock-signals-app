@@ -108,6 +108,7 @@ def create_donut_chart():
     return fig
 
 # Function to create a speedometer (Gauge Chart)
+# Function to create a speedometer (Gauge Chart) with light green to strong green transition
 def create_speedometer():
     fig = go.Figure(go.Indicator(
         mode="gauge+number",
@@ -115,11 +116,11 @@ def create_speedometer():
         domain={'x': [0, 1], 'y': [0, 1]},
         gauge={
             'axis': {'range': [0, 100]},
-            'bar': {'color': "#00ff00"},  # Green bar
+            'bar': {'color': "#008000"},  # Strong Green
             'steps': [
-                {'range': [0, 50], 'color': "red"},
-                {'range': [50, 75], 'color': "yellow"},
-                {'range': [75, 100], 'color': "green"}
+                {'range': [0, 50], 'color': "#a3ffb3"},  # Light Green
+                {'range': [50, 75], 'color': "#4caf50"},  # Medium Green
+                {'range': [75, 100], 'color': "#008000"}  # Strong Green
             ],
             'threshold': {'line': {'color': "white", 'width': 4}, 'thickness': 0.75, 'value': 85}
         }
