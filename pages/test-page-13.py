@@ -135,8 +135,10 @@ def create_speedometer():
 
     return fig
 
-# Main title
-st.title("Stock Signal Page")
+# Centered title using Markdown and CSS
+st.markdown("""
+    <h1 style="text-align: center; color: #bb86fc;">Stock Signal Page</h1>
+""", unsafe_allow_html=True)
 
 # **Company Information Block** with Stock Chart on the Right
 st.markdown("""
