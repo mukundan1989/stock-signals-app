@@ -3,7 +3,6 @@ import plotly.express as px
 import plotly.graph_objects as go
 import pandas as pd
 import uuid  # For unique chart identifiers
-import numpy as np  # For realistic stock price simulation
 
 # Page config
 st.set_page_config(page_title="Stock Signal Page", layout="wide")
@@ -51,25 +50,56 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# Function to create a realistic stock price trend chart
+# Function to create stock price trend chart
 def create_stock_price_chart():
-    np.random.seed(42)
     dates = pd.date_range(start="2024-01-01", periods=30, freq="D")
-    stock_prices = 175 + np.cumsum(np.random.normal(0, 1.5, size=30))  # Simulated realistic stock price movement
+    stock_prices = [175 + (i * 0.5) for i in range(30)]
     df_stock = pd.DataFrame({'Date': dates, 'Stock Price': stock_prices})
     
-    fig = go.Figure()
-    fig.add_trace(go.Scatter(x=df_stock['Date'], y=df_stock['Stock Price'], mode='lines',
-                             line=dict(color='#00ff9f', width=2)))
-    
+    fig = px.line(df_stock, x='Date', y='Stock Price', title="Stock Price Trend")
+    fig.update_traces(line=dict(color='#00ff9f', width=2))
     fig.update_layout(
         plot_bgcolor='rgba(0,0,0,0)',
         paper_bgcolor='rgba(0,0,0,0)',
         font_color='#ffffff',
         title_font_size=16,
         showlegend=False,
-        xaxis=dict(showgrid=True, gridwidth=0.5, gridcolor='rgba(255,255,255,0.1)')
+        xaxis=dict(showgrid=True, gridwidth=0.5, gridcolor='rgba(255,255,255,0.1)'),
+        yaxis=dict(showgrid=True, gridwidth=0.5, gridcolor='rgba(255,255,255,0.1)'),
+        height=200
     )
+    return fig
+
+# Function to create a donut chart
+def create_donut_chart():
+    data = pd.DataFrame({'Sentiment': ['Positive', 'Negative', 'Neutral'], 'Percentage': [45, 30, 25]})
+    fig = px.pie(data, values='Percentage', names='Sentiment', hole=0.6, color_discrete_map={
+        'Positive': '#00ff00', 'Negative': '#ff0000', 'Neutral': '#808080'
+    })
+    fig.update_layout(
+        showlegend=True, margin=dict(t=20, b=20, l=20, r=20), height=180, width=180,
+        paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
+        font=dict(color='#ffffff'), legend=dict(font=dict(color='#ffffff'), bgcolor='rgba(0,0,0,0)')
+    )
+    fig.for_each_trace(lambda trace: trace.update(name=str(uuid.uuid4())))
+    return fig
+
+# Function to create a speedometer
+def create_speedometer():
+    fig = go.Figure(go.Indicator(
+        mode="gauge+number", value=70,
+        domain={'x': [0, 1], 'y': [0, 1]},
+        gauge={
+            'axis': {'range': [0, 100]}, 'bar': {'color': "#006400"},
+            'steps': [
+                {'range': [0, 50], 'color': "#cddc39"},
+                {'range': [50, 75], 'color': "#8bc34a"},
+                {'range': [75, 100], 'color': "#006400"}
+            ],
+            'threshold': {'line': {'color': "white", 'width': 4}, 'thickness': 0.75, 'value': 85}
+        }
+    ))
+    fig.update_layout(height=180, width=180, margin=dict(t=20, b=20, l=20, r=20), paper_bgcolor='rgba(0,0,0,0)', font=dict(color='#ffffff'))
     return fig
 
 # Title (Now in White)
