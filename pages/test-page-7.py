@@ -1,3 +1,95 @@
+import streamlit as st
+import pandas as pd
+import mysql.connector
+import plotly.graph_objects as go
+
+# Set page config
+st.set_page_config(layout="wide", page_title="Performance Summary", initial_sidebar_state="collapsed")
+
+# Database credentials
+DB_HOST = "13.203.191.72"
+DB_NAME = "stockstream_two"
+DB_USER = "stockstream_two"
+DB_PASSWORD = "stockstream_two"
+
+# Function to fetch data from the database
+def fetch_model_data(comp_symbol, model_name):
+    try:
+        conn = mysql.connector.connect(
+            host=DB_HOST,
+            database=DB_NAME,
+            user=DB_USER,
+            password=DB_PASSWORD
+        )
+        cursor = conn.cursor()
+        
+        query = """
+        SELECT date, sentiment, entry_price, `30d_pl`, `60d_pl`
+        FROM models_performance
+        WHERE comp_symbol = %s AND model = %s AND sentiment != 'neutral'
+        """
+        
+        cursor.execute(query, (comp_symbol, model_name))
+        result = cursor.fetchall()
+        columns = ["Date", "Sentiment", "Entry Price", "30D P/L", "60D P/L"]
+        df = pd.DataFrame(result, columns=columns)
+        
+        cursor.close()
+        conn.close()
+        
+        return df
+    except Exception as e:
+        st.error(f"Error fetching data: {e}")
+        return None
+
+# Function to fetch performance metrics
+def fetch_performance_metrics(comp_symbol):
+    try:
+        conn = mysql.connector.connect(
+            host=DB_HOST,
+            database=DB_NAME,
+            user=DB_USER,
+            password=DB_PASSWORD
+        )
+        cursor = conn.cursor()
+
+        queries = {
+            "win_percentage": """
+                SELECT (COUNT(CASE WHEN (`30d_pl` > 0 OR `60d_pl` > 0) AND sentiment != 'neutral' THEN 1 END) 
+                / COUNT(CASE WHEN sentiment != 'neutral' THEN 1 END)) * 100 AS win_percentage
+                FROM models_performance WHERE comp_symbol = %s;
+            """,
+            "total_trades": """
+                SELECT COUNT(*) AS total_trades FROM models_performance
+                WHERE comp_symbol = %s AND sentiment != 'neutral';
+            """,
+            "profit_factor": """
+                SELECT COALESCE(SUM(CASE WHEN `30d_pl` > 0 AND sentiment != 'neutral' THEN `30d_pl` ELSE 0 END), 0) / 
+                NULLIF(ABS(SUM(CASE WHEN `30d_pl` < 0 AND sentiment != 'neutral' THEN `30d_pl` ELSE 0 END)), 0) 
+                AS profit_factor FROM models_performance WHERE comp_symbol = %s;
+            """
+        }
+
+        results = {}
+        for key, query in queries.items():
+            cursor.execute(query, (comp_symbol,))
+            result = cursor.fetchone()
+            value = result[0] if result and result[0] is not None else "N/A"
+
+            # Round off profit factor to 2 decimal places
+            if key == "profit_factor" and isinstance(value, (int, float)):
+                value = round(value, 2)
+
+            results[key] = value
+
+        cursor.close()
+        conn.close()
+        
+        return results
+    except Exception as e:
+        st.error(f"Error fetching performance metrics: {e}")
+        return None
+
 # --------------------------- Performance Metrics Styling --------------------------- #
 
 # Custom CSS for Glassmorphism effect
@@ -44,6 +136,20 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
+# Title and search section
+st.title("Performance Summary")
+
+col1, col2 = st.columns([4, 1])
+with col1:
+    symbol = st.text_input("Enter Stock Symbol", value="AAPL")
+with col2:
+    st.write("")
+    go_clicked = st.button("Go", type="primary")
+
+# Create tabs
+tab_names = ["GTrends", "News", "Twitter", "Overall"]
+tabs = st.tabs(tab_names)
+
 # --------------------------- Fetch and Display Performance Metrics --------------------------- #
 
 if go_clicked:
@@ -51,7 +157,6 @@ if go_clicked:
     if metrics:
         st.subheader("Performance Metrics")
 
-        # Define color and trend arrows based on values
         win_percent = metrics["win_percentage"]
         total_trades = metrics["total_trades"]
         profit_factor = metrics["profit_factor"]
@@ -59,7 +164,6 @@ if go_clicked:
         win_color = "#00ff9f" if win_percent >= 50 else "#ff4b4b"
         profit_color = "#00ff9f" if profit_factor > 1 else "#ff4b4b"
 
-        # Create a 3-column layout
         col1, col2, col3 = st.columns(3)
 
         with col1:
@@ -94,7 +198,7 @@ if go_clicked:
 
     cumulative_pl_df = fetch_cumulative_pl(symbol)
     if cumulative_pl_df is not None and not cumulative_pl_df.empty:
-        st.subheader("Equity Curve")  # Keep existing title
+        st.subheader("Equity Curve")
         st.plotly_chart(create_cumulative_pl_chart(cumulative_pl_df), use_container_width=True)
     
     for tab, model_name in zip(tabs, ["gtrends", "news", "twitter", "overall"]):
