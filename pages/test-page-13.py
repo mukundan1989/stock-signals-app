@@ -48,7 +48,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# Function to create a unique donut chart
+# Function to create a unique donut chart with smaller size
 def create_donut_chart():
     data = pd.DataFrame({
         'Sentiment': ['Positive', 'Negative', 'Neutral'],
@@ -65,8 +65,9 @@ def create_donut_chart():
                  })
     fig.update_layout(
         showlegend=True,
-        margin=dict(t=30, b=10, l=10, r=10),
-        height=250,
+        margin=dict(t=20, b=20, l=20, r=20),  # Adjust margins
+        height=180,  # Reduce chart height
+        width=180,   # Reduce chart width
         paper_bgcolor='rgba(0,0,0,0)',
         plot_bgcolor='rgba(0,0,0,0)',
         font=dict(color='#ffffff'),
@@ -144,7 +145,7 @@ with col2:
     st.plotly_chart(create_donut_chart(), use_container_width=True, key=str(uuid.uuid4()))  # Unique key
 
 with col3:
-    st.markdown('<div class="sentiment-icon">🐻</div>', unsafe_allow_html=True)
+    st.markdown('<div class="sentiment-icon" style="color: #00ff00;">⬆️</div>', unsafe_allow_html=True)  # Green Up Arrow
 
 # Box 4: News Insight (Title Only)
 st.markdown("""
@@ -168,4 +169,4 @@ with col2:
     st.plotly_chart(create_donut_chart(), use_container_width=True, key=str(uuid.uuid4()))  # Unique key
 
 with col3:
-    st.markdown('<div class="sentiment-icon">🐂</div>', unsafe_allow_html=True)
+    st.markdown('<div class="sentiment-icon" style="color: #00ff00;">⬆️</div>', unsafe_allow_html=True)  # Green Up Arrow
