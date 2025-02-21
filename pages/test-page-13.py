@@ -5,32 +5,50 @@ import pandas as pd
 # Page config
 st.set_page_config(page_title="Stock Signal Page", layout="wide")
 
-# Custom CSS for styling
+# Custom CSS for dark theme styling
 st.markdown("""
     <style>
-    div[data-testid="stVerticalBlock"] > div:first-of-type {
-        white-space: pre;
-    }
     .box-container {
-        background-color: white;
+        background-color: #1e1e1e;
         border-radius: 10px;
         padding: 20px;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        box-shadow: 0 4px 6px rgba(0,0,0,0.3);
         margin-bottom: 20px;
+        border: 1px solid #333333;
     }
     .metric-value {
         font-size: 48px;
         font-weight: bold;
         text-align: center;
-        color: #1E88E5;
+        color: #bb86fc;
     }
     .metric-label {
         font-size: 16px;
         text-align: center;
-        color: #666;
+        color: #ffffff;
+    }
+    .box-title {
+        color: #bb86fc;
+        text-align: center;
+        font-size: 24px;
+        margin-bottom: 20px;
     }
     .center-align {
         text-align: center;
+    }
+    .company-info {
+        text-align: center;
+        color: #ffffff;
+    }
+    .company-symbol {
+        font-size: 32px;
+        font-weight: bold;
+        color: #bb86fc;
+    }
+    .company-price {
+        font-size: 28px;
+        color: #bb86fc;
+        font-weight: bold;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -42,7 +60,7 @@ def create_sentiment_data():
         'Percentage': [45, 30, 25]
     })
 
-# Function to create donut chart
+# Function to create donut chart with dark theme
 def create_donut_chart():
     data = create_sentiment_data()
     fig = px.pie(data, 
@@ -59,7 +77,12 @@ def create_donut_chart():
         margin=dict(t=0, b=0, l=0, r=0),
         height=250,
         paper_bgcolor='rgba(0,0,0,0)',
-        plot_bgcolor='rgba(0,0,0,0)'
+        plot_bgcolor='rgba(0,0,0,0)',
+        font=dict(color='#ffffff'),
+        legend=dict(
+            font=dict(color='#ffffff'),
+            bgcolor='rgba(0,0,0,0)'
+        )
     )
     return fig
 
@@ -70,11 +93,11 @@ st.title("Stock Signal Page")
 with st.container():
     st.markdown("""
         <div class="box-container">
-            <div style="text-align: center;">
-                <h2>Company Information</h2>
-                <h3>AAPL</h3>
-                <p>Apple Inc.</p>
-                <h3>$175.34</h3>
+            <div class="company-info">
+                <h2 class="box-title">Company Information</h2>
+                <div class="company-symbol">AAPL</div>
+                <div style="margin: 10px 0;">Apple Inc.</div>
+                <div class="company-price">$175.34</div>
             </div>
         </div>
     """, unsafe_allow_html=True)
@@ -82,7 +105,7 @@ with st.container():
 # Box 2: Twitter Trends
 with st.container():
     st.markdown('<div class="box-container">', unsafe_allow_html=True)
-    st.markdown("<h2 style='text-align: center;'>Twitter Trend Insight</h2>", unsafe_allow_html=True)
+    st.markdown('<h2 class="box-title">Twitter Trend Insight</h2>', unsafe_allow_html=True)
     cols = st.columns([1, 2, 1])
     
     with cols[0]:
@@ -93,13 +116,13 @@ with st.container():
         st.plotly_chart(create_donut_chart(), use_container_width=True)
     
     with cols[2]:
-        st.markdown('<div class="center-align" style="font-size: 48px; color: green;">🐂</div>', unsafe_allow_html=True)
+        st.markdown('<div class="center-align" style="font-size: 48px;">🐂</div>', unsafe_allow_html=True)
     st.markdown('</div>', unsafe_allow_html=True)
 
 # Box 3: Google Trends
 with st.container():
     st.markdown('<div class="box-container">', unsafe_allow_html=True)
-    st.markdown("<h2 style='text-align: center;'>Google Trend Insight</h2>", unsafe_allow_html=True)
+    st.markdown('<h2 class="box-title">Google Trend Insight</h2>', unsafe_allow_html=True)
     cols = st.columns([1, 2, 1])
     
     with cols[0]:
@@ -110,13 +133,13 @@ with st.container():
         st.plotly_chart(create_donut_chart(), use_container_width=True)
     
     with cols[2]:
-        st.markdown('<div class="center-align" style="font-size: 48px; color: red;">🐻</div>', unsafe_allow_html=True)
+        st.markdown('<div class="center-align" style="font-size: 48px;">🐻</div>', unsafe_allow_html=True)
     st.markdown('</div>', unsafe_allow_html=True)
 
 # Box 4: News Analysis
 with st.container():
     st.markdown('<div class="box-container">', unsafe_allow_html=True)
-    st.markdown("<h2 style='text-align: center;'>News Analysis</h2>", unsafe_allow_html=True)
+    st.markdown('<h2 class="box-title">News Analysis</h2>', unsafe_allow_html=True)
     cols = st.columns([1, 2, 1])
     
     with cols[0]:
@@ -127,5 +150,5 @@ with st.container():
         st.plotly_chart(create_donut_chart(), use_container_width=True)
     
     with cols[2]:
-        st.markdown('<div class="center-align" style="font-size: 48px; color: red;">🐻</div>', unsafe_allow_html=True)
+        st.markdown('<div class="center-align" style="font-size: 48px;">🐻</div>', unsafe_allow_html=True)
     st.markdown('</div>', unsafe_allow_html=True)
