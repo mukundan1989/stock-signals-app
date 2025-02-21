@@ -170,3 +170,27 @@ with col2:
 
 with col3:
     st.markdown('<div class="sentiment-icon">🐻</div>', unsafe_allow_html=True)
+
+# Box 5: News Insight (Title Only)
+st.markdown("""
+    <div class="box-container">
+        <h2 class="box-title">News Insight</h2>
+    </div>
+""", unsafe_allow_html=True)
+
+# News Insight Content (Outside the Box - Same as Twitter)
+col1, col2, col3 = st.columns([1, 2, 1])
+
+with col1:
+    st.markdown("""
+        <div class="metric-container">
+            <div class="metric-value">145</div>
+            <div class="metric-label">Keywords</div>
+        </div>
+    """, unsafe_allow_html=True)
+
+with col2:
+    st.plotly_chart(create_donut_chart(), use_container_width=True)
+
+with col3:
+    st.markdown('<div class="sentiment-icon">🐂</div>', unsafe_allow_html=True)
