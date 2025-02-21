@@ -6,11 +6,6 @@ import mysql.connector
 st.markdown(
     """
     <style>
-    /* Target the main container (st-emotion-cache-bm2z3a) and set a dark grey background */
-    .st-emotion-cache-bm2z3a {
-        background-color: #2a2a2a; /* Dark grey background */
-        color: #ffffff; /* White text for the entire page */
-    }
 
     /* Ensure the text above the table is white */
     h1, p {
