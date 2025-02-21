@@ -107,6 +107,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # Twitter Trend Content (Outside the Box)
+twitter_chart = create_donut_chart()  # Generate unique chart instance
 col1, col2, col3 = st.columns([1, 2, 1])
 
 with col1:
@@ -118,7 +119,7 @@ with col1:
     """, unsafe_allow_html=True)
 
 with col2:
-    st.plotly_chart(create_donut_chart(), use_container_width=True)
+    st.plotly_chart(twitter_chart, use_container_width=True)
 
 with col3:
     st.markdown('<div class="sentiment-icon">🐂</div>', unsafe_allow_html=True)
@@ -131,6 +132,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # News Analysis Content (Outside the Box)
+news_analysis_chart = create_donut_chart()  # Generate unique chart instance
 col1, col2, col3 = st.columns([1, 2, 1])
 
 with col1:
@@ -142,7 +144,7 @@ with col1:
     """, unsafe_allow_html=True)
 
 with col2:
-    st.plotly_chart(create_donut_chart(), use_container_width=True)
+    st.plotly_chart(news_analysis_chart, use_container_width=True)
 
 with col3:
     st.markdown('<div class="sentiment-icon">🐻</div>', unsafe_allow_html=True)
@@ -154,7 +156,8 @@ st.markdown("""
     </div>
 """, unsafe_allow_html=True)
 
-# News Insight Content (Outside the Box - Same as Twitter)
+# News Insight Content (Outside the Box)
+news_insight_chart = create_donut_chart()  # Generate unique chart instance
 col1, col2, col3 = st.columns([1, 2, 1])
 
 with col1:
@@ -166,7 +169,7 @@ with col1:
     """, unsafe_allow_html=True)
 
 with col2:
-    st.plotly_chart(create_donut_chart(), use_container_width=True)
+    st.plotly_chart(news_insight_chart, use_container_width=True)
 
 with col3:
     st.markdown('<div class="sentiment-icon">🐂</div>', unsafe_allow_html=True)
