@@ -93,8 +93,10 @@ def fetch_performance_metrics(comp_symbol):
             result = cursor.fetchone()
             value = result[0] if result and result[0] is not None else "N/A"
 
-            # Round off win_percentage and profit_factor to 2 decimal places
-            if key in ["win_percentage", "profit_factor"] and isinstance(value, (int, float)):
+            # Round off win_percentage to whole number and profit_factor to 2 decimal places
+            if key == "win_percentage" and isinstance(value, (int, float)):
+                value = round(value, 0)  # Round to whole number
+            elif key == "profit_factor" and isinstance(value, (int, float)):
                 value = round(value, 2)
 
             results[key] = value
@@ -207,7 +209,7 @@ if go_clicked:
 
         cols = st.columns(3)
         metric_data = [
-            {"label": "Win %", "value": f"{metrics['win_percentage']}%", "trend": "", "class": win_class},
+            {"label": "Win %", "value": f"{int(metrics['win_percentage'])}%", "trend": "", "class": win_class},
             {"label": "No. of Trades", "value": f"{metrics['total_trades']}", "trend": "", "class": "positive"},
             {"label": "Profit Factor", "value": f"{metrics['profit_factor']}", "trend": "↑" if metrics['profit_factor'] > 1 else "↓", "class": profit_class}
         ]
