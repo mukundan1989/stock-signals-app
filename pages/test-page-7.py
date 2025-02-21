@@ -230,4 +230,4 @@ if go_clicked:
     df = fetch_model_data(symbol)
     if df is not None and not df.empty:
         st.subheader("Performance Data Table")
-        st.dataframe(df, use_container_width=True)
+        st.dataframe(df, use_container_width=True, hide_index=True)  # Hide the index column
