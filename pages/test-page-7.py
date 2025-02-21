@@ -58,9 +58,7 @@ DB_PASSWORD = "stockstream_two"
 
 def fetch_performance_metrics(comp_symbol):
     try:
-        conn = mysql.connector.connect(
-            host=DB_HOST, database=DB_NAME, user=DB_USER, password=DB_PASSWORD
-        )
+        conn = mysql.connector.connect(host=DB_HOST, database=DB_NAME, user=DB_USER, password=DB_PASSWORD)
         cursor = conn.cursor()
 
         queries = {
@@ -85,7 +83,6 @@ def fetch_performance_metrics(comp_symbol):
             cursor.execute(query, (comp_symbol,))
             result = cursor.fetchone()
             value = result[0] if result and result[0] is not None else "N/A"
-
             if key == "profit_factor" and isinstance(value, (int, float)):
                 value = round(value, 2)
 
@@ -100,9 +97,7 @@ def fetch_performance_metrics(comp_symbol):
 
 def fetch_model_data(comp_symbol, model_name):
     try:
-        conn = mysql.connector.connect(
-            host=DB_HOST, database=DB_NAME, user=DB_USER, password=DB_PASSWORD
-        )
+        conn = mysql.connector.connect(host=DB_HOST, database=DB_NAME, user=DB_USER, password=DB_PASSWORD)
         cursor = conn.cursor()
 
         query = """
@@ -122,6 +117,55 @@ def fetch_model_data(comp_symbol, model_name):
     except Exception as e:
         st.error(f"Error fetching data: {e}")
         return None
+
+def fetch_cumulative_pl(comp_symbol):
+    try:
+        conn = mysql.connector.connect(host=DB_HOST, database=DB_NAME, user=DB_USER, password=DB_PASSWORD)
+        cursor = conn.cursor()
+
+        query = """
+        SELECT date, SUM(`30d_pl`) AS daily_pl
+        FROM models_performance
+        WHERE comp_symbol = %s AND sentiment != 'neutral'
+        GROUP BY date ORDER BY date;
+        """
+        
+        cursor.execute(query, (comp_symbol,))
+        result = cursor.fetchall()
+        
+        df = pd.DataFrame(result, columns=["Date", "Daily P/L"])
+        df["Cumulative P/L"] = df["Daily P/L"].cumsum()
+        
+        cursor.close()
+        conn.close()
+        
+        return df
+    except Exception as e:
+        st.error(f"Error fetching cumulative P/L data: {e}")
+        return None
+
+def create_cumulative_pl_chart(df):
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(
+        x=df["Date"], 
+        y=df["Cumulative P/L"],
+        mode='lines+markers',
+        line=dict(color='cyan' if df["Cumulative P/L"].iloc[-1] > 0 else 'red', width=2),
+        marker=dict(size=5),
+        name='Cumulative P/L'
+    ))
+
+    fig.update_layout(
+        title="Cumulative Profit/Loss Over Time",
+        xaxis_title="Date",
+        yaxis_title="Cumulative P/L",
+        height=400,
+        plot_bgcolor="#121212",
+        paper_bgcolor="#121212",
+        font=dict(color="white")
+    )
+
+    return fig
 
 st.title("Performance Summary")
 
@@ -159,16 +203,15 @@ if go_clicked:
                     </div>
                 """, unsafe_allow_html=True)
 
-    # Restore data table for model performance
+    cumulative_pl_df = fetch_cumulative_pl(symbol)
+    if cumulative_pl_df is not None and not cumulative_pl_df.empty:
+        st.subheader("Equity Curve")
+        st.plotly_chart(create_cumulative_pl_chart(cumulative_pl_df), use_container_width=True)
+
     st.subheader("Model Performance Data")
     tabs = st.tabs(["GTrends", "News", "Twitter", "Overall"])
 
     for tab, model_name in zip(tabs, ["gtrends", "news", "twitter", "overall"]):
         with tab:
-            st.subheader(f"{model_name.capitalize()} Data")
             df = fetch_model_data(symbol, model_name)
-            if df is not None and not df.empty:
-                st.dataframe(df, use_container_width=True)
-            else:
-                st.warning(f"No data found for {model_name.capitalize()}.")
-
+            st.dataframe(df, use_container_width=True) if not df.empty else st.warning(f"No data found for {model_name.capitalize()}.")
