@@ -113,7 +113,7 @@ def fetch_model_data(comp_symbol, model_name):
 
         cursor.close()
         conn.close()
-        return df
+        return df if not df.empty else None
     except Exception as e:
         st.error(f"Error fetching data: {e}")
         return None
@@ -139,7 +139,7 @@ def fetch_cumulative_pl(comp_symbol):
         cursor.close()
         conn.close()
         
-        return df
+        return df if not df.empty else None
     except Exception as e:
         st.error(f"Error fetching cumulative P/L data: {e}")
         return None
@@ -204,7 +204,7 @@ if go_clicked:
                 """, unsafe_allow_html=True)
 
     cumulative_pl_df = fetch_cumulative_pl(symbol)
-    if cumulative_pl_df is not None and not cumulative_pl_df.empty:
+    if cumulative_pl_df is not None:
         st.subheader("Equity Curve")
         st.plotly_chart(create_cumulative_pl_chart(cumulative_pl_df), use_container_width=True)
 
@@ -214,4 +214,4 @@ if go_clicked:
     for tab, model_name in zip(tabs, ["gtrends", "news", "twitter", "overall"]):
         with tab:
             df = fetch_model_data(symbol, model_name)
-            st.dataframe(df, use_container_width=True) if not df.empty else st.warning(f"No data found for {model_name.capitalize()}.")
+            st.dataframe(df, use_container_width=True) if df is not None else st.warning(f"No data found for {model_name.capitalize()}.")
