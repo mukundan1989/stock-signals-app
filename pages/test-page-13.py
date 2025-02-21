@@ -48,9 +48,9 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# Function to create unique donut chart with unique ID
+# Function to create a unique donut chart without displaying the unique ID
 def create_donut_chart():
-    unique_id = str(uuid.uuid4())  # Generate a unique ID
+    _ = str(uuid.uuid4())  # Generate a unique ID but don't display it
     data = pd.DataFrame({
         'Sentiment': ['Positive', 'Negative', 'Neutral'],
         'Percentage': [45, 30, 25]
@@ -59,7 +59,6 @@ def create_donut_chart():
                  values='Percentage', 
                  names='Sentiment',
                  hole=0.6,
-                 title=f"Sentiment Analysis {unique_id}",  # Unique title to force Streamlit to recognize a new instance
                  color_discrete_map={
                      'Positive': '#00ff00',
                      'Negative': '#ff0000',
@@ -117,7 +116,7 @@ with col1:
     """, unsafe_allow_html=True)
 
 with col2:
-    st.plotly_chart(create_donut_chart(), use_container_width=False)  # Unique instance with unique ID
+    st.plotly_chart(create_donut_chart(), use_container_width=False)  # Unique instance
 
 with col3:
     st.markdown('<div class="sentiment-icon">🐂</div>', unsafe_allow_html=True)
@@ -141,7 +140,7 @@ with col1:
     """, unsafe_allow_html=True)
 
 with col2:
-    st.plotly_chart(create_donut_chart(), use_container_width=False)  # Unique instance with unique ID
+    st.plotly_chart(create_donut_chart(), use_container_width=False)  # Unique instance
 
 with col3:
     st.markdown('<div class="sentiment-icon">🐻</div>', unsafe_allow_html=True)
@@ -165,7 +164,7 @@ with col1:
     """, unsafe_allow_html=True)
 
 with col2:
-    st.plotly_chart(create_donut_chart(), use_container_width=False)  # Unique instance with unique ID
+    st.plotly_chart(create_donut_chart(), use_container_width=False)  # Unique instance
 
 with col3:
     st.markdown('<div class="sentiment-icon">🐂</div>', unsafe_allow_html=True)
