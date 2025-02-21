@@ -2,7 +2,6 @@ import streamlit as st
 import plotly.express as px
 import plotly.graph_objects as go
 import pandas as pd
-import numpy as np
 import uuid  # For unique chart identifiers
 
 # Page config
@@ -38,9 +37,9 @@ st.markdown("""
         margin-bottom: 10px;
     }
     .sentiment-icon {
-        font-size: 64px; /* Increased size */
+        font-size: 48px;
         text-align: center;
-        color: #00bfa5; /* Bluish Green */
+        color: #00ff00;
     }
     .metric-container {
         display: flex;
@@ -51,17 +50,16 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# Function to create realistic stock price trend chart
+# Function to create a realistic stock price trend chart
 def create_stock_price_chart():
-    np.random.seed(42)
     dates = pd.date_range(start="2024-01-01", periods=30, freq="D")
-    prices = [175]
-    for _ in range(29):
-        prices.append(prices[-1] * (1 + np.random.uniform(-0.02, 0.02)))  # Simulating real-life price fluctuations
-    df_stock = pd.DataFrame({'Date': dates, 'Stock Price': prices})
+    stock_prices = [175 + (i * 0.5 + (-1) ** i * 2) for i in range(30)]  # Simulated realistic price movement
+    df_stock = pd.DataFrame({'Date': dates, 'Stock Price': stock_prices})
     
-    fig = px.line(df_stock, x='Date', y='Stock Price', title="Stock Price Trend")
-    fig.update_traces(line=dict(color='#00ff9f', width=2))
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(x=df_stock['Date'], y=df_stock['Stock Price'], mode='lines+markers',
+                             line=dict(color='#00ff9f', width=2), marker=dict(size=4, color='#ffffff')))
+    
     fig.update_layout(
         plot_bgcolor='rgba(0,0,0,0)',
         paper_bgcolor='rgba(0,0,0,0)',
@@ -79,18 +77,24 @@ st.markdown("""
     <h1 style="text-align: center; color: white;">Stock Signal Page</h1>
 """, unsafe_allow_html=True)
 
-# News Insight Block
-st.markdown("<div class='box-container'><h2 class='box-title'>News Insight</h2></div>", unsafe_allow_html=True)
-col1, col2, col3 = st.columns([1, 2, 1])
+# Company Information Block
+st.markdown("""
+    <div class="box-container">
+        <h2 class="box-title">Company Information</h2>
+    </div>
+""", unsafe_allow_html=True)
 
+col1, col2 = st.columns([1, 2])
 with col1:
-    st.markdown("<div class='metric-value'>145</div><div class='metric-label'>Keywords</div>", unsafe_allow_html=True)
-
+    st.markdown("""
+        <div style="text-align: left; color: white;">
+            <div class="company-symbol" style="font-size: 32px; font-weight: bold; color: #bb86fc;">AAPL</div>
+            <div style="margin: 10px 0; font-size: 20px;">Apple Inc.</div>
+            <div class="company-price" style="font-size: 28px; color: #00ff9f; font-weight: bold;">$175.34</div>
+        </div>
+    """, unsafe_allow_html=True)
 with col2:
     st.plotly_chart(create_stock_price_chart(), use_container_width=True, key=str(uuid.uuid4()))
-
-with col3:
-    st.markdown("<div class='sentiment-icon'>&#9650;</div>", unsafe_allow_html=True)  # Large Bluish Green Triangle Up Arrow
 
 # Twitter Trends Block
 st.markdown("""
@@ -99,12 +103,17 @@ st.markdown("""
     </div>
 """, unsafe_allow_html=True)
 col1, col2, col3 = st.columns([1, 2, 1])
-
 with col1:
     st.markdown("<div class='metric-value'>145</div><div class='metric-label'>Keywords</div>", unsafe_allow_html=True)
-
 with col2:
-    st.plotly_chart(create_stock_price_chart(), use_container_width=True, key=str(uuid.uuid4()))
-
+    st.plotly_chart(create_donut_chart(), use_container_width=True, key=str(uuid.uuid4()))
 with col3:
-    st.markdown("<div class='sentiment-icon'>&#9650;</div>", unsafe_allow_html=True)  # Large Bluish Green Triangle Up Arrow
+    st.markdown("<div class='sentiment-icon'>&#9650;</div>", unsafe_allow_html=True)  # Large Green Triangle Up Arrow
+
+# News Insight Block
+st.markdown("<div class='box-container'><h2 class='box-title'>News Insight</h2></div>", unsafe_allow_html=True)
+col1, col2, col3 = st.columns([1, 2, 1])
+with col2:
+    st.plotly_chart(create_speedometer(), use_container_width=True, key=str(uuid.uuid4()))
+with col3:
+    st.markdown("<div class='sentiment-icon'>&#9650;</div>", unsafe_allow_html=True)  # Large Green Triangle Up Arrow
