@@ -93,8 +93,8 @@ def fetch_performance_metrics(comp_symbol):
             result = cursor.fetchone()
             value = result[0] if result and result[0] is not None else "N/A"
 
-            # Round off profit factor to 2 decimal places
-            if key == "profit_factor" and isinstance(value, (int, float)):
+            # Round off win_percentage and profit_factor to 2 decimal places
+            if key in ["win_percentage", "profit_factor"] and isinstance(value, (int, float)):
                 value = round(value, 2)
 
             results[key] = value
