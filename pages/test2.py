@@ -2,9 +2,10 @@ import streamlit as st
 import pandas as pd
 import mysql.connector
 
-# Apply glassmorphism CSS styling
+# Apply glassmorphism CSS styling & table formatting
 st.markdown("""
     <style>
+    /* Metric Card Styling */
     .metric-card {
         background: rgba(255, 255, 255, 0.05);
         backdrop-filter: blur(10px);
@@ -15,27 +16,27 @@ st.markdown("""
         text-align: center;
         margin: 10px;
     }
+    .metric-card:hover { transform: translateY(-5px); }
+    .metric-label { font-size: 0.85rem; color: rgba(255, 255, 255, 0.6); }
+    .metric-value { font-size: 2rem; font-weight: 700; color: #ffffff; margin: 8px 0; }
     
-    .metric-card:hover {
-        transform: translateY(-5px);
-    }
-
-    /* Remove borders from tables */
+    /* Remove Table Borders */
     .dataframe { border-collapse: collapse; width: 100%; }
     .dataframe th, .dataframe td { border: none !important; padding: 8px; text-align: left; }
     </style>
 """, unsafe_allow_html=True)
 
-# Streamlit UI - Portfolio Section
+# Streamlit UI Header
 st.markdown("<h1 style='text-align: center; color: #ffffff;'>Stock Sentimeter</h1>", unsafe_allow_html=True)
+st.write("<p style='text-align: center; color: #ffffff;'>Know stock market trends and make smarter investment decisions.</p>", unsafe_allow_html=True)
 
-# Database credentials
+# Database Configuration
 DB_HOST = "13.203.191.72"
 DB_NAME = "stockstream_two"
 DB_USER = "stockstream_two"
 DB_PASSWORD = "stockstream_two"
 
-# Available tables
+# Available Sentiment Tables
 TABLES = {
     "Google Trends": "gtrend_latest_signal",
     "News": "news_latest_signal",
@@ -51,35 +52,16 @@ if "data" not in st.session_state:
 if "show_search" not in st.session_state:
     st.session_state["show_search"] = False
 
-# Toggle buttons for selecting models (REVERTED TO ORIGINAL WORKING VERSION)
+# Toggle Buttons for Sentiment Models (Working Version)
 st.write("### Select Sentiment Model")
-col1, col2, col3, col4 = st.columns(4)
+selected_model = st.radio("Choose Model", list(TABLES.keys()), horizontal=True)
 
-with col1:
-    if st.button("Google Trends", key="gtrend"):
-        st.session_state["selected_table"] = "gtrend_latest_signal"
-        st.session_state["data"] = None
-        st.experimental_rerun()
+# Update session state when selection changes
+if TABLES[selected_model] != st.session_state["selected_table"]:
+    st.session_state["selected_table"] = TABLES[selected_model]
+    st.session_state["data"] = None  # Force data refresh
 
-with col2:
-    if st.button("News", key="news"):
-        st.session_state["selected_table"] = "news_latest_signal"
-        st.session_state["data"] = None
-        st.experimental_rerun()
-
-with col3:
-    if st.button("Twitter", key="twitter"):
-        st.session_state["selected_table"] = "twitter_latest_signal"
-        st.session_state["data"] = None
-        st.experimental_rerun()
-
-with col4:
-    if st.button("Overall", key="overall"):
-        st.session_state["selected_table"] = "overall_latest_signal"
-        st.session_state["data"] = None
-        st.experimental_rerun()
-
-# Function to fetch and format data
+# Function to Fetch Data
 def fetch_data(table, limit=5):
     try:
         conn = mysql.connector.connect(
@@ -94,34 +76,33 @@ def fetch_data(table, limit=5):
         df = pd.DataFrame(cursor.fetchall(), columns=["Date", "Company Name", "Stock Symbol", "Trade Signal", "Entry Price ($)"])
         cursor.close()
         conn.close()
-
         return df
     except Exception as e:
         st.error(f"Error fetching data: {e}")
         return None
 
-# Load initial data if not set
+# Load data if not already fetched
 if st.session_state["data"] is None:
     st.session_state["data"] = fetch_data(st.session_state["selected_table"])
 
-# Function to format dataframe (removes borders + formats stock symbol placement)
+# Format Data: Stock Symbol Below Company Name
 def format_dataframe(df):
     if df is not None:
         df["Company Info"] = df.apply(lambda row: f"<b>{row['Company Name']}</b><br><span style='color:gray;'>{row['Stock Symbol']}</span>", axis=1)
-        df = df[["Date", "Company Info", "Trade Signal", "Entry Price ($)"]]  # Reorder columns
+        return df[["Date", "Company Info", "Trade Signal", "Entry Price ($)"]]
     return df
 
-# Display formatted table
+# Display Portfolio Table
 st.write("### Portfolio")
 if st.session_state["data"] is not None:
-    styled_df = format_dataframe(st.session_state["data"])
-    st.markdown(styled_df.to_html(escape=False, index=False), unsafe_allow_html=True)
+    formatted_data = format_dataframe(st.session_state["data"])
+    st.markdown(formatted_data.to_html(escape=False, index=False), unsafe_allow_html=True)
 
-# Add Stock button
+# Add Stock Button
 if st.button("Add Stock"):
     st.session_state["show_search"] = True
 
-# Show search box when "Add Stock" is clicked
+# Search Stock Symbol Input
 if st.session_state["show_search"]:
     symbol = st.text_input("Enter Stock Symbol:")
     if symbol:
@@ -141,8 +122,6 @@ if st.session_state["show_search"]:
 
             if result:
                 new_row = pd.DataFrame(result, columns=["Date", "Company Name", "Stock Symbol", "Trade Signal", "Entry Price ($)"])
-                
-                # Format new row
                 new_row["Company Info"] = new_row.apply(lambda row: f"<b>{row['Company Name']}</b><br><span style='color:gray;'>{row['Stock Symbol']}</span>", axis=1)
                 new_row = new_row[["Date", "Company Info", "Trade Signal", "Entry Price ($)"]]
 
