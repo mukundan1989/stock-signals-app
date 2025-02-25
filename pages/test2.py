@@ -130,18 +130,11 @@ def fetch_data(table, limit=5):
 if st.session_state["data"] is None:
     st.session_state["data"] = fetch_data(st.session_state["selected_table"])
 
-# Function to format dataframe (removes borders + formats stock symbol placement + adds Trade Signal icons)
+# Function to format dataframe (removes borders + formats stock symbol placement)
 def format_dataframe(df):
     if df is not None:
-        # Format Company Name & Stock Symbol together
         df["Company Info"] = df.apply(lambda row: f"<b>{row['Company Name']}</b><br><span style='color:gray;'>{row['Stock Symbol']}</span>", axis=1)
-        
-        # Add graphical icons for Buy/Sell
-        df["Trade Signal"] = df["Trade Signal"].apply(lambda x: f"<span style='color:green;'>📈 Buy</span>" if x.lower() == "buy" else f"<span style='color:red;'>📉 Sell</span>")
-        
-        # Select and reorder columns
-        df = df[["Date", "Company Info", "Trade Signal", "Entry Price ($)"]]
-    
+        df = df[["Date", "Company Info", "Trade Signal", "Entry Price ($)"]]  # Reorder columns
     return df
 
 # Display formatted table
@@ -176,7 +169,8 @@ if st.session_state["show_search"]:
                 new_row = pd.DataFrame(result, columns=["Date", "Company Name", "Stock Symbol", "Trade Signal", "Entry Price ($)"])
                 
                 # Format new row
-                new_row = format_dataframe(new_row)
+                new_row["Company Info"] = new_row.apply(lambda row: f"<b>{row['Company Name']}</b><br><span style='color:gray;'>{row['Stock Symbol']}</span>", axis=1)
+                new_row = new_row[["Date", "Company Info", "Trade Signal", "Entry Price ($)"]]
 
                 st.session_state["data"] = pd.concat([format_dataframe(st.session_state["data"]), new_row], ignore_index=True)
                 st.session_state["show_search"] = False
