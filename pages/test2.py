@@ -82,7 +82,6 @@ def fetch_data(table, limit=5):
         df = pd.DataFrame(cursor.fetchall(), columns=["Date", "Company Name", "Stock Symbol", "Trade Signal", "Entry Price ($)"])
         cursor.close()
         conn.close()
-
         return df
     except Exception as e:
         st.error(f"Error fetching data: {e}")
@@ -99,27 +98,23 @@ def format_dataframe(df):
         df = df[["Date", "Company Info", "Trade Signal", "Entry Price ($)"]]  # Reorder columns
     return df
 
-# Sentiment Model Selection (Mutually Exclusive)
+# Ensure only one toggle is active at a time
 st.write("### Select Sentiment Model")
-selected_option = st.radio(
-    "Choose a sentiment model:",
-    options=["Google Trends", "News", "Twitter", "Overall"],
-    index=3,  # Default to "Overall"
-    horizontal=True
-)
-
-# Map user selection to database table
-table_map = {
+toggle_options = {
     "Google Trends": "gtrend_latest_signal",
     "News": "news_latest_signal",
     "Twitter": "twitter_latest_signal",
     "Overall": "overall_latest_signal"
 }
 
-# Update session state if selection changes
-if st.session_state["selected_table"] != table_map[selected_option]:
-    st.session_state["selected_table"] = table_map[selected_option]
-    st.session_state["data"] = fetch_data(st.session_state["selected_table"])
+selected_toggle = st.session_state["selected_table"]
+
+# Display toggle buttons (ensuring only one is active at a time)
+for label, table in toggle_options.items():
+    if st.toggle(label, value=(selected_toggle == table), key=label):
+        if st.session_state["selected_table"] != table:
+            st.session_state["selected_table"] = table
+            st.session_state["data"] = fetch_data(table)
 
 # Display formatted table
 st.write("### Portfolio")
