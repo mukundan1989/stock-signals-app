@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import mysql.connector
 
-# Apply glassmorphism CSS styling + Table Enhancements
+# Apply glassmorphism CSS styling
 st.markdown("""
     <style>
     /* Glassmorphism Metric Card */
@@ -35,40 +35,9 @@ st.markdown("""
         margin: 8px 0;
     }
 
-    .metric-trend {
-        font-size: 0.85rem;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        gap: 5px;
-    }
-
-    /* Trend Colors */
-    .positive { color: #00ff9f; }  /* Green */
-    .negative { color: #ff4b4b; }  /* Red */
-    
     /* Remove borders from tables */
     .dataframe { border-collapse: collapse; width: 100%; }
     .dataframe th, .dataframe td { border: none !important; padding: 8px; text-align: left; }
-    
-    /* Custom styling for Company Name & Symbol */
-    .company-card {
-        background-color: #f5f5f5;
-        border-radius: 8px;
-        padding: 8px;
-        text-align: center;
-        display: inline-block;
-        width: 100%;
-    }
-    .company-name {
-        font-weight: bold;
-        color: #333;
-        font-size: 1rem;
-    }
-    .stock-symbol {
-        color: #666;
-        font-size: 0.9rem;
-    }
     </style>
 """, unsafe_allow_html=True)
 
@@ -98,6 +67,32 @@ if "data" not in st.session_state:
 if "show_search" not in st.session_state:
     st.session_state["show_search"] = False
 
+# Toggle buttons for selecting models
+st.write("### Select Sentiment Model")
+col1, col2, col3, col4 = st.columns(4)
+
+def toggle_selection(table_key):
+    if st.session_state["selected_table"] != table_key:
+        st.session_state["selected_table"] = table_key
+        st.session_state["data"] = None
+        st.experimental_rerun()
+
+with col1:
+    if st.toggle("Google Trends", value=(st.session_state["selected_table"] == "gtrend_latest_signal")):
+        toggle_selection("gtrend_latest_signal")
+
+with col2:
+    if st.toggle("News", value=(st.session_state["selected_table"] == "news_latest_signal")):
+        toggle_selection("news_latest_signal")
+
+with col3:
+    if st.toggle("Twitter", value=(st.session_state["selected_table"] == "twitter_latest_signal")):
+        toggle_selection("twitter_latest_signal")
+
+with col4:
+    if st.toggle("Overall", value=(st.session_state["selected_table"] == "overall_latest_signal")):
+        toggle_selection("overall_latest_signal")
+
 # Function to fetch and format data
 def fetch_data(table, limit=5):
     try:
@@ -123,16 +118,16 @@ def fetch_data(table, limit=5):
 if st.session_state["data"] is None:
     st.session_state["data"] = fetch_data(st.session_state["selected_table"])
 
-# Function to format dataframe (with styling)
+# Function to format dataframe (adds dark gray background, white text, and rounded borders)
 def format_dataframe(df):
     if df is not None:
-        df["Company Info"] = df.apply(lambda row: f"""
-        <div class="company-card">
-            <div class="company-name">{row['Company Name']}</div>
-            <div class="stock-symbol">{row['Stock Symbol']}</div>
-        </div>
-        """, axis=1)
-        df = df[["Date", "Company Info", "Trade Signal", "Entry Price ($)"]]  # Reorder columns
+        df["Company Info"] = df.apply(lambda row: 
+            f"<div style='background-color:#333333; color:#ffffff; border-radius:8px; padding:5px 10px; display:inline-block;'>
+                <b>{row['Company Name']}</b><br><span style='font-size:0.85rem; opacity:0.8;'>{row['Stock Symbol']}</span>
+            </div>", axis=1)
+        
+        # Keep only relevant columns
+        df = df[["Date", "Company Info", "Trade Signal", "Entry Price ($)"]]
     return df
 
 # Display formatted table
@@ -167,12 +162,11 @@ if st.session_state["show_search"]:
                 new_row = pd.DataFrame(result, columns=["Date", "Company Name", "Stock Symbol", "Trade Signal", "Entry Price ($)"])
                 
                 # Format new row
-                new_row["Company Info"] = new_row.apply(lambda row: f"""
-                <div class="company-card">
-                    <div class="company-name">{row['Company Name']}</div>
-                    <div class="stock-symbol">{row['Stock Symbol']}</div>
-                </div>
-                """, axis=1)
+                new_row["Company Info"] = new_row.apply(lambda row: 
+                    f"<div style='background-color:#333333; color:#ffffff; border-radius:8px; padding:5px 10px; display:inline-block;'>
+                        <b>{row['Company Name']}</b><br><span style='font-size:0.85rem; opacity:0.8;'>{row['Stock Symbol']}</span>
+                    </div>", axis=1)
+
                 new_row = new_row[["Date", "Company Info", "Trade Signal", "Entry Price ($)"]]
 
                 st.session_state["data"] = pd.concat([format_dataframe(st.session_state["data"]), new_row], ignore_index=True)
