@@ -122,9 +122,9 @@ if st.session_state["data"] is None:
 def format_dataframe(df):
     if df is not None:
         df["Company Info"] = df.apply(lambda row: 
-            f"<div style='background-color:#333333; color:#ffffff; border-radius:8px; padding:5px 10px; display:inline-block;'>
+            f"""<div style='background-color:#333333; color:#ffffff; border-radius:8px; padding:5px 10px; display:inline-block;'>
                 <b>{row['Company Name']}</b><br><span style='font-size:0.85rem; opacity:0.8;'>{row['Stock Symbol']}</span>
-            </div>", axis=1)
+            </div>""", axis=1)
         
         # Keep only relevant columns
         df = df[["Date", "Company Info", "Trade Signal", "Entry Price ($)"]]
