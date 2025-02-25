@@ -35,6 +35,18 @@ st.markdown("""
         margin: 8px 0;
     }
 
+    .metric-trend {
+        font-size: 0.85rem;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 5px;
+    }
+
+    /* Trend Colors */
+    .positive { color: #00ff9f; }  /* Green */
+    .negative { color: #ff4b4b; }  /* Red */
+    
     /* Remove borders from tables */
     .dataframe { border-collapse: collapse; width: 100%; }
     .dataframe th, .dataframe td { border: none !important; padding: 8px; text-align: left; }
@@ -118,18 +130,14 @@ def fetch_data(table, limit=5):
 if st.session_state["data"] is None:
     st.session_state["data"] = fetch_data(st.session_state["selected_table"])
 
-# Define small SVG trend lines
-UP_TREND_ICON = """<svg width="20" height="10"><polyline points="0,10 10,2 20,5" style="fill:none;stroke:green;stroke-width:2"/></svg>"""
-DOWN_TREND_ICON = """<svg width="20" height="10"><polyline points="0,2 10,8 20,5" style="fill:none;stroke:red;stroke-width:2"/></svg>"""
-
-# Function to format dataframe (removes borders + formats stock symbol placement + adds trend line icons)
+# Function to format dataframe (removes borders + formats stock symbol placement + adds Trade Signal icons)
 def format_dataframe(df):
     if df is not None:
         # Format Company Name & Stock Symbol together
         df["Company Info"] = df.apply(lambda row: f"<b>{row['Company Name']}</b><br><span style='color:gray;'>{row['Stock Symbol']}</span>", axis=1)
         
-        # Add trend line SVG icons for Buy/Sell
-        df["Trade Signal"] = df["Trade Signal"].apply(lambda x: f"{UP_TREND_ICON} <span style='color:green;'>Buy</span>" if x.lower() == "buy" else f"{DOWN_TREND_ICON} <span style='color:red;'>Sell</span>")
+        # Add graphical icons for Buy/Sell
+        df["Trade Signal"] = df["Trade Signal"].apply(lambda x: f"<span style='color:green;'>📈 Buy</span>" if x.lower() == "buy" else f"<span style='color:red;'>📉 Sell</span>")
         
         # Select and reorder columns
         df = df[["Date", "Company Info", "Trade Signal", "Entry Price ($)"]]
