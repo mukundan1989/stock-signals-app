@@ -35,6 +35,18 @@ st.markdown("""
         margin: 8px 0;
     }
 
+    .metric-trend {
+        font-size: 0.85rem;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 5px;
+    }
+
+    /* Trend Colors */
+    .positive { color: #00ff9f; }  /* Green */
+    .negative { color: #ff4b4b; }  /* Red */
+    
     /* Remove borders from tables */
     .dataframe { border-collapse: collapse; width: 100%; }
     .dataframe th, .dataframe td { border: none !important; padding: 8px; text-align: left; }
@@ -118,16 +130,18 @@ def fetch_data(table, limit=5):
 if st.session_state["data"] is None:
     st.session_state["data"] = fetch_data(st.session_state["selected_table"])
 
-# Function to format dataframe (adds dark gray background, white text, and rounded borders)
+# Function to format dataframe (removes borders + formats stock symbol placement + adds Trade Signal icons)
 def format_dataframe(df):
     if df is not None:
-        df["Company Info"] = df.apply(lambda row: 
-            f"<div style='background-color:#333333; color:#ffffff; border-radius:8px; padding:5px 10px; display:inline-block;'>"
-            f"<b>{row['Company Name']}</b><br><span style='font-size:0.85rem; opacity:0.8;'>{row['Stock Symbol']}</span>"
-            f"</div>", axis=1)
+        # Format Company Name & Stock Symbol together
+        df["Company Info"] = df.apply(lambda row: f"<b>{row['Company Name']}</b><br><span style='color:gray;'>{row['Stock Symbol']}</span>", axis=1)
         
-        # Keep only relevant columns
+        # Add graphical icons for Buy/Sell
+        df["Trade Signal"] = df["Trade Signal"].apply(lambda x: f"<span style='color:green;'>📈 Buy</span>" if x.lower() == "buy" else f"<span style='color:red;'>📉 Sell</span>")
+        
+        # Select and reorder columns
         df = df[["Date", "Company Info", "Trade Signal", "Entry Price ($)"]]
+    
     return df
 
 # Display formatted table
@@ -162,12 +176,7 @@ if st.session_state["show_search"]:
                 new_row = pd.DataFrame(result, columns=["Date", "Company Name", "Stock Symbol", "Trade Signal", "Entry Price ($)"])
                 
                 # Format new row
-                new_row["Company Info"] = new_row.apply(lambda row: 
-                    f"<div style='background-color:#333333; color:#ffffff; border-radius:8px; padding:5px 10px; display:inline-block;'>
-                        <b>{row['Company Name']}</b><br><span style='font-size:0.85rem; opacity:0.8;'>{row['Stock Symbol']}</span>
-                    </div>", axis=1)
-
-                new_row = new_row[["Date", "Company Info", "Trade Signal", "Entry Price ($)"]]
+                new_row = format_dataframe(new_row)
 
                 st.session_state["data"] = pd.concat([format_dataframe(st.session_state["data"]), new_row], ignore_index=True)
                 st.session_state["show_search"] = False
