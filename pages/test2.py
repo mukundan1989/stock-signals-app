@@ -35,19 +35,7 @@ st.markdown("""
         margin: 8px 0;
     }
 
-    .metric-trend {
-        font-size: 0.85rem;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        gap: 5px;
-    }
-
-    /* Trend Colors */
-    .positive { color: #00ff9f; }  /* Green */
-    .negative { color: #ff4b4b; }  /* Red */
-    
-    /* Remove borders from tables */
+    /* Remove table borders */
     .dataframe { border-collapse: collapse; width: 100%; }
     .dataframe th, .dataframe td { border: none !important; padding: 8px; text-align: left; }
     </style>
@@ -79,32 +67,6 @@ if "data" not in st.session_state:
 if "show_search" not in st.session_state:
     st.session_state["show_search"] = False
 
-# Toggle buttons for selecting models
-st.write("### Select Sentiment Model")
-col1, col2, col3, col4 = st.columns(4)
-
-def toggle_selection(table_key):
-    if st.session_state["selected_table"] != table_key:
-        st.session_state["selected_table"] = table_key
-        st.session_state["data"] = None
-        st.experimental_rerun()
-
-with col1:
-    if st.toggle("Google Trends", value=(st.session_state["selected_table"] == "gtrend_latest_signal")):
-        toggle_selection("gtrend_latest_signal")
-
-with col2:
-    if st.toggle("News", value=(st.session_state["selected_table"] == "news_latest_signal")):
-        toggle_selection("news_latest_signal")
-
-with col3:
-    if st.toggle("Twitter", value=(st.session_state["selected_table"] == "twitter_latest_signal")):
-        toggle_selection("twitter_latest_signal")
-
-with col4:
-    if st.toggle("Overall", value=(st.session_state["selected_table"] == "overall_latest_signal")):
-        toggle_selection("overall_latest_signal")
-
 # Function to fetch and format data
 def fetch_data(table, limit=5):
     try:
@@ -126,7 +88,7 @@ def fetch_data(table, limit=5):
         st.error(f"Error fetching data: {e}")
         return None
 
-# Load initial data if not set
+# Ensure data is loaded initially
 if st.session_state["data"] is None:
     st.session_state["data"] = fetch_data(st.session_state["selected_table"])
 
@@ -136,6 +98,32 @@ def format_dataframe(df):
         df["Company Info"] = df.apply(lambda row: f"<b>{row['Company Name']}</b><br><span style='color:gray;'>{row['Stock Symbol']}</span>", axis=1)
         df = df[["Date", "Company Info", "Trade Signal", "Entry Price ($)"]]  # Reorder columns
     return df
+
+# Function to handle sentiment model selection
+def toggle_selection(table_key):
+    if st.session_state["selected_table"] != table_key:
+        st.session_state["selected_table"] = table_key
+        st.session_state["data"] = fetch_data(table_key)  # Reload data
+
+# Toggle buttons for selecting models
+st.write("### Select Sentiment Model")
+col1, col2, col3, col4 = st.columns(4)
+
+with col1:
+    if st.toggle("Google Trends", value=(st.session_state["selected_table"] == "gtrend_latest_signal")):
+        toggle_selection("gtrend_latest_signal")
+
+with col2:
+    if st.toggle("News", value=(st.session_state["selected_table"] == "news_latest_signal")):
+        toggle_selection("news_latest_signal")
+
+with col3:
+    if st.toggle("Twitter", value=(st.session_state["selected_table"] == "twitter_latest_signal")):
+        toggle_selection("twitter_latest_signal")
+
+with col4:
+    if st.toggle("Overall", value=(st.session_state["selected_table"] == "overall_latest_signal")):
+        toggle_selection("overall_latest_signal")
 
 # Display formatted table
 st.write("### Portfolio")
