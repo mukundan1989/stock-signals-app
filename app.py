@@ -2,56 +2,17 @@ import streamlit as st
 import pandas as pd
 import mysql.connector
 
-# Set page config
-st.set_page_config(layout="wide", page_title="Stock Sentimeter", initial_sidebar_state="collapsed")
-
-# Apply modern glassmorphism CSS
+# Custom CSS for dark-themed elegant table design
 st.markdown(
     """
     <style>
-    /* Glassmorphism Metric Card */
-    .metric-card {
-        background: rgba(255, 255, 255, 0.05);
-        backdrop-filter: blur(10px);
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        border-radius: 20px;
-        padding: 20px;
-        transition: transform 0.3s ease;
-        text-align: center;
-        margin: 10px;
-    }
-    
-    .metric-card:hover {
-        transform: translateY(-5px);
+    /* Target the main container (st-emotion-cache-bm2z3a) and set a dark grey background */
+    .st-emotion-cache-bm2z3a {
+        background-color: #2a2a2a; /* Dark grey background */
+        color: #ffffff; /* White text for the entire page */
     }
 
-    .metric-label {
-        font-size: 0.85rem;
-        color: rgba(255, 255, 255, 0.6);
-        letter-spacing: 0.1em;
-        text-transform: uppercase;
-    }
-    
-    .metric-value {
-        font-size: 2rem;
-        font-weight: 700;
-        color: #ffffff;
-        margin: 8px 0;
-    }
-    
-    .metric-trend {
-        font-size: 0.85rem;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        gap: 5px;
-    }
-
-    /* Trend Colors */
-    .positive { color: #00ff9f; }  /* Green */
-    .negative { color: #ff4b4b; }  /* Red */
-
-    /* Glassmorphism Table Styling */
+    /* Custom CSS for elegant table design */
     .pretty-table {
         width: 100%;
         border-collapse: collapse;
@@ -64,69 +25,90 @@ st.markdown(
         text-align: center;
         border: none;
         color: #ffffff; /* White text for the table */
-        background: rgba(255, 255, 255, 0.05); /* Glassmorphism background */
-        backdrop-filter: blur(10px); /* Blur effect */
     }
 
+    /* Black header with white text */
     .pretty-table thead tr {
-        background-color: rgba(0, 0, 0, 0.3); /* Semi-transparent black header */
+        background-color: #000000; /* Black header */
         color: #ffffff; /* White text */
         text-align: center;
         border: none;
     }
 
+    /* Padding for table cells */
     .pretty-table th, .pretty-table td {
         padding: 12px 15px;
         text-align: center;
         border: none;
     }
 
+    /* Alternating row colors: light grey and dark grey */
     .pretty-table tbody tr:nth-of-type(odd) {
-        background-color: rgba(255, 255, 255, 0.05); /* Light glassmorphism for odd rows */
+        background-color: #3a3a3a; /* Dark grey */
     }
 
     .pretty-table tbody tr:nth-of-type(even) {
-        background-color: rgba(255, 255, 255, 0.1); /* Slightly darker glassmorphism for even rows */
+        background-color: #4a4a4a; /* Light grey */
     }
 
+    /* Hover effect for rows */
     .pretty-table tbody tr:hover {
-        background-color: rgba(255, 255, 255, 0.2); /* Hover effect */
+        background-color: #5a5a5a; /* Slightly lighter grey on hover */
     }
 
-    /* Glassmorphism Button Styling */
+    /* Ensure the text above the table is white */
+    h1, p {
+        color: #ffffff !important; /* White text for titles and paragraphs */
+    }
+
+    /* Updated styling for metric boxes with gradient background */
+    .metric-box {
+        background: linear-gradient(135deg, #3a3a3a, #2a2a2a); /* Dark grey gradient */
+        padding: 20px;
+        border-radius: 10px;
+        text-align: center;
+        color: #ffffff; /* White text */
+        font-size: 18px;
+        font-weight: bold;
+        border: 1px solid #4a4a4a; /* Subtle border */
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Soft shadow */
+    }
+
+    /* Grid container for metric boxes */
+    .grid-container {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 10px;
+        justify-content: center;
+        align-items: center;
+    }
+
+    @media (max-width: 600px) {
+        .grid-container { grid-template-columns: repeat(2, 1fr); gap: 5px; }
+    }
+
+    /* Styling for the "Add Stock" button */
     .stButton button {
-        background: rgba(255, 255, 255, 0.1) !important;
-        backdrop-filter: blur(10px) !important;
-        border: 1px solid rgba(255, 255, 255, 0.1) !important;
-        border-radius: 10px !important;
-        color: white !important;
-        padding: 10px 20px !important;
-        font-size: 16px !important;
-        font-weight: bold !important;
-        transition: background 0.3s ease !important;
+        background-color: #000000; /* Black background */
+        color: #ffffff; /* White text */
+        border-radius: 5px;
+        padding: 10px 20px;
+        font-size: 16px;
+        font-weight: bold;
+        border: none;
+        transition: background-color 0.3s ease;
     }
 
     .stButton button:hover {
-        background: rgba(255, 255, 255, 0.2) !important;
+        background-color: #333333; /* Slightly lighter black on hover */
     }
 
-    /* Glassmorphism Text Input Styling */
-    .stTextInput input {
-        background: rgba(255, 255, 255, 0.1) !important;
-        backdrop-filter: blur(10px) !important;
-        border: 1px solid rgba(255, 255, 255, 0.1) !important;
-        border-radius: 10px !important;
-        color: white !important;
-        padding: 10px !important;
-    }
-
-    /* Glassmorphism Title and Subheader Styling */
-    h1, h2, h3, h4, h5, h6 {
-        color: white !important;
-    }
-
-    p {
-        color: rgba(255, 255, 255, 0.8) !important;
+    /* Custom CSS for the Company Name cell */
+    .company-name-cell {
+        background-color: #3a3a3a; /* Dark grey background */
+        border-radius: 10px; /* Rounded edges */
+        padding: 10px; /* Padding for better spacing */
+        color: #ffffff; /* White text */
     }
     </style>
     """,
@@ -141,10 +123,10 @@ st.write("<p style='text-align: center;'>Know stock market trends and make smart
 st.markdown(
     """
     <div class="grid-container">
-        <div class="metric-card"><h2>43%</h2><p>Above Baseline</p></div>
-        <div class="metric-card"><h2>$13,813</h2><p>Gain on Buy</p></div>
-        <div class="metric-card"><h2>+0.75</h2><p>Sentiment Score</p></div>
-        <div class="metric-card"><h2>87%</h2><p>Accuracy</p></div>
+        <div class="metric-box"><h2>43%</h2><p>Above Baseline</p></div>
+        <div class="metric-box"><h2>$13,813</h2><p>Gain on Buy</p></div>
+        <div class="metric-box"><h2>+0.75</h2><p>Sentiment Score</p></div>
+        <div class="metric-box"><h2>87%</h2><p>Accuracy</p></div>
     </div>
     """,
     unsafe_allow_html=True
@@ -217,8 +199,11 @@ def fetch_data(table, limit=5):
         cursor.close()
         conn.close()
 
-        # Combine company name and symbol into a single column
-        df["Company Name"] = df["comp_name"] + "<br><small>" + df["comp_symbol"] + "</small>"
+        # Combine company name and symbol into a single column with custom CSS
+        df["Company Name"] = df.apply(
+            lambda row: f'<div class="company-name-cell">{row["comp_name"]}<br><small>{row["comp_symbol"]}</small></div>',
+            axis=1
+        )
         
         # Drop the original comp_name and comp_symbol columns
         df = df.drop(columns=["comp_name", "comp_symbol"])
@@ -257,10 +242,10 @@ if st.session_state["data"] is None:
 # Add spacing before "Portfolio"
 st.markdown("<br>", unsafe_allow_html=True)
 
-# Display formatted table with glassmorphism styling
+# Display formatted table with pretty headers
 st.write("### Portfolio")
 if st.session_state["data"] is not None:
-    table_html = st.session_state["data"].to_html(index=False, escape=False, classes="pretty-table")
+    table_html = st.session_state["data"].to_html(index=False, classes="pretty-table", escape=False)
     st.markdown(table_html, unsafe_allow_html=True)
 
 # Add Stock button
@@ -288,8 +273,11 @@ if st.session_state["show_search"]:
             if result:
                 new_row = pd.DataFrame(result, columns=["date", "comp_name", "comp_symbol", "trade_signal", "entry_price"])
                 
-                # Combine company name and symbol into a single column
-                new_row["Company Name"] = new_row["comp_name"] + "<br><small>" + new_row["comp_symbol"] + "</small>"
+                # Combine company name and symbol into a single column with custom CSS
+                new_row["Company Name"] = new_row.apply(
+                    lambda row: f'<div class="company-name-cell">{row["comp_name"]}<br><small>{row["comp_symbol"]}</small></div>',
+                    axis=1
+                )
                 
                 # Drop the original comp_name and comp_symbol columns
                 new_row = new_row.drop(columns=["comp_name", "comp_symbol"])
