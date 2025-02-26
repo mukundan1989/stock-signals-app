@@ -133,11 +133,25 @@ if st.session_state["data"] is None:
 # Add spacing before "Portfolio"
 st.markdown("<br>", unsafe_allow_html=True)
 
-# Display formatted table with pretty headers
+# Display formatted table with symbol below company name
 st.write("### Portfolio")
 if st.session_state["data"] is not None:
-    table_html = st.session_state["data"].to_html(index=False, classes="pretty-table", escape=False)
-    st.markdown(table_html, unsafe_allow_html=True)
+    df = st.session_state["data"].copy()
+
+    # Combine Stock Symbol below Company Name
+    df_display = df.copy()
+    df_display = df.apply(lambda row: f"{row['Company Name']}<br><span style='color:rgba(255,255,255,0.6); font-size:0.85rem;'>{row['Stock Symbol']}</span>", axis=1)
+    df_final = pd.DataFrame({
+        "Company": df_final,
+        "Trade Signal": df["Trade Signal"],
+        "Entry Price ($)": df["Entry Price ($)"]
+    })
+
+    # Render table as HTML
+    st.markdown(
+        df_final.to_html(escape=False, index=False),
+        unsafe_allow_html=True
+    )
 
 # Add Stock button
 if st.button("Add Stock"):
