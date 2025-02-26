@@ -83,43 +83,44 @@ if "data" not in st.session_state:
 if "show_search" not in st.session_state:
     st.session_state["show_search"] = False
 
-# 🔹 Function to Check Toggle States
-def toggle_selection(table_key):
-    st.session_state["selected_table"] = table_key
-    st.session_state["data"] = None
-    st.rerun()
-
 # 🔹 Toggle Buttons for Selecting Models
 st.write("### Select Sentiment Model")
 col1, col2, col3, col4 = st.columns(4)
 
+# Default toggle states
+toggles = {
+    "Google Trends": False,
+    "News": False,
+    "Twitter": False,
+    "Overall": st.session_state["selected_table"] == "overall_latest_signal"
+}
+
+# Handle user selection
 with col1:
-    google_trends_toggle = st.toggle("Google Trends", value=(st.session_state["selected_table"] == "gtrend_latest_signal"))
-
+    toggles["Google Trends"] = st.toggle("Google Trends", value=toggles["Google Trends"])
 with col2:
-    news_toggle = st.toggle("News", value=(st.session_state["selected_table"] == "news_latest_signal"))
-
+    toggles["News"] = st.toggle("News", value=toggles["News"])
 with col3:
-    twitter_toggle = st.toggle("Twitter", value=(st.session_state["selected_table"] == "twitter_latest_signal"))
-
+    toggles["Twitter"] = st.toggle("Twitter", value=toggles["Twitter"])
 with col4:
-    overall_toggle = st.toggle("Overall", value=(st.session_state["selected_table"] == "overall_latest_signal"))
+    toggles["Overall"] = st.toggle("Overall", value=toggles["Overall"])
 
-# 🔹 Logic to Keep "Overall" On If Others Are Off
-if not (google_trends_toggle or news_toggle or twitter_toggle):
-    overall_toggle = True
-else:
-    overall_toggle = False
+# Ensure "Overall" is ON when all others are OFF
+if not (toggles["Google Trends"] or toggles["News"] or toggles["Twitter"]):
+    toggles["Overall"] = True
 
-# 🔹 Update Selected Table Based on Toggle
-if google_trends_toggle:
-    toggle_selection("gtrend_latest_signal")
-elif news_toggle:
-    toggle_selection("news_latest_signal")
-elif twitter_toggle:
-    toggle_selection("twitter_latest_signal")
-elif overall_toggle:
-    toggle_selection("overall_latest_signal")
+# Determine selected table
+selected_table = "overall_latest_signal"  # Default
+for key, value in toggles.items():
+    if value and key in TABLES:
+        selected_table = TABLES[key]
+        break
+
+# Update session state only if selection changed
+if st.session_state["selected_table"] != selected_table:
+    st.session_state["selected_table"] = selected_table
+    st.session_state["data"] = None  # Reset data when changing selection
+    st.rerun()
 
 # 🔹 Function to Fetch Data
 def fetch_data(table, limit=5):
@@ -150,11 +151,11 @@ def fetch_data(table, limit=5):
         st.error(f"Error fetching data: {e}")
         return None
 
-# 🔹 Load Initial Data
+# 🔹 Load Data
 if st.session_state["data"] is None:
     st.session_state["data"] = fetch_data(st.session_state["selected_table"])
 
-# 🔹 Format Stock Symbol Below Company Name & Display Table
+# 🔹 Display Table with Stock Symbol Below Company Name
 if st.session_state["data"] is not None:
     st.session_state["data"]["Company Name"] = st.session_state["data"].apply(
         lambda row: f"<b>{row['Company Name']}</b><br><span style='color:gray;'>{row['Stock Symbol']}</span>", axis=1
