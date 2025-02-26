@@ -134,22 +134,18 @@ if st.session_state["data"] is None:
 st.markdown("<br>", unsafe_allow_html=True)
 
 # Display formatted table with symbol below company name
-st.write("### Portfolio")
+# Format Stock Symbol to appear below Company Name
 if st.session_state["data"] is not None:
-    df = st.session_state["data"].copy()
+    st.session_state["data"]["Company Name"] = st.session_state["data"].apply(
+        lambda row: f"<b>{row['Company Name']}</b><br><span style='color:gray;'>{row['Stock Symbol']}</span>", axis=1
+    )
 
-    # Combine Stock Symbol below Company Name
-    df_display = df.copy()
-    df_display = df.apply(lambda row: f"{row['Company Name']}<br><span style='color:rgba(255,255,255,0.6); font-size:0.85rem;'>{row['Stock Symbol']}</span>", axis=1)
-    df_final = pd.DataFrame({
-        "Company": df_final,
-        "Trade Signal": df["Trade Signal"],
-        "Entry Price ($)": df["Entry Price ($)"]
-    })
+    # Drop the original Stock Symbol column (since it's merged into Company Name)
+    st.session_state["data"] = st.session_state["data"].drop(columns=["Stock Symbol"])
 
-    # Render table as HTML
+    # Display the table using HTML rendering
     st.markdown(
-        df_final.to_html(escape=False, index=False),
+        st.session_state["data"].to_html(escape=False, index=False), 
         unsafe_allow_html=True
     )
 
