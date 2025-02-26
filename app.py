@@ -173,7 +173,7 @@ st.markdown(
 
     .metric-box-gain::before {
         content: "";
-        background-image: url('data:image/svg+xml;utf8,<svg width="100%" height="100%" viewBox="0 0 100 50" xmlns="http://www.w3.org/2000/svg"><path d="M0 50 L20 30 L40 40 L60 20 L80 35 L100 25" fill="%233a3a3a" stroke="%23ffffff" stroke-width="0.5" stroke-opacity="0.3" fill-opacity="0.2"/></svg>');
+        background-image: url('data:image/svg+xml;utf8,<svg width="100%" height="100%" viewBox="0 0 100 50" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="areaGradient" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="%231a1a1a" stop-opacity="0.5" /><stop offset="100%" stop-color="%232a2a2a" stop-opacity="0.2" /></linearGradient></defs><path d="M0 50 L20 30 L40 40 L60 20 L80 35 L100 25 L100 50 Z" fill="url(%23areaGradient)" stroke="%23ffffff" stroke-width="0.5" stroke-opacity="0.3" /></svg>');
         background-size: cover; /* Cover the entire box */
         background-position: center; /* Center the graph */
         position: absolute;
