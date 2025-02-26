@@ -191,11 +191,15 @@ def fetch_data(table, limit=5):
         cursor.close()
         conn.close()
 
-        # **Rename columns to user-friendly names**
+        # Combine company name and symbol into a single column
+        df["Company Name"] = df["comp_name"] + "<br><small>" + df["comp_symbol"] + "</small>"
+        
+        # Drop the original comp_name and comp_symbol columns
+        df = df.drop(columns=["comp_name", "comp_symbol"])
+
+        # Rename columns to user-friendly names
         df = df.rename(columns={
             "date": "Date",
-            "comp_name": "Company Name",
-            "comp_symbol": "Stock Symbol",
             "trade_signal": "Trade Signal",
             "entry_price": "Entry Price ($)"
         })
@@ -243,11 +247,15 @@ if st.session_state["show_search"]:
             if result:
                 new_row = pd.DataFrame(result, columns=["date", "comp_name", "comp_symbol", "trade_signal", "entry_price"])
                 
+                # Combine company name and symbol into a single column
+                new_row["Company Name"] = new_row["comp_name"] + "<br><small>" + new_row["comp_symbol"] + "</small>"
+                
+                # Drop the original comp_name and comp_symbol columns
+                new_row = new_row.drop(columns=["comp_name", "comp_symbol"])
+
                 # Rename new row to match the table headers
                 new_row = new_row.rename(columns={
                     "date": "Date",
-                    "comp_name": "Company Name",
-                    "comp_symbol": "Stock Symbol",
                     "trade_signal": "Trade Signal",
                     "entry_price": "Entry Price ($)"
                 })
