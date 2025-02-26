@@ -2,18 +2,56 @@ import streamlit as st
 import pandas as pd
 import mysql.connector
 
-# Custom CSS for dark-themed elegant table design
-st.markdown(
-    """
+# Set page config
+st.set_page_config(layout="wide", page_title="Stock Sentimeter", initial_sidebar_state="collapsed")
+
+# Apply modern glassmorphism CSS
+st.markdown("""
     <style>
-    /* Target the main container (st-emotion-cache-bm2z3a) and set a dark grey background */
-    .st-emotion-cache-bm2z3a {
-        background-color: #2a2a2a; /* Dark grey background */
-        color: #ffffff; /* White text for the entire page */
+    /* Glassmorphism Metric Card */
+    .metric-card {
+        background: rgba(255, 255, 255, 0.05);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 20px;
+        padding: 20px;
+        transition: transform 0.3s ease;
+        text-align: center;
+        margin: 10px;
+    }
+    
+    .metric-card:hover {
+        transform: translateY(-5px);
     }
 
-    /* Custom CSS for elegant table design */
-    .pretty-table {
+    .metric-label {
+        font-size: 0.85rem;
+        color: rgba(255, 255, 255, 0.6);
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+    }
+    
+    .metric-value {
+        font-size: 2rem;
+        font-weight: 700;
+        color: #ffffff;
+        margin: 8px 0;
+    }
+    
+    .metric-trend {
+        font-size: 0.85rem;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 5px;
+    }
+
+    /* Trend Colors */
+    .positive { color: #00ff9f; }  /* Green */
+    .negative { color: #ff4b4b; }  /* Red */
+
+    /* Modern Table Styling */
+    .modern-table {
         width: 100%;
         border-collapse: collapse;
         font-size: 0.9em;
@@ -28,84 +66,35 @@ st.markdown(
     }
 
     /* Black header with white text */
-    .pretty-table thead tr {
-        background-color: #000000; /* Black header */
+    .modern-table thead tr {
+        background-color: rgba(255, 255, 255, 0.1); /* Semi-transparent header */
         color: #ffffff; /* White text */
         text-align: center;
         border: none;
     }
 
     /* Padding for table cells */
-    .pretty-table th, .pretty-table td {
+    .modern-table th, .modern-table td {
         padding: 12px 15px;
         text-align: center;
         border: none;
     }
 
     /* Alternating row colors: light grey and dark grey */
-    .pretty-table tbody tr:nth-of-type(odd) {
-        background-color: #3a3a3a; /* Dark grey */
+    .modern-table tbody tr:nth-of-type(odd) {
+        background-color: rgba(255, 255, 255, 0.05); /* Semi-transparent odd rows */
     }
 
-    .pretty-table tbody tr:nth-of-type(even) {
-        background-color: #4a4a4a; /* Light grey */
+    .modern-table tbody tr:nth-of-type(even) {
+        background-color: rgba(255, 255, 255, 0.1); /* Semi-transparent even rows */
     }
 
     /* Hover effect for rows */
-    .pretty-table tbody tr:hover {
-        background-color: #5a5a5a; /* Slightly lighter grey on hover */
-    }
-
-    /* Ensure the text above the table is white */
-    h1, p {
-        color: #ffffff !important; /* White text for titles and paragraphs */
-    }
-
-    /* Updated styling for metric boxes with gradient background */
-    .metric-box {
-        background: linear-gradient(135deg, #3a3a3a, #2a2a2a); /* Dark grey gradient */
-        padding: 20px;
-        border-radius: 10px;
-        text-align: center;
-        color: #ffffff; /* White text */
-        font-size: 18px;
-        font-weight: bold;
-        border: 1px solid #4a4a4a; /* Subtle border */
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Soft shadow */
-    }
-
-    /* Grid container for metric boxes */
-    .grid-container {
-        display: grid;
-        grid-template-columns: repeat(2, 1fr);
-        gap: 10px;
-        justify-content: center;
-        align-items: center;
-    }
-
-    @media (max-width: 600px) {
-        .grid-container { grid-template-columns: repeat(2, 1fr); gap: 5px; }
-    }
-
-    /* Styling for the "Add Stock" button */
-    .stButton button {
-        background-color: #000000; /* Black background */
-        color: #ffffff; /* White text */
-        border-radius: 5px;
-        padding: 10px 20px;
-        font-size: 16px;
-        font-weight: bold;
-        border: none;
-        transition: background-color 0.3s ease;
-    }
-
-    .stButton button:hover {
-        background-color: #333333; /* Slightly lighter black on hover */
+    .modern-table tbody tr:hover {
+        background-color: rgba(255, 255, 255, 0.2); /* Slightly lighter on hover */
     }
     </style>
-    """,
-    unsafe_allow_html=True
-)
+""", unsafe_allow_html=True)
 
 # Streamlit UI - Portfolio Section
 st.markdown("<h1 style='text-align: center;'>Stock Sentimeter</h1>", unsafe_allow_html=True)
@@ -115,10 +104,22 @@ st.write("<p style='text-align: center;'>Know stock market trends and make smart
 st.markdown(
     """
     <div class="grid-container">
-        <div class="metric-box"><h2>43%</h2><p>Above Baseline</p></div>
-        <div class="metric-box"><h2>$13,813</h2><p>Gain on Buy</p></div>
-        <div class="metric-box"><h2>+0.75</h2><p>Sentiment Score</p></div>
-        <div class="metric-box"><h2>87%</h2><p>Accuracy</p></div>
+        <div class="metric-card">
+            <div class="metric-label">Above Baseline</div>
+            <div class="metric-value">43%</div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-label">Gain on Buy</div>
+            <div class="metric-value">$13,813</div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-label">Sentiment Score</div>
+            <div class="metric-value">+0.75</div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-label">Accuracy</div>
+            <div class="metric-value">87%</div>
+        </div>
     </div>
     """,
     unsafe_allow_html=True
@@ -234,7 +235,7 @@ st.markdown("<br>", unsafe_allow_html=True)
 # Display formatted table with pretty headers
 st.write("### Portfolio")
 if st.session_state["data"] is not None:
-    table_html = st.session_state["data"].to_html(index=False, classes="pretty-table", escape=False)
+    table_html = st.session_state["data"].to_html(index=False, classes="modern-table", escape=False)
     st.markdown(table_html, unsafe_allow_html=True)
 
 # Add Stock button
