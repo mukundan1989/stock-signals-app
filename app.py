@@ -143,16 +143,16 @@ st.markdown(
 
     .metric-box-accuracy::after {
         content: "";
-        background-image: url('https://cdn-icons-png.flaticon.com/512/2089/2089677.png'); /* Dart icon */
-        background-size: 50px 50px; /* Adjust size of the icon */
+        background-image: url('data:image/svg+xml;utf8,<svg width="100" height="100" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><circle cx="50" cy="50" r="45" fill="%232e2e2e" stroke="%23000" stroke-width="2"/><circle cx="50" cy="50" r="35" fill="%234a4a4a" stroke="%23000" stroke-width="1"/><circle cx="50" cy="50" r="5" fill="%23ff0000" stroke="%23000" stroke-width="1"/><line x1="50" y1="10" x2="50" y2="90" stroke="%23000" stroke-width="1"/><line x1="10" y1="50" x2="90" y2="50" stroke="%23000" stroke-width="1"/><line x1="25" y1="25" x2="75" y2="75" stroke="%23000" stroke-width="1"/><line x1="75" y1="25" x2="25" y2="75" stroke="%23000" stroke-width="1"/></svg>');
+        background-size: 80px 80px; /* Adjust size of the icon */
         background-position: bottom right; /* Position the icon at the bottom-right corner */
         background-repeat: no-repeat;
         opacity: 0.3; /* Blend the icon with the background */
         position: absolute;
         bottom: 10px;
         right: 10px;
-        width: 50px;
-        height: 50px;
+        width: 80px;
+        height: 80px;
         z-index: 1; /* Ensure the icon is behind the text */
     }
     </style>
