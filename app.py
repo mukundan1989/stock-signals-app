@@ -167,23 +167,21 @@ st.markdown(
         font-weight: bold;
         border: 1px solid #4a4a4a; /* Subtle border */
         box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Soft shadow */
-        position: relative; /* Required for positioning the icon */
-        overflow: hidden; /* Ensure the icon doesn't overflow */
+        position: relative; /* Required for positioning the graph */
+        overflow: hidden; /* Ensure the graph doesn't overflow */
     }
 
-    .metric-box-gain::after {
+    .metric-box-gain::before {
         content: "";
-        background-image: url('data:image/svg+xml;utf8,<svg width="100" height="50" viewBox="0 0 100 50" xmlns="http://www.w3.org/2000/svg"><path d="M5 45 L20 30 L35 40 L50 20 L65 35 L80 25 L95 40" stroke="%23ffffff" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>');
-        background-size: 120px 60px; /* Adjust size of the icon */
-        background-position: bottom right; /* Position the icon at the bottom-right corner */
-        background-repeat: no-repeat;
-        opacity: 0.3; /* Blend the icon with the background */
+        background-image: url('data:image/svg+xml;utf8,<svg width="100%" height="100%" viewBox="0 0 100 50" xmlns="http://www.w3.org/2000/svg"><path d="M0 50 L20 30 L40 40 L60 20 L80 35 L100 25" fill="%233a3a3a" stroke="%23ffffff" stroke-width="0.5" stroke-opacity="0.3" fill-opacity="0.2"/></svg>');
+        background-size: cover; /* Cover the entire box */
+        background-position: center; /* Center the graph */
         position: absolute;
-        bottom: 10px;
-        right: 10px;
-        width: 120px;
-        height: 60px;
-        z-index: 1; /* Ensure the icon is behind the text */
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 1; /* Ensure the graph is behind the text */
     }
     </style>
     """,
