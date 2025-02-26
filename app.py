@@ -72,6 +72,22 @@ st.markdown(
         font-weight: bold;
         border: 1px solid #4a4a4a; /* Subtle border */
         box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Soft shadow */
+        position: relative; /* Required for positioning the graph */
+        overflow: hidden; /* Ensure the graph doesn't overflow */
+    }
+
+    /* SVG background for the 1st grid box */
+    .metric-box::before {
+        content: "";
+        background-image: url('data:image/svg+xml;utf8,<svg width="100%" height="100%" viewBox="0 0 100 50" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="areaGradient" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="%231a1a1a" stop-opacity="0.5" /><stop offset="100%" stop-color="%232a2a2a" stop-opacity="0.2" /></linearGradient></defs><path d="M0 50 L20 30 L40 40 L60 20 L80 35 L100 25 L100 50 Z" fill="url(%23areaGradient)" stroke="%23ffffff" stroke-width="0.5" stroke-opacity="0.3" /></svg>');
+        background-size: cover; /* Cover the entire box */
+        background-position: center; /* Center the graph */
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 1; /* Ensure the graph is behind the text */
     }
 
     /* Grid container for metric boxes */
@@ -156,7 +172,7 @@ st.markdown(
         z-index: 1; /* Ensure the icon is behind the text */
     }
 
-    /* Custom CSS for the 2nd grid box */
+    /* Custom CSS for the 2nd grid box (no SVG background) */
     .metric-box-gain {
         background: linear-gradient(135deg, #3a3a3a, #2a2a2a); /* Dark grey gradient */
         padding: 20px;
@@ -167,21 +183,6 @@ st.markdown(
         font-weight: bold;
         border: 1px solid #4a4a4a; /* Subtle border */
         box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Soft shadow */
-        position: relative; /* Required for positioning the graph */
-        overflow: hidden; /* Ensure the graph doesn't overflow */
-    }
-
-    .metric-box-gain::before {
-        content: "";
-        background-image: url('data:image/svg+xml;utf8,<svg width="100%" height="100%" viewBox="0 0 100 50" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="areaGradient" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="%231a1a1a" stop-opacity="0.5" /><stop offset="100%" stop-color="%232a2a2a" stop-opacity="0.2" /></linearGradient></defs><path d="M0 50 L20 30 L40 40 L60 20 L80 35 L100 25 L100 50 Z" fill="url(%23areaGradient)" stroke="%23ffffff" stroke-width="0.5" stroke-opacity="0.3" /></svg>');
-        background-size: cover; /* Cover the entire box */
-        background-position: center; /* Center the graph */
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        z-index: 1; /* Ensure the graph is behind the text */
     }
     </style>
     """,
