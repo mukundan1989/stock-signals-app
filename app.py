@@ -213,9 +213,11 @@ def fetch_data(table, limit=5):
         # Rename columns to user-friendly names
         df = df.rename(columns={
             "date": "Date",
-            "trade_signal": "Trade Signal",
             "entry_price": "Entry Price ($)"
         })
+
+        # Drop the original trade_signal column to avoid duplication
+        df = df.drop(columns=["trade_signal"])
 
         return df
     except Exception as e:
@@ -282,10 +284,12 @@ if st.session_state["show_search"]:
                 # Rename new row to match the table headers
                 new_row = new_row.rename(columns={
                     "date": "Date",
-                    "trade_signal": "Trade Signal",
                     "entry_price": "Entry Price ($)"
                 })
-                
+
+                # Drop the original trade_signal column to avoid duplication
+                new_row = new_row.drop(columns=["trade_signal"])
+
                 st.session_state["data"] = pd.concat([st.session_state["data"], new_row], ignore_index=True)
                 st.session_state["show_search"] = False
                 st.rerun()
