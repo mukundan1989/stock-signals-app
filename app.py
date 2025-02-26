@@ -304,4 +304,29 @@ if st.session_state["show_search"]:
                     lambda x: (
                         '<div class="trade-signal-buy">'
                         '<svg width="50" height="30" viewBox="0 0 50 30" fill="none" xmlns="http://www.w3.org/2000/svg">'
-                        '<path d="M2 20 L8 15 L14 18 L20 12 L26 16 L32 10 L38 14 L44 8 L50 2"
+                        '<path d="M2 20 L8 15 L14 18 L20 12 L26 16 L32 10 L38 14 L44 8 L50 2" stroke="green" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>'
+                        '</svg> ' + x + '</div>'
+                    ) if x.lower() == "buy" else (
+                        '<div class="trade-signal-sell">'
+                        '<svg width="50" height="30" viewBox="0 0 50 30" fill="none" xmlns="http://www.w3.org/2000/svg">'
+                        '<path d="M2 10 L8 15 L14 12 L20 18 L26 14 L32 20 L38 16 L44 22 L50 28" stroke="red" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>'
+                        '</svg> ' + x + '</div>'
+                    ) if x.lower() == "sell" else x
+                )
+
+                # Rename new row to match the table headers
+                new_row = new_row.rename(columns={
+                    "date": "Date",
+                    "entry_price": "Entry Price ($)"
+                })
+
+                # Drop the original trade_signal column to avoid duplication
+                new_row = new_row.drop(columns=["trade_signal"])
+
+                st.session_state["data"] = pd.concat([st.session_state["data"], new_row], ignore_index=True)
+                st.session_state["show_search"] = False
+                st.rerun()
+            else:
+                st.warning("Stock not found!")
+        except Exception as e:
+            st.error(f"Error searching stock: {e}")
