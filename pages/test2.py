@@ -2,95 +2,54 @@ import streamlit as st
 import pandas as pd
 import mysql.connector
 
-# Apply glassmorphism CSS styling and remove table borders
+# Custom CSS for dark-themed elegant table design
 st.markdown("""
     <style>
-    /* Glassmorphism Metric Card */
-    .metric-card {
-        background: rgba(255, 255, 255, 0.05);
-        backdrop-filter: blur(10px);
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        border-radius: 20px;
-        padding: 20px;
-        transition: transform 0.3s ease;
-        text-align: center;
-        margin: 10px;
-    }
-    
-    .metric-card:hover {
-        transform: translateY(-5px);
-    }
+        /* Remove borders from all tables */
+        .stDataFrame div[data-testid="stVerticalBlockBorderWrapper"] {
+            border: none !important;
+        }
+        
+        /* Remove individual cell borders */
+        .stDataFrame div[data-testid="StyledDataFrameCell"] {
+            border: none !important;
+        }
 
-    .metric-label {
-        font-size: 0.85rem;
-        color: rgba(255, 255, 255, 0.6);
-        letter-spacing: 0.1em;
-        text-transform: uppercase;
-    }
-    
-    .metric-value {
-        font-size: 2rem;
-        font-weight: 700;
-        color: #ffffff;
-        margin: 8px 0;
-    }
+        /* Remove header borders */
+        .stDataFrame div[data-testid="StyledDataFrameHeaderCell"] {
+            border: none !important;
+        }
 
-    /* Remove borders from all tables */
-    .stDataFrame div[data-testid="stVerticalBlockBorderWrapper"] {
-        border: none !important;
-    }
-    
-    /* Remove individual cell borders */
-    .stDataFrame div[data-testid="StyledDataFrameCell"] {
-        border: none !important;
-    }
-
-    /* Remove header borders */
-    .stDataFrame div[data-testid="StyledDataFrameHeaderCell"] {
-        border: none !important;
-    }
-
-    /* Adjust padding for better spacing */
-    .stDataFrame table {
-        border-collapse: collapse !important;
-    }
+        /* Adjust padding for better spacing */
+        .stDataFrame table {
+            border-collapse: collapse !important;
+        }
     </style>
 """, unsafe_allow_html=True)
 
-# Streamlit UI - Portfolio Section
-st.markdown("<h1 style='text-align: center; color: #ffffff;'>Stock Sentimeter</h1>", unsafe_allow_html=True)
-st.write("<p style='text-align: center; color: #ffffff;'>Know stock market trends and make smarter investment decisions with our intuitive portfolio tool.</p>", unsafe_allow_html=True)
 
-# 2x2 Grid Layout Using Glassmorphism Metric Cards
+# Streamlit UI - Portfolio Section
+st.markdown("<h1 style='text-align: center;'>Stock Sentimeter</h1>", unsafe_allow_html=True)
+st.write("<p style='text-align: center;'>Know stock market trends and make smarter investment decisions with our intuitive portfolio tool.</p>", unsafe_allow_html=True)
+
+# **2×2 Grid Layout Using HTML**
 st.markdown(
     """
-    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; justify-content: center; align-items: center;">
-        <div class="metric-card">
-            <div class="metric-label">Above Baseline</div>
-            <div class="metric-value">43%</div>
-        </div>
-        <div class="metric-card">
-            <div class="metric-label">Gain on Buy</div>
-            <div class="metric-value">$13,813</div>
-        </div>
-        <div class="metric-card">
-            <div class="metric-label">Sentiment Score</div>
-            <div class="metric-value">+0.75</div>
-        </div>
-        <div class="metric-card">
-            <div class="metric-label">Accuracy</div>
-            <div class="metric-value">87%</div>
-        </div>
+    <div class="grid-container">
+        <div class="metric-box"><h2>43%</h2><p>Above Baseline</p></div>
+        <div class="metric-box"><h2>$13,813</h2><p>Gain on Buy</p></div>
+        <div class="metric-box"><h2>+0.75</h2><p>Sentiment Score</p></div>
+        <div class="metric-box"><h2>87%</h2><p>Accuracy</p></div>
     </div>
     """,
     unsafe_allow_html=True
 )
 
-# Database credentials (replace with secure method like st.secrets)
-DB_HOST = "YOUR_DB_HOST"
-DB_NAME = "YOUR_DB_NAME"
-DB_USER = "YOUR_DB_USER"
-DB_PASSWORD = "YOUR_DB_PASSWORD"
+# Database credentials
+DB_HOST = "13.203.191.72"
+DB_NAME = "stockstream_two"
+DB_USER = "stockstream_two"
+DB_PASSWORD = "stockstream_two"
 
 # Available tables
 TABLES = {
@@ -119,7 +78,7 @@ def toggle_selection(table_key):
     if st.session_state["selected_table"] != table_key:
         st.session_state["selected_table"] = table_key
         st.session_state["data"] = None
-        st.experimental_rerun()
+        st.rerun()
 
 with col1:
     if st.toggle("Google Trends", value=(st.session_state["selected_table"] == "gtrend_latest_signal")):
@@ -153,7 +112,7 @@ def fetch_data(table, limit=5):
         cursor.close()
         conn.close()
 
-        # Rename columns to user-friendly names
+        # **Rename columns to user-friendly names**
         df = df.rename(columns={
             "date": "Date",
             "comp_name": "Company Name",
@@ -174,10 +133,11 @@ if st.session_state["data"] is None:
 # Add spacing before "Portfolio"
 st.markdown("<br>", unsafe_allow_html=True)
 
-# Display formatted table without borders
+# Display formatted table with pretty headers
 st.write("### Portfolio")
 if st.session_state["data"] is not None:
-    st.dataframe(st.session_state["data"], use_container_width=True, hide_index=True)
+    table_html = st.session_state["data"].to_html(index=False, classes="pretty-table", escape=False)
+    st.markdown(table_html, unsafe_allow_html=True)
 
 # Add Stock button
 if st.button("Add Stock"):
@@ -215,7 +175,7 @@ if st.session_state["show_search"]:
                 
                 st.session_state["data"] = pd.concat([st.session_state["data"], new_row], ignore_index=True)
                 st.session_state["show_search"] = False
-                st.experimental_rerun()
+                st.rerun()
             else:
                 st.warning("Stock not found!")
         except Exception as e:
