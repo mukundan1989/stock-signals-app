@@ -2,10 +2,10 @@ import streamlit as st
 import pandas as pd
 import mysql.connector
 
-# Apply glassmorphism CSS styling & table formatting
+# Apply glassmorphism CSS styling (from Performance Summary)
 st.markdown("""
     <style>
-    /* Metric Card Styling */
+    /* Glassmorphism Metric Card */
     .metric-card {
         background: rgba(255, 255, 255, 0.05);
         backdrop-filter: blur(10px);
@@ -16,27 +16,75 @@ st.markdown("""
         text-align: center;
         margin: 10px;
     }
-    .metric-card:hover { transform: translateY(-5px); }
-    .metric-label { font-size: 0.85rem; color: rgba(255, 255, 255, 0.6); }
-    .metric-value { font-size: 2rem; font-weight: 700; color: #ffffff; margin: 8px 0; }
     
-    /* Remove Table Borders */
-    .dataframe { border-collapse: collapse; width: 100%; }
-    .dataframe th, .dataframe td { border: none !important; padding: 8px; text-align: left; }
+    .metric-card:hover {
+        transform: translateY(-5px);
+    }
+
+    .metric-label {
+        font-size: 0.85rem;
+        color: rgba(255, 255, 255, 0.6);
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+    }
+    
+    .metric-value {
+        font-size: 2rem;
+        font-weight: 700;
+        color: #ffffff;
+        margin: 8px 0;
+    }
+    
+    .metric-trend {
+        font-size: 0.85rem;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 5px;
+    }
+
+    /* Trend Colors */
+    .positive { color: #00ff9f; }  /* Green */
+    .negative { color: #ff4b4b; }  /* Red */
     </style>
 """, unsafe_allow_html=True)
 
-# Streamlit UI Header
+# Streamlit UI - Portfolio Section
 st.markdown("<h1 style='text-align: center; color: #ffffff;'>Stock Sentimeter</h1>", unsafe_allow_html=True)
-st.write("<p style='text-align: center; color: #ffffff;'>Know stock market trends and make smarter investment decisions.</p>", unsafe_allow_html=True)
+st.write("<p style='text-align: center; color: #ffffff;'>Know stock market trends and make smarter investment decisions with our intuitive portfolio tool.</p>", unsafe_allow_html=True)
 
-# Database Configuration
+# 2x2 Grid Layout Using Glassmorphism Metric Cards
+st.markdown(
+    """
+    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; justify-content: center; align-items: center;">
+        <div class="metric-card">
+            <div class="metric-label">Above Baseline</div>
+            <div class="metric-value">43%</div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-label">Gain on Buy</div>
+            <div class="metric-value">$13,813</div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-label">Sentiment Score</div>
+            <div class="metric-value">+0.75</div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-label">Accuracy</div>
+            <div class="metric-value">87%</div>
+        </div>
+    </div>
+    """,
+    unsafe_allow_html=True
+)
+
+# Database credentials
 DB_HOST = "13.203.191.72"
 DB_NAME = "stockstream_two"
 DB_USER = "stockstream_two"
 DB_PASSWORD = "stockstream_two"
 
-# Available Sentiment Tables
+# Available tables
 TABLES = {
     "Google Trends": "gtrend_latest_signal",
     "News": "news_latest_signal",
@@ -44,7 +92,7 @@ TABLES = {
     "Overall": "overall_latest_signal"
 }
 
-# Initialize session state
+# Initialize session state for selected table
 if "selected_table" not in st.session_state:
     st.session_state["selected_table"] = "overall_latest_signal"
 if "data" not in st.session_state:
@@ -52,16 +100,36 @@ if "data" not in st.session_state:
 if "show_search" not in st.session_state:
     st.session_state["show_search"] = False
 
-# Toggle Buttons for Sentiment Models (Working Version)
+# Add spacing before "Select Sentiment Model"
+st.markdown("<br>", unsafe_allow_html=True)
+
+# Toggle buttons for selecting models
 st.write("### Select Sentiment Model")
-selected_model = st.radio("Choose Model", list(TABLES.keys()), horizontal=True)
+col1, col2, col3, col4 = st.columns(4)
 
-# Update session state when selection changes
-if TABLES[selected_model] != st.session_state["selected_table"]:
-    st.session_state["selected_table"] = TABLES[selected_model]
-    st.session_state["data"] = None  # Force data refresh
+def toggle_selection(table_key):
+    if st.session_state["selected_table"] != table_key:
+        st.session_state["selected_table"] = table_key
+        st.session_state["data"] = None
+        st.experimental_rerun()
 
-# Function to Fetch Data
+with col1:
+    if st.toggle("Google Trends", value=(st.session_state["selected_table"] == "gtrend_latest_signal")):
+        toggle_selection("gtrend_latest_signal")
+
+with col2:
+    if st.toggle("News", value=(st.session_state["selected_table"] == "news_latest_signal")):
+        toggle_selection("news_latest_signal")
+
+with col3:
+    if st.toggle("Twitter", value=(st.session_state["selected_table"] == "twitter_latest_signal")):
+        toggle_selection("twitter_latest_signal")
+
+with col4:
+    if st.toggle("Overall", value=(st.session_state["selected_table"] == "overall_latest_signal")):
+        toggle_selection("overall_latest_signal")
+
+# Function to fetch and format data
 def fetch_data(table, limit=5):
     try:
         conn = mysql.connector.connect(
@@ -73,36 +141,41 @@ def fetch_data(table, limit=5):
         cursor = conn.cursor()
         query = f"SELECT date, comp_name, comp_symbol, trade_signal, entry_price FROM `{DB_NAME}`.`{table}` LIMIT {limit}"
         cursor.execute(query)
-        df = pd.DataFrame(cursor.fetchall(), columns=["Date", "Company Name", "Stock Symbol", "Trade Signal", "Entry Price ($)"])
+        df = pd.DataFrame(cursor.fetchall(), columns=["date", "comp_name", "comp_symbol", "trade_signal", "entry_price"])
         cursor.close()
         conn.close()
+
+        # Rename columns to user-friendly names
+        df = df.rename(columns={
+            "date": "Date",
+            "comp_name": "Company Name",
+            "comp_symbol": "Stock Symbol",
+            "trade_signal": "Trade Signal",
+            "entry_price": "Entry Price ($)"
+        })
+
         return df
     except Exception as e:
         st.error(f"Error fetching data: {e}")
         return None
 
-# Load data if not already fetched
+# Load initial data if not set
 if st.session_state["data"] is None:
     st.session_state["data"] = fetch_data(st.session_state["selected_table"])
 
-# Format Data: Stock Symbol Below Company Name
-def format_dataframe(df):
-    if df is not None:
-        df["Company Info"] = df.apply(lambda row: f"<b>{row['Company Name']}</b><br><span style='color:gray;'>{row['Stock Symbol']}</span>", axis=1)
-        return df[["Date", "Company Info", "Trade Signal", "Entry Price ($)"]]
-    return df
+# Add spacing before "Portfolio"
+st.markdown("<br>", unsafe_allow_html=True)
 
-# Display Portfolio Table
+# Display formatted table using Streamlit's dataframe (like in Performance Summary)
 st.write("### Portfolio")
 if st.session_state["data"] is not None:
-    formatted_data = format_dataframe(st.session_state["data"])
-    st.markdown(formatted_data.to_html(escape=False, index=False), unsafe_allow_html=True)
+    st.dataframe(st.session_state["data"], use_container_width=True, hide_index=True)
 
-# Add Stock Button
+# Add Stock button
 if st.button("Add Stock"):
     st.session_state["show_search"] = True
 
-# Search Stock Symbol Input
+# Show search box when "Add Stock" is clicked
 if st.session_state["show_search"]:
     symbol = st.text_input("Enter Stock Symbol:")
     if symbol:
@@ -121,11 +194,18 @@ if st.session_state["show_search"]:
             conn.close()
 
             if result:
-                new_row = pd.DataFrame(result, columns=["Date", "Company Name", "Stock Symbol", "Trade Signal", "Entry Price ($)"])
-                new_row["Company Info"] = new_row.apply(lambda row: f"<b>{row['Company Name']}</b><br><span style='color:gray;'>{row['Stock Symbol']}</span>", axis=1)
-                new_row = new_row[["Date", "Company Info", "Trade Signal", "Entry Price ($)"]]
-
-                st.session_state["data"] = pd.concat([format_dataframe(st.session_state["data"]), new_row], ignore_index=True)
+                new_row = pd.DataFrame(result, columns=["date", "comp_name", "comp_symbol", "trade_signal", "entry_price"])
+                
+                # Rename new row to match the table headers
+                new_row = new_row.rename(columns={
+                    "date": "Date",
+                    "comp_name": "Company Name",
+                    "comp_symbol": "Stock Symbol",
+                    "trade_signal": "Trade Signal",
+                    "entry_price": "Entry Price ($)"
+                })
+                
+                st.session_state["data"] = pd.concat([st.session_state["data"], new_row], ignore_index=True)
                 st.session_state["show_search"] = False
                 st.experimental_rerun()
             else:
