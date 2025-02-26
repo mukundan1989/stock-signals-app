@@ -2,72 +2,89 @@ import streamlit as st
 import pandas as pd
 import mysql.connector
 
-# 🔹 Apply Custom CSS
+# Apply glassmorphism CSS styling (from Performance Summary)
 st.markdown("""
     <style>
-        /* Grid Layout for Metric Boxes */
-        .grid-container {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 10px;
-            justify-content: center;
-            align-items: center;
-            margin-bottom: 20px;
-        }
+    /* Glassmorphism Metric Card */
+    .metric-card {
+        background: rgba(255, 255, 255, 0.05);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 20px;
+        padding: 20px;
+        transition: transform 0.3s ease;
+        text-align: center;
+        margin: 10px;
+    }
+    
+    .metric-card:hover {
+        transform: translateY(-5px);
+    }
 
-        /* Styling for Each Metric Box */
-        .metric-box {
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(10px);
-            border-radius: 15px;
-            padding: 15px;
-            text-align: center;
-            font-weight: bold;
-            color: white;
-            font-family: Arial, sans-serif;
-        }
+    .metric-label {
+        font-size: 0.85rem;
+        color: rgba(255, 255, 255, 0.6);
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+    }
+    
+    .metric-value {
+        font-size: 2rem;
+        font-weight: 700;
+        color: #ffffff;
+        margin: 8px 0;
+    }
+    
+    .metric-trend {
+        font-size: 0.85rem;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 5px;
+    }
 
-        /* Remove Borders from Data Table */
-        .stDataFrame div[data-testid="stVerticalBlockBorderWrapper"], 
-        .stDataFrame div[data-testid="StyledDataFrameCell"], 
-        .stDataFrame div[data-testid="StyledDataFrameHeaderCell"] {
-            border: none !important;
-        }
-
-        .stDataFrame table {
-            border-collapse: collapse !important;
-        }
-
-        /* Prevent Layout Issues */
-        .stApp {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
+    /* Trend Colors */
+    .positive { color: #00ff9f; }  /* Green */
+    .negative { color: #ff4b4b; }  /* Red */
     </style>
 """, unsafe_allow_html=True)
 
-# 🔹 Streamlit UI - Portfolio Section
-st.markdown("<h1 style='text-align: center;'>Stock Sentimeter</h1>", unsafe_allow_html=True)
-st.write("<p style='text-align: center;'>Know stock market trends and make smarter investment decisions with our intuitive portfolio tool.</p>", unsafe_allow_html=True)
+# Streamlit UI - Portfolio Section
+st.markdown("<h1 style='text-align: center; color: #ffffff;'>Stock Sentimeter</h1>", unsafe_allow_html=True)
+st.write("<p style='text-align: center; color: #ffffff;'>Know stock market trends and make smarter investment decisions with our intuitive portfolio tool.</p>", unsafe_allow_html=True)
 
-# 🔹 Display the 4 Metric Boxes Properly
-st.markdown("""
-    <div class="grid-container">
-        <div class="metric-box"><h2>43%</h2><p>Above Baseline</p></div>
-        <div class="metric-box"><h2>$13,813</h2><p>Gain on Buy</p></div>
-        <div class="metric-box"><h2>+0.75</h2><p>Sentiment Score</p></div>
-        <div class="metric-box"><h2>87%</h2><p>Accuracy</p></div>
+# 2x2 Grid Layout Using Glassmorphism Metric Cards
+st.markdown(
+    """
+    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; justify-content: center; align-items: center;">
+        <div class="metric-card">
+            <div class="metric-label">Above Baseline</div>
+            <div class="metric-value">43%</div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-label">Gain on Buy</div>
+            <div class="metric-value">$13,813</div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-label">Sentiment Score</div>
+            <div class="metric-value">+0.75</div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-label">Accuracy</div>
+            <div class="metric-value">87%</div>
+        </div>
     </div>
-""", unsafe_allow_html=True)
+    """,
+    unsafe_allow_html=True
+)
 
-# 🔹 Database Credentials
+# Database credentials
 DB_HOST = "13.203.191.72"
 DB_NAME = "stockstream_two"
 DB_USER = "stockstream_two"
 DB_PASSWORD = "stockstream_two"
 
-# 🔹 Available Tables
+# Available tables
 TABLES = {
     "Google Trends": "gtrend_latest_signal",
     "News": "news_latest_signal",
@@ -75,7 +92,7 @@ TABLES = {
     "Overall": "overall_latest_signal"
 }
 
-# 🔹 Initialize Session State
+# Initialize session state for selected table
 if "selected_table" not in st.session_state:
     st.session_state["selected_table"] = "overall_latest_signal"
 if "data" not in st.session_state:
@@ -83,46 +100,36 @@ if "data" not in st.session_state:
 if "show_search" not in st.session_state:
     st.session_state["show_search"] = False
 
-# 🔹 Toggle Buttons for Selecting Models
+# Add spacing before "Select Sentiment Model"
+st.markdown("<br>", unsafe_allow_html=True)
+
+# Toggle buttons for selecting models
 st.write("### Select Sentiment Model")
 col1, col2, col3, col4 = st.columns(4)
 
-# Default toggle states
-toggles = {
-    "Google Trends": False,
-    "News": False,
-    "Twitter": False,
-    "Overall": st.session_state["selected_table"] == "overall_latest_signal"
-}
+def toggle_selection(table_key):
+    if st.session_state["selected_table"] != table_key:
+        st.session_state["selected_table"] = table_key
+        st.session_state["data"] = None
+        st.experimental_rerun()
 
-# Handle user selection
 with col1:
-    toggles["Google Trends"] = st.toggle("Google Trends", value=toggles["Google Trends"])
+    if st.toggle("Google Trends", value=(st.session_state["selected_table"] == "gtrend_latest_signal")):
+        toggle_selection("gtrend_latest_signal")
+
 with col2:
-    toggles["News"] = st.toggle("News", value=toggles["News"])
+    if st.toggle("News", value=(st.session_state["selected_table"] == "news_latest_signal")):
+        toggle_selection("news_latest_signal")
+
 with col3:
-    toggles["Twitter"] = st.toggle("Twitter", value=toggles["Twitter"])
+    if st.toggle("Twitter", value=(st.session_state["selected_table"] == "twitter_latest_signal")):
+        toggle_selection("twitter_latest_signal")
+
 with col4:
-    toggles["Overall"] = st.toggle("Overall", value=toggles["Overall"])
+    if st.toggle("Overall", value=(st.session_state["selected_table"] == "overall_latest_signal")):
+        toggle_selection("overall_latest_signal")
 
-# Ensure "Overall" is ON when all others are OFF
-if not (toggles["Google Trends"] or toggles["News"] or toggles["Twitter"]):
-    toggles["Overall"] = True
-
-# Determine selected table
-selected_table = "overall_latest_signal"  # Default
-for key, value in toggles.items():
-    if value and key in TABLES:
-        selected_table = TABLES[key]
-        break
-
-# Update session state only if selection changed
-if st.session_state["selected_table"] != selected_table:
-    st.session_state["selected_table"] = selected_table
-    st.session_state["data"] = None  # Reset data when changing selection
-    st.rerun()
-
-# 🔹 Function to Fetch Data
+# Function to fetch and format data
 def fetch_data(table, limit=5):
     try:
         conn = mysql.connector.connect(
@@ -138,6 +145,7 @@ def fetch_data(table, limit=5):
         cursor.close()
         conn.close()
 
+        # Rename columns to user-friendly names
         df = df.rename(columns={
             "date": "Date",
             "comp_name": "Company Name",
@@ -151,28 +159,23 @@ def fetch_data(table, limit=5):
         st.error(f"Error fetching data: {e}")
         return None
 
-# 🔹 Load Data
+# Load initial data if not set
 if st.session_state["data"] is None:
     st.session_state["data"] = fetch_data(st.session_state["selected_table"])
 
-# 🔹 Display Table with Stock Symbol Below Company Name
+# Add spacing before "Portfolio"
+st.markdown("<br>", unsafe_allow_html=True)
+
+# Display formatted table using Streamlit's dataframe (like in Performance Summary)
+st.write("### Portfolio")
 if st.session_state["data"] is not None:
-    st.session_state["data"]["Company Name"] = st.session_state["data"].apply(
-        lambda row: f"<b>{row['Company Name']}</b><br><span style='color:gray;'>{row['Stock Symbol']}</span>", axis=1
-    )
+    st.dataframe(st.session_state["data"], use_container_width=True, hide_index=True)
 
-    st.session_state["data"] = st.session_state["data"].drop(columns=["Stock Symbol"])
-
-    st.markdown(
-        st.session_state["data"].to_html(escape=False, index=False), 
-        unsafe_allow_html=True
-    )
-
-# 🔹 "Add Stock" Button
+# Add Stock button
 if st.button("Add Stock"):
     st.session_state["show_search"] = True
 
-# 🔹 Show Search Box When "Add Stock" is Clicked
+# Show search box when "Add Stock" is clicked
 if st.session_state["show_search"]:
     symbol = st.text_input("Enter Stock Symbol:")
     if symbol:
@@ -191,10 +194,20 @@ if st.session_state["show_search"]:
             conn.close()
 
             if result:
-                new_row = pd.DataFrame(result, columns=["Date", "Company Name", "Stock Symbol", "Trade Signal", "Entry Price ($)"])
+                new_row = pd.DataFrame(result, columns=["date", "comp_name", "comp_symbol", "trade_signal", "entry_price"])
+                
+                # Rename new row to match the table headers
+                new_row = new_row.rename(columns={
+                    "date": "Date",
+                    "comp_name": "Company Name",
+                    "comp_symbol": "Stock Symbol",
+                    "trade_signal": "Trade Signal",
+                    "entry_price": "Entry Price ($)"
+                })
+                
                 st.session_state["data"] = pd.concat([st.session_state["data"], new_row], ignore_index=True)
                 st.session_state["show_search"] = False
-                st.rerun()
+                st.experimental_rerun()
             else:
                 st.warning("Stock not found!")
         except Exception as e:
