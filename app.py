@@ -155,6 +155,36 @@ st.markdown(
         height: 80px;
         z-index: 1; /* Ensure the icon is behind the text */
     }
+
+    /* Custom CSS for the 2nd grid box */
+    .metric-box-gain {
+        background: linear-gradient(135deg, #3a3a3a, #2a2a2a); /* Dark grey gradient */
+        padding: 20px;
+        border-radius: 10px;
+        text-align: center;
+        color: #ffffff; /* White text */
+        font-size: 18px;
+        font-weight: bold;
+        border: 1px solid #4a4a4a; /* Subtle border */
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Soft shadow */
+        position: relative; /* Required for positioning the icon */
+        overflow: hidden; /* Ensure the icon doesn't overflow */
+    }
+
+    .metric-box-gain::after {
+        content: "";
+        background-image: url('data:image/svg+xml;utf8,<svg width="100" height="50" viewBox="0 0 100 50" xmlns="http://www.w3.org/2000/svg"><path d="M5 45 L20 30 L35 40 L50 20 L65 35 L80 25 L95 40" stroke="%23ffffff" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>');
+        background-size: 120px 60px; /* Adjust size of the icon */
+        background-position: bottom right; /* Position the icon at the bottom-right corner */
+        background-repeat: no-repeat;
+        opacity: 0.3; /* Blend the icon with the background */
+        position: absolute;
+        bottom: 10px;
+        right: 10px;
+        width: 120px;
+        height: 60px;
+        z-index: 1; /* Ensure the icon is behind the text */
+    }
     </style>
     """,
     unsafe_allow_html=True
@@ -169,7 +199,7 @@ st.markdown(
     """
     <div class="grid-container">
         <div class="metric-box"><h2>43%</h2><p>Above Baseline</p></div>
-        <div class="metric-box"><h2>$13,813</h2><p>Gain on Buy</p></div>
+        <div class="metric-box-gain"><h2>$13,813</h2><p>Gain on Buy</p></div>
         <div class="metric-box"><h2>+0.75</h2><p>Sentiment Score</p></div>
         <div class="metric-box-accuracy"><h2>87%</h2><p>Accuracy</p></div>
     </div>
