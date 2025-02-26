@@ -52,28 +52,45 @@ st.markdown(
     .negative { color: #ff4b4b; }  /* Red */
 
     /* Glassmorphism Table Styling */
-    .stDataFrame {
-        background: rgba(255, 255, 255, 0.05) !important;
-        backdrop-filter: blur(10px) !important;
-        border: 1px solid rgba(255, 255, 255, 0.1) !important;
-        border-radius: 20px !important;
-        padding: 20px !important;
-        color: white !important;
+    .pretty-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.9em;
+        font-family: sans-serif;
+        min-width: 400px;
+        box-shadow: 0 0 20px rgba(0, 0, 0, 0.15);
+        border-radius: 10px;
+        overflow: hidden;
+        text-align: center;
+        border: none;
+        color: #ffffff; /* White text for the table */
+        background: rgba(255, 255, 255, 0.05); /* Glassmorphism background */
+        backdrop-filter: blur(10px); /* Blur effect */
     }
 
-    .stDataFrame th {
-        background: rgba(255, 255, 255, 0.1) !important;
-        color: white !important;
-        font-weight: bold !important;
+    .pretty-table thead tr {
+        background-color: rgba(0, 0, 0, 0.3); /* Semi-transparent black header */
+        color: #ffffff; /* White text */
+        text-align: center;
+        border: none;
     }
 
-    .stDataFrame td {
-        background: rgba(255, 255, 255, 0.05) !important;
-        color: white !important;
+    .pretty-table th, .pretty-table td {
+        padding: 12px 15px;
+        text-align: center;
+        border: none;
     }
 
-    .stDataFrame tr:hover {
-        background: rgba(255, 255, 255, 0.1) !important;
+    .pretty-table tbody tr:nth-of-type(odd) {
+        background-color: rgba(255, 255, 255, 0.05); /* Light glassmorphism for odd rows */
+    }
+
+    .pretty-table tbody tr:nth-of-type(even) {
+        background-color: rgba(255, 255, 255, 0.1); /* Slightly darker glassmorphism for even rows */
+    }
+
+    .pretty-table tbody tr:hover {
+        background-color: rgba(255, 255, 255, 0.2); /* Hover effect */
     }
 
     /* Glassmorphism Button Styling */
@@ -243,7 +260,8 @@ st.markdown("<br>", unsafe_allow_html=True)
 # Display formatted table with glassmorphism styling
 st.write("### Portfolio")
 if st.session_state["data"] is not None:
-    st.dataframe(st.session_state["data"], use_container_width=True, hide_index=True)
+    table_html = st.session_state["data"].to_html(index=False, escape=False, classes="pretty-table")
+    st.markdown(table_html, unsafe_allow_html=True)
 
 # Add Stock button
 if st.button("Add Stock"):
