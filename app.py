@@ -125,6 +125,36 @@ st.markdown(
         padding: 10px; /* Padding for better spacing */
         color: #ffffff; /* White text */
     }
+
+    /* Custom CSS for the 4th grid box */
+    .metric-box-accuracy {
+        background: linear-gradient(135deg, #3a3a3a, #2a2a2a); /* Dark grey gradient */
+        padding: 20px;
+        border-radius: 10px;
+        text-align: center;
+        color: #ffffff; /* White text */
+        font-size: 18px;
+        font-weight: bold;
+        border: 1px solid #4a4a4a; /* Subtle border */
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Soft shadow */
+        position: relative; /* Required for positioning the icon */
+        overflow: hidden; /* Ensure the icon doesn't overflow */
+    }
+
+    .metric-box-accuracy::after {
+        content: "";
+        background-image: url('https://cdn-icons-png.flaticon.com/512/2089/2089677.png'); /* Dart icon */
+        background-size: 50px 50px; /* Adjust size of the icon */
+        background-position: bottom right; /* Position the icon at the bottom-right corner */
+        background-repeat: no-repeat;
+        opacity: 0.3; /* Blend the icon with the background */
+        position: absolute;
+        bottom: 10px;
+        right: 10px;
+        width: 50px;
+        height: 50px;
+        z-index: 1; /* Ensure the icon is behind the text */
+    }
     </style>
     """,
     unsafe_allow_html=True
@@ -141,7 +171,7 @@ st.markdown(
         <div class="metric-box"><h2>43%</h2><p>Above Baseline</p></div>
         <div class="metric-box"><h2>$13,813</h2><p>Gain on Buy</p></div>
         <div class="metric-box"><h2>+0.75</h2><p>Sentiment Score</p></div>
-        <div class="metric-box"><h2>87%</h2><p>Accuracy</p></div>
+        <div class="metric-box-accuracy"><h2>87%</h2><p>Accuracy</p></div>
     </div>
     """,
     unsafe_allow_html=True
