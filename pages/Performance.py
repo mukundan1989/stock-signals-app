@@ -416,6 +416,9 @@ if go_clicked:
             </div>
         """.format(int(metrics['win_percentage']), metrics['total_trades'], metrics['profit_factor']), unsafe_allow_html=True)
 
+    # Add spacing before "Equity Curve"
+    st.markdown("<br>", unsafe_allow_html=True)
+
     cumulative_pl_df = fetch_cumulative_pl(symbol)
     if cumulative_pl_df is not None and not cumulative_pl_df.empty:
         st.subheader("Equity Curve")
