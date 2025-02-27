@@ -46,42 +46,35 @@ def fetch_twitter_signals():
 st.markdown(
     """
     <style>
-    /* Remove table borders */
-    .stDataFrame table {
+    /* Remove table borders and add spacing between rows */
+    .custom-table {
+        width: 100%;
         border-collapse: separate;
-        border-spacing: 0 10px; /* Add space between rows */
-        border: none; /* Remove table borders */
+        border-spacing: 0 10px; /* Space between rows */
     }
 
     /* Dark grey background for each row with curved borders */
-    .stDataFrame tbody tr {
+    .custom-table tbody tr {
         background-color: #2a2a2a; /* Dark grey background */
         border-radius: 10px; /* Curved borders */
-        border: none; /* Remove row borders */
     }
 
-    /* Add space between rows */
-    .stDataFrame tbody tr:not(:last-child) {
-        margin-bottom: 10px; /* Space between rows */
-    }
-
-    /* Ensure the table cells have padding and text alignment */
-    .stDataFrame th, .stDataFrame td {
+    /* Add padding and center text in cells */
+    .custom-table th, .custom-table td {
         padding: 12px 15px;
         text-align: center;
         border: none; /* Remove cell borders */
     }
 
     /* Header styling */
-    .stDataFrame thead tr {
+    .custom-table thead tr {
         background-color: #000000; /* Black header */
         color: #ffffff; /* White text */
         border-radius: 10px; /* Curved borders for header */
-        border: none; /* Remove header borders */
     }
 
     /* Hover effect for rows */
-    .stDataFrame tbody tr:hover {
+    .custom-table tbody tr:hover {
         background-color: #3a3a3a; /* Slightly lighter grey on hover */
     }
     </style>
@@ -98,7 +91,9 @@ twitter_signals_df = fetch_twitter_signals()
 
 if twitter_signals_df is not None:
     if not twitter_signals_df.empty:
-        st.dataframe(twitter_signals_df, use_container_width=True)  # Use st.dataframe for better styling control
+        # Convert DataFrame to HTML and apply custom class
+        table_html = twitter_signals_df.to_html(index=False, classes="custom-table", escape=False)
+        st.markdown(table_html, unsafe_allow_html=True)  # Render the HTML table
     else:
         st.warning("No Twitter signals found in the database.")
 else:
