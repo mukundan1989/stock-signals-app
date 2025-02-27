@@ -165,7 +165,7 @@ st.markdown(
     <div class="grid-container">
         <!-- First Box: Area Chart Icon -->
         <div class="metric-box">
-            <svg class="icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <svg class="icon" viewBox="0 0 24 24" fill="#cccccc" xmlns="http://www.w3.org/2000/svg">
                 <path d="M3 3v16h18V3H3zm16 14H5V5h14v12zM7 12l2 3 3-4 4 5 3-2v-2H7v2z"/>
             </svg>
             <div class="large-text">43%</div>
@@ -174,7 +174,7 @@ st.markdown(
 
         <!-- Second Box: Pile of Cash Icon -->
         <div class="metric-box">
-            <svg class="icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <svg class="icon" viewBox="0 0 24 24" fill="#cccccc" xmlns="http://www.w3.org/2000/svg">
                 <path d="M5 6h14v12H5V6zm2 2v8h10V8H7zm5 4c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2z"/>
             </svg>
             <div class="large-text">$13,813</div>
@@ -183,7 +183,7 @@ st.markdown(
 
         <!-- Third Box: Smiley Icon -->
         <div class="metric-box">
-            <svg class="icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <svg class="icon" viewBox="0 0 24 24" fill="#cccccc" xmlns="http://www.w3.org/2000/svg">
                 <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-5-7h2v2H7v-2zm10 0h2v2h-2v-2zm-5 4c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2z"/>
             </svg>
             <div class="large-text">+0.75</div>
@@ -192,7 +192,7 @@ st.markdown(
 
         <!-- Fourth Box: Dartboard with Arrow Icon -->
         <div class="metric-box">
-            <svg class="icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <svg class="icon" viewBox="0 0 24 24" fill="#cccccc" xmlns="http://www.w3.org/2000/svg">
                 <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-9h2v2h-2v-2zm4 0h2v2h-2v-2zm-8 0h2v2H7v-2z"/>
             </svg>
             <div class="large-text">87%</div>
