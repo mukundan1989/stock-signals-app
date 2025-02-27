@@ -20,7 +20,7 @@ st.markdown(
         font-family: sans-serif;
         min-width: 400px;
         /*box-shadow: 0 0 20px rgba(0, 0, 0, 0.15);*/
-        border-radius: 30px;
+        /*border-radius: 30px;*/
         overflow: hidden;
         text-align: center;
         border: none;
