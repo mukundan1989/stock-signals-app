@@ -35,14 +35,14 @@ st.markdown(
 	}
  
 	.pretty-table th{
- 	border-radius: 30px;
         background-color: #1b1b1b; /* Set background color to black */
 	color: #aeaeae !important; /* Set background color to black */
 	} 
 
- 	.pretty-table th td{
- 	border-radius: 0px !important;
-	} 
+	.pretty-table th td:first-child {
+        border-top-left-radius: 30px; /* Adjust the border-radius for the first cell */
+        border-bottom-left-radius: 30px;
+	}
 
 	/* Padding for table cells */
 	.pretty-table th, .pretty-table td {
