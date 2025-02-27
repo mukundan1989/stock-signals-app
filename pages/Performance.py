@@ -4,7 +4,7 @@ import mysql.connector
 import plotly.graph_objects as go
 
 # Set page config
-st.set_page_config(layout="wide", page_title="Performance Summary", initial_sidebar_state="collapsed")
+# st.set_page_config(layout="wide", page_title="Performance Summary", initial_sidebar_state="collapsed")
 
 # Apply modern glassmorphism CSS
 st.markdown("""
