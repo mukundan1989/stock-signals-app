@@ -12,11 +12,10 @@ st.markdown(
         color: var(--text-color);
     }
 
-    /* Custom CSS for elegant table design with curved edges */
-    .pretty-table {
+	.pretty-table {
         width: 100%;
         border-collapse: separate;
-        border-spacing: 0 30px;
+        border-spacing: 0 10px; /* Adjust spacing between rows */
         font-size: 0.9em;
         font-family: sans-serif;
         min-width: 400px;
@@ -26,37 +25,37 @@ st.markdown(
         text-align: center;
         border: none;
         color: var(--text-color);
-    }
+	}
 
-    /* Grey background with curved edges for each row */
-    .pretty-table tbody tr {
-        background-color: var(--secondary-background-color);
-        border-radius: 50px;
+	/* Black background with curved edges for each row */
+	.pretty-table tbody tr {
+        background-color: black; /* Set background color to black */
+        border-radius: 20px; /* Adjust the border-radius for rounded edges */
         margin-bottom: 10px;
-    }
+	}
 
-    /* Padding for table cells */
-    .pretty-table th, .pretty-table td {
+	/* Padding for table cells */
+	.pretty-table th, .pretty-table td {
         padding: 12px 15px;
         text-align: center;
         border: none;
-    }
+	}
 
-    /* Add curved edges to the first and last cells in each row */
-    .pretty-table tbody tr td:first-child {
-        border-top-left-radius: 10px;
-        border-bottom-left-radius: 10px;
-    }
+	/* Add curved edges to the first and last cells in each row */
+	.pretty-table tbody tr td:first-child {
+        border-top-left-radius: 20px; /* Adjust the border-radius for the first cell */
+        border-bottom-left-radius: 20px;
+	}
 
-    .pretty-table tbody tr td:last-child {
-        border-top-right-radius: 20px;
+	.pretty-table tbody tr td:last-child {
+        border-top-right-radius: 20px; /* Adjust the border-radius for the last cell */
         border-bottom-right-radius: 20px;
-    }
+	}
 
-    /* Hover effect for rows */
-    .pretty-table tbody tr:hover {
-        background-color: var(--hover-background-color);
-    }
+	/* Hover effect for rows */
+	.pretty-table tbody tr:hover {
+        background-color: #333; /* Darker shade for hover effect */
+	}
 
     /* Ensure the text above the table is white */
     h1, p {
