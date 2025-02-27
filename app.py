@@ -12,49 +12,51 @@ st.markdown(
         color: #ffffff; /* White text for the entire page */
     }
 
-    /* Custom CSS for elegant table design */
-    .pretty-table {
+	/* Custom CSS for elegant table design with curved edges */
+	.pretty-table {
         width: 100%;
-        border-collapse: collapse;
+        border-collapse: separate; /* Use separate to allow rounded corners */
+        border-spacing: 0 10px; /* Add spacing between rows */
         font-size: 0.9em;
         font-family: sans-serif;
         min-width: 400px;
         box-shadow: 0 0 20px rgba(0, 0, 0, 0.15);
-        border-radius: 10px;
+        border-radius: 10px; /* Rounded edges for the table */
         overflow: hidden;
         text-align: center;
         border: none;
         color: #ffffff; /* White text for the table */
-    }
+	}
 
-    /* Black header with white text */
-    .pretty-table thead tr {
-        background-color: #000000; /* Black header */
-        color: #ffffff; /* White text */
-        text-align: center;
-        border: none;
-    }
+	/* Grey background with curved edges for each row */
+	.pretty-table tbody tr {
+        background-color: #3a3a3a; /* Dark grey background */
+        border-radius: 10px; /* Rounded edges for each row */
+        margin-bottom: 10px; /* Add spacing between rows */
+	}
 
-    /* Padding for table cells */
-    .pretty-table th, .pretty-table td {
+	/* Padding for table cells */
+	.pretty-table th, .pretty-table td {
         padding: 12px 15px;
         text-align: center;
         border: none;
-    }
+	}
 
-    /* Alternating row colors: light grey and dark grey */
-    .pretty-table tbody tr:nth-of-type(odd) {
-        background-color: #3a3a3a; /* Dark grey */
-    }
+	/* Add curved edges to the first and last cells in each row */
+	.pretty-table tbody tr td:first-child {
+        border-top-left-radius: 10px;
+        border-bottom-left-radius: 10px;
+	}
 
-    .pretty-table tbody tr:nth-of-type(even) {
-        background-color: #4a4a4a; /* Light grey */
-    }
+	.pretty-table tbody tr td:last-child {
+        border-top-right-radius: 10px;
+        border-bottom-right-radius: 10px;
+	}
 
-    /* Hover effect for rows */
-    .pretty-table tbody tr:hover {
-        background-color: #5a5a5a; /* Slightly lighter grey on hover */
-    }
+	/* Hover effect for rows */
+	.pretty-table tbody tr:hover {
+        background-color: #4a4a4a; /* Slightly lighter grey on hover */
+	}
 
     /* Ensure the text above the table is white */
     h1, p {
