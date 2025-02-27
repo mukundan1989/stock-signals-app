@@ -17,13 +17,16 @@ st.markdown(
         border-radius: 20px; /* Rounded edges */
         padding: 10px 15px; /* Padding for spacing */
         margin: 5px 0; /* Margin for spacing between containers */
-        display: inline-block; /* Ensure the container wraps the content */
+        display: flex; /* Use flexbox to align items */
+        align-items: center; /* Center items vertically */
+        gap: 10px; /* Space between text and toggle */
     }
-	
+
     .toggle-container label {
         color: #ffffff !important; /* White text for the toggle label */
         font-weight: bold; /* Bold text */
-    }	
+        margin-bottom: 0; /* Remove default margin */
+    }
 
     /* Custom CSS for elegant table design with curved edges */
     .pretty-table {
@@ -351,22 +354,50 @@ def toggle_selection(table_key):
         st.rerun()
 
 with col1:
-    st.markdown('<div class="toggle-container">Google Trends</div>', unsafe_allow_html=True)
+    st.markdown(
+        """
+        <div class="toggle-container">
+            <span>Google Trends</span>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
     if st.toggle("", value=(st.session_state["selected_table"] == "gtrend_latest_signal"), key="toggle1"):
         toggle_selection("gtrend_latest_signal")
 
 with col2:
-    st.markdown('<div class="toggle-container">News</div>', unsafe_allow_html=True)
+    st.markdown(
+        """
+        <div class="toggle-container">
+            <span>News</span>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
     if st.toggle("", value=(st.session_state["selected_table"] == "news_latest_signal"), key="toggle2"):
         toggle_selection("news_latest_signal")
 
 with col3:
-    st.markdown('<div class="toggle-container">Twitter</div>', unsafe_allow_html=True)
+    st.markdown(
+        """
+        <div class="toggle-container">
+            <span>Twitter</span>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
     if st.toggle("", value=(st.session_state["selected_table"] == "twitter_latest_signal"), key="toggle3"):
         toggle_selection("twitter_latest_signal")
 
 with col4:
-    st.markdown('<div class="toggle-container">Overall</div>', unsafe_allow_html=True)
+    st.markdown(
+        """
+        <div class="toggle-container">
+            <span>Overall</span>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
     if st.toggle("", value=(st.session_state["selected_table"] == "overall_latest_signal"), key="toggle4"):
         toggle_selection("overall_latest_signal")
 
