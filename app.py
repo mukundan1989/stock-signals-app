@@ -117,7 +117,7 @@ st.markdown(
 
     /* First grid box with line chart icon */
     .metric-box {
-        background: linear-gradient(135deg, #000000, #202020);
+        background: linear-gradient(15deg, #000000, #232323);
         padding: 20px;
         border-radius: 10px;
         text-align: left;
