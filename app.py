@@ -45,8 +45,8 @@ st.markdown(
 	}
 
  	.pretty-table th:last-child {
-        border-top-left-radius: 30px; /* Adjust the border-radius for the first cell */
-        border-bottom-left-radius: 30px;
+        border-top-right-radius: 30px; /* Adjust the border-radius for the first cell */
+        border-bottom-right-radius: 30px;
 	}
 
 	/* Padding for table cells */
