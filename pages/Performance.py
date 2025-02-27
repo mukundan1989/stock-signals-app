@@ -160,13 +160,13 @@ st.markdown("""
     }
 
     .metric-box h2 {
-        margin-top: 60px;
-        margin-left: 20px;
-        margin-bottom: 10px;
+        margin-top: 30px;
+        margin-left: 5px;
+        margin-bottom: 1px;
     }
 
     .metric-box p {
-        margin-left: 20px;
+        margin-left: 5px;
         margin-bottom: 0;
     }
 
