@@ -12,6 +12,22 @@ st.markdown(
         color: var(--text-color);
     }
 
+    .toggle-wrapper {
+        background-color: #3a3a3a; /* Dark grey background */
+        border-radius: 20px; /* Rounded edges */
+        padding: 10px 15px; /* Padding for spacing */
+        margin: 5px 0; /* Margin for spacing between containers */
+        display: flex; /* Use flexbox to align items */
+        align-items: center; /* Center items vertically */
+        gap: 10px; /* Space between text and toggle */
+    }
+
+    .toggle-wrapper label {
+        color: #ffffff !important; /* White text for the toggle label */
+        font-weight: bold; /* Bold text */
+        margin-bottom: 0; /* Remove default margin */
+    }    
+
     .toggle-container {
         background-color: #3a3a3a; /* Dark grey background */
         border-radius: 20px; /* Rounded edges */
@@ -354,9 +370,10 @@ def toggle_selection(table_key):
         st.rerun()
 
 with col1:
+    # Create a container for the toggle and text
     st.markdown(
         """
-        <div class="toggle-container">
+        <div class="toggle-wrapper">
             <span>Google Trends</span>
         </div>
         """,
@@ -368,7 +385,7 @@ with col1:
 with col2:
     st.markdown(
         """
-        <div class="toggle-container">
+        <div class="toggle-wrapper">
             <span>News</span>
         </div>
         """,
@@ -380,7 +397,7 @@ with col2:
 with col3:
     st.markdown(
         """
-        <div class="toggle-container">
+        <div class="toggle-wrapper">
             <span>Twitter</span>
         </div>
         """,
@@ -392,7 +409,7 @@ with col3:
 with col4:
     st.markdown(
         """
-        <div class="toggle-container">
+        <div class="toggle-wrapper">
             <span>Overall</span>
         </div>
         """,
