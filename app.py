@@ -21,7 +21,7 @@ st.markdown(
         font-family: sans-serif;
         min-width: 400px;
         box-shadow: 0 0 20px rgba(0, 0, 0, 0.15);
-        border-radius: 10px; /* Rounded edges for the table */
+        border-radius: 30px; /* Rounded edges for the table */
         overflow: hidden;
         text-align: center;
         border: none;
