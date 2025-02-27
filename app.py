@@ -12,54 +12,6 @@ st.markdown(
         color: var(--text-color);
     }
 
-    .toggle-column {
-        background-color: #3a3a3a; /* Dark grey background */
-        border-radius: 20px; /* Rounded edges */
-        padding: 10px 15px; /* Padding for spacing */
-        margin: 5px 0; /* Margin for spacing between containers */
-        display: flex; /* Use flexbox to align items */
-        align-items: center; /* Center items vertically */
-        gap: 10px; /* Space between text and toggle */
-    }
-
-    .toggle-column label {
-        color: #ffffff !important; /* White text for the toggle label */
-        font-weight: bold; /* Bold text */
-        margin-bottom: 0; /* Remove default margin */
-    }
-
-    .toggle-wrapper {
-        background-color: #3a3a3a; /* Dark grey background */
-        border-radius: 20px; /* Rounded edges */
-        padding: 10px 15px; /* Padding for spacing */
-        margin: 5px 0; /* Margin for spacing between containers */
-        display: flex; /* Use flexbox to align items */
-        align-items: center; /* Center items vertically */
-        gap: 10px; /* Space between text and toggle */
-    }
-
-    .toggle-wrapper label {
-        color: #ffffff !important; /* White text for the toggle label */
-        font-weight: bold; /* Bold text */
-        margin-bottom: 0; /* Remove default margin */
-    }    
-
-    .toggle-container {
-        background-color: #3a3a3a; /* Dark grey background */
-        border-radius: 20px; /* Rounded edges */
-        padding: 10px 15px; /* Padding for spacing */
-        margin: 5px 0; /* Margin for spacing between containers */
-        display: flex; /* Use flexbox to align items */
-        align-items: center; /* Center items vertically */
-        gap: 10px; /* Space between text and toggle */
-    }
-
-    .toggle-container label {
-        color: #ffffff !important; /* White text for the toggle label */
-        font-weight: bold; /* Bold text */
-        margin-bottom: 0; /* Remove default margin */
-    }
-
     /* Custom CSS for elegant table design with curved edges */
     .pretty-table {
         width: 100%;
@@ -386,33 +338,20 @@ def toggle_selection(table_key):
         st.rerun()
 
 with col1:
-    # Add a container for the column
-    st.markdown('<div class="toggle-column">', unsafe_allow_html=True)
-    st.write("Google Trends")  # Text for the toggle
-    if st.toggle("", value=(st.session_state["selected_table"] == "gtrend_latest_signal"), key="toggle1"):
+    if st.toggle("Google Trends", value=(st.session_state["selected_table"] == "gtrend_latest_signal")):
         toggle_selection("gtrend_latest_signal")
-    st.markdown('</div>', unsafe_allow_html=True)
 
 with col2:
-    st.markdown('<div class="toggle-column">', unsafe_allow_html=True)
-    st.write("News")  # Text for the toggle
-    if st.toggle("", value=(st.session_state["selected_table"] == "news_latest_signal"), key="toggle2"):
+    if st.toggle("News", value=(st.session_state["selected_table"] == "news_latest_signal")):
         toggle_selection("news_latest_signal")
-    st.markdown('</div>', unsafe_allow_html=True)
 
 with col3:
-    st.markdown('<div class="toggle-column">', unsafe_allow_html=True)
-    st.write("Twitter")  # Text for the toggle
-    if st.toggle("", value=(st.session_state["selected_table"] == "twitter_latest_signal"), key="toggle3"):
+    if st.toggle("Twitter", value=(st.session_state["selected_table"] == "twitter_latest_signal")):
         toggle_selection("twitter_latest_signal")
-    st.markdown('</div>', unsafe_allow_html=True)
 
 with col4:
-    st.markdown('<div class="toggle-column">', unsafe_allow_html=True)
-    st.write("Overall")  # Text for the toggle
-    if st.toggle("", value=(st.session_state["selected_table"] == "overall_latest_signal"), key="toggle4"):
+    if st.toggle("Overall", value=(st.session_state["selected_table"] == "overall_latest_signal")):
         toggle_selection("overall_latest_signal")
-    st.markdown('</div>', unsafe_allow_html=True)
 
 # Function to fetch and format data
 def fetch_data(table, limit=5):
