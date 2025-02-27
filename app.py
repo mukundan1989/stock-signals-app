@@ -12,6 +12,19 @@ st.markdown(
         color: var(--text-color);
     }
 
+    .toggle-container {
+        background-color: #3a3a3a; /* Dark grey background */
+        border-radius: 20px; /* Rounded edges */
+        padding: 10px 15px; /* Padding for spacing */
+        margin: 5px 0; /* Margin for spacing between containers */
+        display: inline-block; /* Ensure the container wraps the content */
+    }
+	
+    .toggle-container label {
+        color: #ffffff !important; /* White text for the toggle label */
+        font-weight: bold; /* Bold text */
+    }	
+
     /* Custom CSS for elegant table design with curved edges */
     .pretty-table {
         width: 100%;
@@ -338,19 +351,23 @@ def toggle_selection(table_key):
         st.rerun()
 
 with col1:
-    if st.toggle("Google Trends", value=(st.session_state["selected_table"] == "gtrend_latest_signal")):
+    st.markdown('<div class="toggle-container">Google Trends</div>', unsafe_allow_html=True)
+    if st.toggle("", value=(st.session_state["selected_table"] == "gtrend_latest_signal"), key="toggle1"):
         toggle_selection("gtrend_latest_signal")
 
 with col2:
-    if st.toggle("News", value=(st.session_state["selected_table"] == "news_latest_signal")):
+    st.markdown('<div class="toggle-container">News</div>', unsafe_allow_html=True)
+    if st.toggle("", value=(st.session_state["selected_table"] == "news_latest_signal"), key="toggle2"):
         toggle_selection("news_latest_signal")
 
 with col3:
-    if st.toggle("Twitter", value=(st.session_state["selected_table"] == "twitter_latest_signal")):
+    st.markdown('<div class="toggle-container">Twitter</div>', unsafe_allow_html=True)
+    if st.toggle("", value=(st.session_state["selected_table"] == "twitter_latest_signal"), key="toggle3"):
         toggle_selection("twitter_latest_signal")
 
 with col4:
-    if st.toggle("Overall", value=(st.session_state["selected_table"] == "overall_latest_signal")):
+    st.markdown('<div class="toggle-container">Overall</div>', unsafe_allow_html=True)
+    if st.toggle("", value=(st.session_state["selected_table"] == "overall_latest_signal"), key="toggle4"):
         toggle_selection("overall_latest_signal")
 
 # Function to fetch and format data
