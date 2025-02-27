@@ -72,6 +72,25 @@ st.markdown(
         font-weight: bold;
         border: 1px solid #4a4a4a; /* Subtle border */
         box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Soft shadow */
+        position: relative; /* Required for positioning the icon */
+        overflow: hidden; /* Ensure the icon doesn't overflow */
+    }
+
+    /* Add an SVG chart icon to the first grid box */
+    .metric-box::before {
+        content: "";
+        background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="50" height="50" viewBox="0 0 24 24" fill="none" stroke="%23ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20V10M18 20V4M6 20v-4"/></svg>'); /* Line chart SVG */
+        background-size: 50px 50px; /* Adjust size of the icon */
+        background-position: center top; /* Position the icon at the top */
+        background-repeat: no-repeat;
+        opacity: 0.3; /* Blend the icon with the background */
+        position: absolute;
+        top: 10px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 50px;
+        height: 50px;
+        z-index: 1; /* Ensure the icon is behind the text */
     }
 
     /* Grid container for metric boxes */
