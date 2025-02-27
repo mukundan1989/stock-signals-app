@@ -38,7 +38,7 @@ st.markdown(
 	.pretty-table th, .pretty-table td {
         padding: 6px 9px;
         text-align: center;
-	border: 5px 0px 0px 0px;
+	border: 5px 0px 0px 0px !important;
 	border-top: 5px solid #282828;
 	}
 
