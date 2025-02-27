@@ -164,7 +164,7 @@ def fetch_news_signals():
 st.markdown(
     """
     <div class="title-with-logo">
-        <img src="https://raw.githubusercontent.com/mukundan1989/stock-signals-app/refs/heads/main/images/news-logo.png" alt="News Logo">
+        <img src="https://raw.githubusercontent.com/mukundan1989/stock-signals-app/refs/heads/main/images/news-icon.png" alt="News Logo">
         <h1 style='text-align: center;'>News Signals</h1>
     </div>
     """,
