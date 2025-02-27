@@ -2,69 +2,6 @@ import streamlit as st
 import pandas as pd
 import mysql.connector
 
-# Custom CSS for dark-themed elegant table design
-st.markdown(
-    """
-    <style>
-    /* Target the main container (st-emotion-cache-bm2z3a) and set a dark grey background */
-    .st-emotion-cache-bm2z3a {
-        background-color: #2a2a2a; /* Dark grey background */
-        color: #ffffff; /* White text for the entire page */
-    }
-
-    /* Custom CSS for elegant table design */
-    .pretty-table {
-        width: 100%;
-        border-collapse: collapse;
-        font-size: 0.9em;
-        font-family: sans-serif;
-        min-width: 400px;
-        box-shadow: 0 0 20px rgba(0, 0, 0, 0.15);
-        border-radius: 10px;
-        overflow: hidden;
-        text-align: center;
-        border: none;
-        color: #ffffff; /* White text for the table */
-    }
-
-    /* Black header with white text */
-    .pretty-table thead tr {
-        background-color: #000000; /* Black header */
-        color: #ffffff; /* White text */
-        text-align: center;
-        border: none;
-    }
-
-    /* Padding for table cells */
-    .pretty-table th, .pretty-table td {
-        padding: 12px 15px;
-        text-align: center;
-        border: none;
-    }
-
-    /* Alternating row colors: light grey and dark grey */
-    .pretty-table tbody tr:nth-of-type(odd) {
-        background-color: #3a3a3a; /* Dark grey */
-    }
-
-    .pretty-table tbody tr:nth-of-type(even) {
-        background-color: #4a4a4a; /* Light grey */
-    }
-
-    /* Hover effect for rows */
-    .pretty-table tbody tr:hover {
-        background-color: #5a5a5a; /* Slightly lighter grey on hover */
-    }
-
-    /* Ensure the text above the table is white */
-    h1, p {
-        color: #ffffff !important; /* White text for titles and paragraphs */
-    }
-    </style>
-    """,
-    unsafe_allow_html=True
-)
-
 # Database credentials
 DB_HOST = "13.203.191.72"
 DB_NAME = "stockstream_two"
@@ -114,8 +51,7 @@ twitter_signals_df = fetch_twitter_signals()
 
 if twitter_signals_df is not None:
     if not twitter_signals_df.empty:
-        table_html = twitter_signals_df.to_html(index=False, classes="pretty-table")
-        st.markdown(table_html, unsafe_allow_html=True)
+        st.table(twitter_signals_df)  # Use st.table for default table styling
     else:
         st.warning("No Twitter signals found in the database.")
 else:
