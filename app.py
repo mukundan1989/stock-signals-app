@@ -44,6 +44,11 @@ st.markdown(
         border-bottom-left-radius: 30px;
 	}
 
+ 	.pretty-table th:last-child {
+        border-top-left-radius: 30px; /* Adjust the border-radius for the first cell */
+        border-bottom-left-radius: 30px;
+	}
+
 	/* Padding for table cells */
 	.pretty-table th, .pretty-table td {
         padding: 6px 9px;
