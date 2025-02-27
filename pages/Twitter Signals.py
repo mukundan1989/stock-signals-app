@@ -2,77 +2,64 @@ import streamlit as st
 import pandas as pd
 import mysql.connector
 
-# Custom CSS for table styling (from app (24).py)
+# Custom CSS for elegant table design using theme-based colors
 st.markdown(
     """
     <style>
-    /* Custom CSS for elegant table design with curved edges */
+    /* Use theme-based background color for the main container */
+    .st-emotion-cache-bm2z3a {
+        background-color: var(--background-color);
+        color: var(--text-color);
+    }
+
     .pretty-table {
         width: 100%;
-        border-collapse: separate; /* Use separate to allow rounded corners */
-        border-spacing: 0 30px; /* Add spacing between rows */
+        border-collapse: separate;
+        border-spacing: 0 10px; /* Adjust spacing between rows */
         font-size: 0.9em;
         font-family: sans-serif;
         min-width: 400px;
-        box-shadow: 0 0 20px rgba(0, 0, 0, 0.15);
-        border-radius: 30px; /* Rounded edges for the table */
+        border-radius: 30px;
         overflow: hidden;
         text-align: center;
         border: none;
-        color: #ffffff; /* White text for the table */
+        color: var(--text-color);
     }
 
-    /* Grey background with curved edges for each row */
+    /* Black background with curved edges for each row */
     .pretty-table tbody tr {
-        background-color: #3a3a3a; /* Dark grey background */
-        border-radius: 50px; /* Rounded edges for each row */
-        margin-bottom: 10px; /* Add spacing between rows */
+        background-color: black; /* Set background color to black */
+        border-radius: 20px; /* Adjust the border-radius for rounded edges */
+        margin-bottom: 10px;
     }
 
     /* Padding for table cells */
     .pretty-table th, .pretty-table td {
-        padding: 12px 15px;
+        padding: 6px 9px;
         text-align: center;
         border: none;
+        border-top: 5px solid #282828 !important;
     }
 
     /* Add curved edges to the first and last cells in each row */
     .pretty-table tbody tr td:first-child {
-        border-top-left-radius: 10px;
-        border-bottom-left-radius: 10px;
+        border-top-left-radius: 20px; /* Adjust the border-radius for the first cell */
+        border-bottom-left-radius: 20px;
     }
 
     .pretty-table tbody tr td:last-child {
-        border-top-right-radius: 20px;
+        border-top-right-radius: 20px; /* Adjust the border-radius for the last cell */
         border-bottom-right-radius: 20px;
     }
 
     /* Hover effect for rows */
     .pretty-table tbody tr:hover {
-        background-color: #4a4a4a; /* Slightly lighter grey on hover */
+        background-color: #333; /* Darker shade for hover effect */
     }
 
-    /* Custom CSS for the Company Name cell */
-    .company-name-cell {
-        background-color: #3a3a3a; /* Dark grey background */
-        border-radius: 10px; /* Rounded edges */
-        padding: 10px; /* Padding for better spacing */
-        color: #ffffff; /* White text */
-    }
-
-    /* Custom CSS for the Trade Signal cell */
-    .trade-signal-buy {
-        background-color: #2e7d32; /* Green background for Buy */
-        border-radius: 10px; /* Rounded edges */
-        padding: 10px; /* Padding for better spacing */
-        color: #ffffff; /* White text */
-    }
-
-    .trade-signal-sell {
-        background-color: #c62828; /* Red background for Sell */
-        border-radius: 10px; /* Rounded edges */
-        padding: 10px; /* Padding for better spacing */
-        color: #ffffff; /* White text */
+    /* Ensure the text above the table is white */
+    h1, p {
+        color: var(--text-color) !important;
     }
     </style>
     """,
@@ -128,22 +115,6 @@ twitter_signals_df = fetch_twitter_signals()
 
 if twitter_signals_df is not None:
     if not twitter_signals_df.empty:
-        # Apply custom styling to the Company Symbol column based on sentiment
-        twitter_signals_df["Company Symbol"] = twitter_signals_df.apply(
-            lambda row: f'<div class="company-name-cell">{row["Company Symbol"]}</div>', axis=1
-        )
-
-        # Apply custom styling to the Sentiment column
-        twitter_signals_df["Sentiment"] = twitter_signals_df.apply(
-            lambda row: (
-                f'<div class="trade-signal-buy">{row["Sentiment"]}</div>'
-                if row["Sentiment"] == "Positive"
-                else f'<div class="trade-signal-sell">{row["Sentiment"]}</div>'
-            ),
-            axis=1,
-        )
-
-        # Convert DataFrame to HTML and render it
         table_html = twitter_signals_df.to_html(index=False, classes="pretty-table", escape=False)
         st.markdown(table_html, unsafe_allow_html=True)
     else:
