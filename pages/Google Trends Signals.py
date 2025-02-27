@@ -164,7 +164,7 @@ def fetch_gtrend_signals():
 st.markdown(
     """
     <div class="title-with-logo">
-        <img src="https://raw.githubusercontent.com/mukundan1989/stock-signals-app/refs/heads/main/images/google-trends-logo.png" alt="Google Trends Logo">
+        <img src="https://raw.githubusercontent.com/mukundan1989/stock-signals-app/refs/heads/main/images/gtrend-logo.png" alt="Google Trends Logo">
         <h1 style='text-align: center;'>Google Trends Signals</h1>
     </div>
     """,
