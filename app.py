@@ -39,7 +39,7 @@ st.markdown(
 	color: #aeaeae !important; /* Set background color to black */
 	} 
 
-	.pretty-table th td:first-child {
+	.pretty-table th:first-child {
         border-top-left-radius: 30px; /* Adjust the border-radius for the first cell */
         border-bottom-left-radius: 30px;
 	}
