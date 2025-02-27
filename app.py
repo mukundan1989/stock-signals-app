@@ -383,12 +383,12 @@ def fetch_data(table, limit=5):
             lambda x: (
                 '<div class="trade-signal-buy">'
                 '<svg width="50" height="30" viewBox="0 0 50 30" fill="none" xmlns="http://www.w3.org/2000/svg">'
-                '<path d="M2 20 L8 15 L14 18 L20 12 L26 16 L32 10 L38 14 L44 8 L50 2" stroke="green" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>'
+                '<path d="M2 20 L8 15 L14 18 L20 12 L26 16 L32 10 L38 14 L44 8 L50 2" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>'
                 '</svg> ' + x + '</div>'
             ) if x.lower() == "buy" else (
                 '<div class="trade-signal-sell">'
                 '<svg width="50" height="30" viewBox="0 0 50 30" fill="none" xmlns="http://www.w3.org/2000/svg">'
-                '<path d="M2 10 L8 15 L14 12 L20 18 L26 14 L32 20 L38 16 L44 22 L50 28" stroke="red" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>'
+                '<path d="M2 10 L8 15 L14 12 L20 18 L26 14 L32 20 L38 16 L44 22 L50 28" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>'
                 '</svg> ' + x + '</div>'
             ) if x.lower() == "sell" else x
         )
