@@ -90,6 +90,19 @@ st.markdown(
         padding: 10px;
         color: var(--text-color);
     }
+
+    /* Custom CSS for the title with logo */
+    .title-with-logo {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px; /* Space between logo and title */
+    }
+
+    .title-with-logo img {
+        width: 40px; /* Adjust the size of the logo */
+        height: 40px;
+    }
     </style>
     """,
     unsafe_allow_html=True
@@ -144,8 +157,18 @@ def fetch_twitter_signals():
         st.error(f"Error fetching Twitter signals: {e}")
         return None
 
-# Page title and description
-st.markdown("<h1 style='text-align: center;'>Twitter Signals</h1>", unsafe_allow_html=True)
+# Page title with Twitter logo
+st.markdown(
+    """
+    <div class="title-with-logo">
+        <img src="images/twitter-logo.png" alt="Twitter Logo">
+        <h1 style='text-align: center;'>Twitter Signals</h1>
+    </div>
+    """,
+    unsafe_allow_html=True
+)
+
+# Page description
 st.write("<p style='text-align: center;'>View the latest Twitter sentiment signals for each stock.</p>", unsafe_allow_html=True)
 
 # Fetch and display Twitter signals
