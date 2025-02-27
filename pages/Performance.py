@@ -424,6 +424,9 @@ if go_clicked:
         st.subheader("Equity Curve")
         st.plotly_chart(create_cumulative_pl_chart(cumulative_pl_df), use_container_width=True)
 
+    # Add spacing before "Performance Data Table"
+    st.markdown("<br>", unsafe_allow_html=True)
+    
     df = fetch_model_data(symbol)
     if df is not None and not df.empty:
         st.subheader("Performance Data Table")
