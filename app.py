@@ -33,6 +33,11 @@ st.markdown(
         border-radius: 20px; /* Adjust the border-radius for rounded edges */
         margin-bottom: 10px;
 	}
+ 
+	.pretty-table th {
+        background-color: #1b1b1b; /* Set background color to black */
+	color: #aeaeae !important; /* Set background color to black */
+	} 
 
 	/* Padding for table cells */
 	.pretty-table th, .pretty-table td {
