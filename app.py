@@ -38,8 +38,7 @@ st.markdown(
 	.pretty-table th, .pretty-table td {
         padding: 6px 9px;
         text-align: center;
-	border: 5px 0px 0px 0px !important;
-	border-top: 5px solid #282828;
+	border: none;
 	}
 
 	/* Add curved edges to the first and last cells in each row */
