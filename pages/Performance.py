@@ -115,6 +115,142 @@ st.markdown("""
     h1, p {
         color: var(--text-color) !important;
     }
+
+    /* Grid container for metric boxes */
+    .grid-container {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 10px;
+        justify-content: center;
+        align-items: center;
+    }
+
+    @media (max-width: 600px) {
+        .grid-container { grid-template-columns: repeat(2, 1fr); gap: 5px; }
+    }
+
+    /* Styling for the metric boxes */
+    .metric-box {
+        background: linear-gradient(15deg, #000000, #232323);
+        padding: 20px;
+        border-radius: 10px;
+        text-align: left;
+        color: var(--text-color);
+        font-size: 18px;
+        font-weight: bold;
+        border: 1px solid var(--border-color);
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .metric-box::before {
+        content: "";
+        background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="50" height="50" viewBox="0 0 24 24" fill="none" stroke="%23ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20V10M18 20V4M6 20v-4"/></svg>');
+        background-size: 40px 40px;
+        background-position: left top;
+        background-repeat: no-repeat;
+        opacity: 0.3;
+        position: absolute;
+        top: 20px;
+        left: 20px;
+        width: 40px;
+        height: 40px;
+        z-index: 1;
+    }
+
+    .metric-box h2 {
+        margin-top: 60px;
+        margin-left: 20px;
+        margin-bottom: 10px;
+    }
+
+    .metric-box p {
+        margin-left: 20px;
+        margin-bottom: 0;
+    }
+
+    /* Second grid box with pile of cash icon */
+    .metric-box-gain {
+        background: linear-gradient(15deg, #000000, #232323);
+        padding: 20px;
+        border-radius: 10px;
+        text-align: left;
+        color: var(--text-color);
+        font-size: 18px;
+        font-weight: bold;
+        border: 1px solid var(--border-color);
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .metric-box-gain::before {
+        content: "";
+        background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="50" height="50" viewBox="0 0 24 24" fill="none" stroke="%23ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 1 0 0 7h5a3.5 3.5 0 1 1 0 7H6"/></svg>');
+        background-size: 40px 40px;
+        background-position: left top;
+        background-repeat: no-repeat;
+        opacity: 0.3;
+        position: absolute;
+        top: 20px;
+        left: 20px;
+        width: 40px;
+        height: 40px;
+        z-index: 1;
+    }
+
+    .metric-box-gain h2 {
+        margin-top: 60px;
+        margin-left: 20px;
+        margin-bottom: 10px;
+    }
+
+    .metric-box-gain p {
+        margin-left: 20px;
+        margin-bottom: 0;
+    }
+
+    /* Third grid box with speedometer gauge icon */
+    .metric-box-speedometer {
+        background: linear-gradient(15deg, #000000, #232323);
+        padding: 20px;
+        border-radius: 10px;
+        text-align: left;
+        color: var(--text-color);
+        font-size: 18px;
+        font-weight: bold;
+        border: 1px solid var(--border-color);
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .metric-box-speedometer::before {
+        content: "";
+        background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="50" height="50" viewBox="0 0 24 24" fill="none" stroke="%23ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10zM12 6v6l4 2"/></svg>');
+        background-size: 40px 40px;
+        background-position: left top;
+        background-repeat: no-repeat;
+        opacity: 0.3;
+        position: absolute;
+        top: 20px;
+        left: 20px;
+        width: 40px;
+        height: 40px;
+        z-index: 1;
+    }
+
+    .metric-box-speedometer h2 {
+        margin-top: 60px;
+        margin-left: 20px;
+        margin-bottom: 10px;
+    }
+
+    .metric-box-speedometer p {
+        margin-left: 20px;
+        margin-bottom: 0;
+    }
     </style>
 """, unsafe_allow_html=True)
 
@@ -272,22 +408,13 @@ if go_clicked:
         win_class = "positive" if metrics['win_percentage'] >= 50 else "negative"
         profit_class = "positive" if metrics['profit_factor'] > 1 else "negative"
 
-        cols = st.columns(3)
-        metric_data = [
-            {"label": "Win %", "value": f"{int(metrics['win_percentage'])}%", "trend": "", "class": win_class},
-            {"label": "No. of Trades", "value": f"{metrics['total_trades']}", "trend": "", "class": "positive"},
-            {"label": "Profit Factor", "value": f"{metrics['profit_factor']}", "trend": "↑" if metrics['profit_factor'] > 1 else "↓", "class": profit_class}
-        ]
-
-        for col, metric in zip(cols, metric_data):
-            with col:
-                st.markdown(f"""
-                    <div class="metric-card">
-                        <div class="metric-label">{metric['label']}</div>
-                        <div class="metric-value">{metric['value']}</div>
-                        <div class="metric-trend {metric['class']}">{metric['trend']}</div>
-                    </div>
-                """, unsafe_allow_html=True)
+        st.markdown("""
+            <div class="grid-container">
+                <div class="metric-box"><h2>{}%</h2><p>Win %</p></div>
+                <div class="metric-box-gain"><h2>{}</h2><p>No. of Trades</p></div>
+                <div class="metric-box-speedometer"><h2>{}</h2><p>Profit Factor</p></div>
+            </div>
+        """.format(int(metrics['win_percentage']), metrics['total_trades'], metrics['profit_factor']), unsafe_allow_html=True)
 
     cumulative_pl_df = fetch_cumulative_pl(symbol)
     if cumulative_pl_df is not None and not cumulative_pl_df.empty:
