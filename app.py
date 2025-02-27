@@ -39,6 +39,7 @@ st.markdown(
         padding: 6px 9px;
         text-align: center;
 	border: none;
+	border-top: 5px solid #282828 !important;
 	}
 
 	/* Add curved edges to the first and last cells in each row */
