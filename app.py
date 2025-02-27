@@ -12,51 +12,49 @@ st.markdown(
         color: var(--text-color);
     }
 
-    .pretty-table {
+	.pretty-table {
         width: 100%;
         border-collapse: separate;
-        border-spacing: 0 10px; /* Spacing between rows */
+        border-spacing: 0 10px; /* Adjust spacing between rows */
         font-size: 0.9em;
         font-family: sans-serif;
         min-width: 400px;
-        box-shadow: none; /* Remove box shadow to avoid distinct edges */
-        border-radius: 20px; /* Rounded edges for the entire table */
+        box-shadow: 0 0 20px rgba(0, 0, 0, 0.15);
+        border-radius: 30px;
         overflow: hidden;
         text-align: center;
         border: none;
         color: var(--text-color);
-        background-color: var(--background-color); /* Match container background */
 	}
 
-	/* Match row background to container background */
-    .pretty-table tbody tr {
-        background-color: var(--background-color); /* Use theme background color */
-        border-radius: 20px; /* Rounded edges for rows */
+	/* Black background with curved edges for each row */
+	.pretty-table tbody tr {
+        background-color: black; /* Set background color to black */
+        border-radius: 20px; /* Adjust the border-radius for rounded edges */
         margin-bottom: 10px;
 	}
 
 	/* Padding for table cells */
-    .pretty-table th, .pretty-table td {
+	.pretty-table th, .pretty-table td {
         padding: 12px 15px;
         text-align: center;
         border: none;
-        background-color: var(--background-color); /* Match container background */
 	}
 
 	/* Add curved edges to the first and last cells in each row */
-    .pretty-table tbody tr td:first-child {
-        border-top-left-radius: 20px;
+	.pretty-table tbody tr td:first-child {
+        border-top-left-radius: 20px; /* Adjust the border-radius for the first cell */
         border-bottom-left-radius: 20px;
 	}
 
-    .pretty-table tbody tr td:last-child {
-        border-top-right-radius: 20px;
+	.pretty-table tbody tr td:last-child {
+        border-top-right-radius: 20px; /* Adjust the border-radius for the last cell */
         border-bottom-right-radius: 20px;
 	}
 
 	/* Hover effect for rows */
-    .pretty-table tbody tr:hover {
-        background-color: var(--hover-background-color); /* Use theme hover color */
+	.pretty-table tbody tr:hover {
+        background-color: #333; /* Darker shade for hover effect */
 	}
 
     /* Ensure the text above the table is white */
