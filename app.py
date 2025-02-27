@@ -92,13 +92,15 @@ st.markdown(
         background-color: var(--primary-hover-color);
     }
 
-    /* Custom CSS for the Company Name cell */
-    .company-name-cell {
-        background-color: var(--secondary-background-color);
-        border-radius: 10px;
-        padding: 10px;
-        color: var(--text-color);
-    }
+/* Custom CSS for the Company Name cell */
+.company-name-cell {
+    background-color: var(--secondary-background-color); /* Use theme-based background color */
+    border-radius: 10px; /* Rounded edges */
+    padding: 10px; /* Padding for better spacing */
+    color: var(--text-color); /* Use theme-based text color */
+    text-align: center; /* Center-align text */
+    display: inline-block; /* Ensure the background wraps the content */
+}
 
     /* Custom CSS for the Trade Signal cell */
     .trade-signal-buy {
