@@ -72,31 +72,6 @@ st.markdown(
         font-weight: bold;
         border: 1px solid #4a4a4a; /* Subtle border */
         box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Soft shadow */
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        gap: 10px; /* Space between icon and text */
-    }
-
-    /* Icon styling */
-    .metric-box .icon {
-        width: 50px;
-        height: 50px;
-        fill: #cccccc; /* Light grey color for icons */
-    }
-
-    /* Large text styling */
-    .metric-box .large-text {
-        font-size: 28px;
-        font-weight: bold;
-        color: #ffffff; /* White text */
-    }
-
-    /* Smaller text styling */
-    .metric-box .small-text {
-        font-size: 16px;
-        color: #cccccc; /* Light grey text */
     }
 
     /* Grid container for metric boxes */
@@ -150,6 +125,64 @@ st.markdown(
         padding: 10px; /* Padding for better spacing */
         color: #ffffff; /* White text */
     }
+
+    /* Custom CSS for the 4th grid box */
+    .metric-box-accuracy {
+        background: linear-gradient(135deg, #3a3a3a, #2a2a2a); /* Dark grey gradient */
+        padding: 20px;
+        border-radius: 10px;
+        text-align: center;
+        color: #ffffff; /* White text */
+        font-size: 18px;
+        font-weight: bold;
+        border: 1px solid #4a4a4a; /* Subtle border */
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Soft shadow */
+        position: relative; /* Required for positioning the icon */
+        overflow: hidden; /* Ensure the icon doesn't overflow */
+    }
+
+    .metric-box-accuracy::after {
+        content: "";
+        background-image: url('data:image/svg+xml;utf8,<svg width="100" height="100" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><circle cx="50" cy="50" r="45" fill="%232e2e2e" stroke="%23000" stroke-width="2"/><circle cx="50" cy="50" r="35" fill="%234a4a4a" stroke="%23000" stroke-width="1"/><circle cx="50" cy="50" r="5" fill="%23ff0000" stroke="%23000" stroke-width="1"/><line x1="50" y1="10" x2="50" y2="90" stroke="%23000" stroke-width="1"/><line x1="10" y1="50" x2="90" y2="50" stroke="%23000" stroke-width="1"/><line x1="25" y1="25" x2="75" y2="75" stroke="%23000" stroke-width="1"/><line x1="75" y1="25" x2="25" y2="75" stroke="%23000" stroke-width="1"/></svg>');
+        background-size: 80px 80px; /* Adjust size of the icon */
+        background-position: bottom right; /* Position the icon at the bottom-right corner */
+        background-repeat: no-repeat;
+        opacity: 0.3; /* Blend the icon with the background */
+        position: absolute;
+        bottom: 10px;
+        right: 10px;
+        width: 80px;
+        height: 80px;
+        z-index: 1; /* Ensure the icon is behind the text */
+    }
+
+    /* Custom CSS for the 2nd grid box */
+    .metric-box-gain {
+        background: linear-gradient(135deg, #3a3a3a, #2a2a2a); /* Dark grey gradient */
+        padding: 20px;
+        border-radius: 10px;
+        text-align: center;
+        color: #ffffff; /* White text */
+        font-size: 18px;
+        font-weight: bold;
+        border: 1px solid #4a4a4a; /* Subtle border */
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Soft shadow */
+        position: relative; /* Required for positioning the graph */
+        overflow: hidden; /* Ensure the graph doesn't overflow */
+    }
+
+    .metric-box-gain::before {
+        content: "";
+        background-image: url('data:image/svg+xml;utf8,<svg width="100%" height="100%" viewBox="0 0 100 50" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="areaGradient" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="%231a1a1a" stop-opacity="0.5" /><stop offset="100%" stop-color="%232a2a2a" stop-opacity="0.2" /></linearGradient></defs><path d="M0 50 L20 30 L40 40 L60 20 L80 35 L100 25 L100 50 Z" fill="url(%23areaGradient)" stroke="%23ffffff" stroke-width="0.5" stroke-opacity="0.3" /></svg>');
+        background-size: cover; /* Cover the entire box */
+        background-position: center; /* Center the graph */
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 1; /* Ensure the graph is behind the text */
+    }
     </style>
     """,
     unsafe_allow_html=True
@@ -163,41 +196,10 @@ st.write("<p style='text-align: center;'>Know stock market trends and make smart
 st.markdown(
     """
     <div class="grid-container">
-        <!-- First Box: Area Chart Icon -->
-        <div class="metric-box">
-            <svg class="icon" viewBox="0 0 24 24" fill="#cccccc" xmlns="http://www.w3.org/2000/svg">
-                <path d="M3 3v16h18V3H3zm16 14H5V5h14v12zM7 12l2 3 3-4 4 5 3-2v-2H7v2z"/>
-            </svg>
-            <div class="large-text">43%</div>
-            <div class="small-text">Above Baseline</div>
-        </div>
-
-        <!-- Second Box: Pile of Cash Icon -->
-        <div class="metric-box">
-            <svg class="icon" viewBox="0 0 24 24" fill="#cccccc" xmlns="http://www.w3.org/2000/svg">
-                <path d="M5 6h14v12H5V6zm2 2v8h10V8H7zm5 4c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2z"/>
-            </svg>
-            <div class="large-text">$13,813</div>
-            <div class="small-text">Gain on Buy</div>
-        </div>
-
-        <!-- Third Box: Smiley Icon -->
-        <div class="metric-box">
-            <svg class="icon" viewBox="0 0 24 24" fill="#cccccc" xmlns="http://www.w3.org/2000/svg">
-                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-5-7h2v2H7v-2zm10 0h2v2h-2v-2zm-5 4c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2z"/>
-            </svg>
-            <div class="large-text">+0.75</div>
-            <div class="small-text">Sentiment Score</div>
-        </div>
-
-        <!-- Fourth Box: Dartboard with Arrow Icon -->
-        <div class="metric-box">
-            <svg class="icon" viewBox="0 0 24 24" fill="#cccccc" xmlns="http://www.w3.org/2000/svg">
-                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-9h2v2h-2v-2zm4 0h2v2h-2v-2zm-8 0h2v2H7v-2z"/>
-            </svg>
-            <div class="large-text">87%</div>
-            <div class="small-text">Accuracy</div>
-        </div>
+        <div class="metric-box"><h2>43%</h2><p>Above Baseline</p></div>
+        <div class="metric-box-gain"><h2>$13,813</h2><p>Gain on Buy</p></div>
+        <div class="metric-box"><h2>+0.75</h2><p>Sentiment Score</p></div>
+        <div class="metric-box-accuracy"><h2>87%</h2><p>Accuracy</p></div>
     </div>
     """,
     unsafe_allow_html=True
