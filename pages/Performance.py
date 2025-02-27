@@ -131,7 +131,7 @@ st.markdown("""
 
     /* Styling for the metric boxes */
     .metric-box {
-        background: linear-gradient(15deg, #000000, #232323);
+        background: linear-gradient(10deg, #000000, #232323);
         padding: 20px;
         border-radius: 10px;
         text-align: left;
