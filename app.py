@@ -313,3 +313,79 @@ def fetch_data(table, limit=5):
 
 # Load initial data if not set
 if st.session_state["data"] is None:
+    st.session_state["data"] = fetch_data(st.session_state["selected_table"])
+
+# Add spacing before "Portfolio"
+st.markdown("<br>", unsafe_allow_html=True)
+
+# Display formatted table with pretty headers
+st.write("### Portfolio")
+if st.session_state["data"] is not None:
+    table_html = st.session_state["data"].to_html(index=False, classes="pretty-table", escape=False)
+    st.markdown(table_html, unsafe_allow_html=True)
+
+# Add Stock button
+if st.button("Add Stock"):
+    st.session_state["show_search"] = True
+
+# Show search box when "Add Stock" is clicked
+if st.session_state["show_search"]:
+    symbol = st.text_input("Enter Stock Symbol:")
+    if symbol:
+        try:
+            conn = mysql.connector.connect(
+                host=DB_HOST,
+                database=DB_NAME,
+                user=DB_USER,
+                password=DB_PASSWORD
+            )
+            cursor = conn.cursor()
+            query = f"SELECT date, comp_name, comp_symbol, trade_signal, entry_price FROM `{DB_NAME}`.`{st.session_state['selected_table']}` WHERE comp_symbol = %s"
+            cursor.execute(query, (symbol,))
+            result = cursor.fetchall()
+            cursor.close()
+            conn.close()
+
+            if result:
+                new_row = pd.DataFrame(result, columns=["date", "comp_name", "comp_symbol", "trade_signal", "entry_price"])
+                
+                # Combine company name and symbol into a single column with custom CSS
+                new_row["Company Name"] = new_row.apply(
+                    lambda row: f'<div class="company-name-cell">{row["comp_name"]}<br><small>{row["comp_symbol"]}</small></div>',
+                    axis=1
+                )
+                
+                # Drop the original comp_name and comp_symbol columns
+                new_row = new_row.drop(columns=["comp_name", "comp_symbol"])
+
+                # Add trending graph icons and background to the Trade Signal column
+                new_row["Trade Signal"] = new_row["trade_signal"].apply(
+                    lambda x: (
+                        '<div class="trade-signal-buy">'
+                        '<svg width="50" height="30" viewBox="0 0 50 30" fill="none" xmlns="http://www.w3.org/2000/svg">'
+                        '<path d="M2 20 L8 15 L14 18 L20 12 L26 16 L32 10 L38 14 L44 8 L50 2" stroke="green" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>'
+                        '</svg> ' + x + '</div>'
+                    ) if x.lower() == "buy" else (
+                        '<div class="trade-signal-sell">'
+                        '<svg width="50" height="30" viewBox="0 0 50 30" fill="none" xmlns="http://www.w3.org/2000/svg">'
+                        '<path d="M2 10 L8 15 L14 12 L20 18 L26 14 L32 20 L38 16 L44 22 L50 28" stroke="red" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>'
+                        '</svg> ' + x + '</div>'
+                    ) if x.lower() == "sell" else x
+                )
+
+                # Rename new row to match the table headers
+                new_row = new_row.rename(columns={
+                    "date": "Date",
+                    "entry_price": "Entry Price ($)"
+                })
+
+                # Drop the original trade_signal column to avoid duplication
+                new_row = new_row.drop(columns=["trade_signal"])
+
+                st.session_state["data"] = pd.concat([st.session_state["data"], new_row], ignore_index=True)
+                st.session_state["show_search"] = False
+                st.rerun()
+            else:
+                st.warning("Stock not found!")
+        except Exception as e:
+            st.error(f"Error searching stock: {e}")
