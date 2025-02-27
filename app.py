@@ -31,7 +31,7 @@ st.markdown(
 	/* Grey background with curved edges for each row */
 	.pretty-table tbody tr {
         background-color: #3a3a3a; /* Dark grey background */
-        border-radius: 10px; /* Rounded edges for each row */
+        border-radius: 20px; /* Rounded edges for each row */
         margin-bottom: 10px; /* Add spacing between rows */
 	}
 
