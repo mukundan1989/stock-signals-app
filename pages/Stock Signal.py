@@ -2,6 +2,7 @@ import streamlit as st
 import plotly.express as px
 import plotly.graph_objects as go
 import pandas as pd
+import numpy as np
 import uuid  # For unique chart identifiers
 
 # Page config
@@ -187,13 +188,29 @@ st.markdown("""
         margin-left: 5px;
         margin-bottom: 0;
     }
+
+    /* Custom CSS for Twitter and News blocks */
+    .block-title {
+        font-size: 24px;
+        font-weight: bold;
+        color: white;
+        margin-top: 20px;
+        margin-bottom: 10px;
+    }
+
+    .sentiment-icon {
+        font-size: 48px;
+        text-align: center;
+        color: #00ff00;
+    }
     </style>
 """, unsafe_allow_html=True)
 
-# Function to create stock price trend chart
+# Function to create a realistic stock price trend chart
 def create_stock_price_chart():
     dates = pd.date_range(start="2024-01-01", periods=30, freq="D")
-    stock_prices = [175 + (i * 0.5) for i in range(30)]
+    # Simulate realistic stock price fluctuations
+    stock_prices = [175 + (i * 0.5) + np.random.normal(0, 1) for i in range(30)]
     df_stock = pd.DataFrame({'Date': dates, 'Stock Price': stock_prices})
     
     fig = px.line(df_stock, x='Date', y='Stock Price', title="Stock Price Trend")
@@ -206,7 +223,7 @@ def create_stock_price_chart():
         showlegend=False,
         xaxis=dict(showgrid=True, gridwidth=0.5, gridcolor='rgba(255,255,255,0.1)'),
         yaxis=dict(showgrid=True, gridwidth=0.5, gridcolor='rgba(255,255,255,0.1)'),
-        height=200
+        height=300
     )
     return fig
 
@@ -217,7 +234,7 @@ def create_donut_chart():
         'Positive': '#00ff00', 'Negative': '#ff0000', 'Neutral': '#808080'
     })
     fig.update_layout(
-        showlegend=True, margin=dict(t=20, b=20, l=20, r=20), height=180, width=180,
+        showlegend=True, margin=dict(t=20, b=20, l=20, r=20), height=200, width=200,
         paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
         font=dict(color='#ffffff'), legend=dict(font=dict(color='#ffffff'), bgcolor='rgba(0,0,0,0)')
     )
@@ -239,7 +256,7 @@ def create_speedometer():
             'threshold': {'line': {'color': "white", 'width': 4}, 'thickness': 0.75, 'value': 85}
         }
     ))
-    fig.update_layout(height=180, width=180, margin=dict(t=20, b=20, l=20, r=20), paper_bgcolor='rgba(0,0,0,0)', font=dict(color='#ffffff'))
+    fig.update_layout(height=200, width=200, margin=dict(t=20, b=20, l=20, r=20), paper_bgcolor='rgba(0,0,0,0)', font=dict(color='#ffffff'))
     return fig
 
 # Title (Now in White)
@@ -268,44 +285,36 @@ st.markdown("""
 # Stock Price Trend Chart
 st.plotly_chart(create_stock_price_chart(), use_container_width=True, key=str(uuid.uuid4()))
 
-# Twitter Trends Block
+# Twitter Sentiment Block
 st.markdown("""
-    <div class="grid-container">
+    <div class="block-title">Twitter Sentiment</div>
+""", unsafe_allow_html=True)
+
+col1, col2 = st.columns([1, 2])
+with col1:
+    st.markdown("""
         <div class="metric-box">
             <h2>145</h2>
             <p>Keywords</p>
+            <div class="sentiment-icon">&#9650;</div>
         </div>
-        <div class="metric-box-gain">
-            <h2>45%</h2>
-            <p>Positive Sentiment</p>
-        </div>
-        <div class="metric-box-speedometer">
-            <h2>30%</h2>
-            <p>Negative Sentiment</p>
-        </div>
-    </div>
+    """, unsafe_allow_html=True)
+with col2:
+    st.plotly_chart(create_donut_chart(), use_container_width=True, key=str(uuid.uuid4()))
+
+# News Sentiment Block
+st.markdown("""
+    <div class="block-title">News Sentiment</div>
 """, unsafe_allow_html=True)
 
-# Donut Chart for Sentiment Analysis
-st.plotly_chart(create_donut_chart(), use_container_width=True, key=str(uuid.uuid4()))
-
-# News Insight Block
-st.markdown("""
-    <div class="grid-container">
+col1, col2 = st.columns([1, 2])
+with col1:
+    st.markdown("""
         <div class="metric-box">
             <h2>70%</h2>
-            <p>News Sentiment</p>
+            <p>Positive Sentiment</p>
+            <div class="sentiment-icon">&#9650;</div>
         </div>
-        <div class="metric-box-gain">
-            <h2>85%</h2>
-            <p>Confidence</p>
-        </div>
-        <div class="metric-box-speedometer">
-            <h2>60%</h2>
-            <p>Relevance</p>
-        </div>
-    </div>
-""", unsafe_allow_html=True)
-
-# Speedometer for News Insight
-st.plotly_chart(create_speedometer(), use_container_width=True, key=str(uuid.uuid4()))
+    """, unsafe_allow_html=True)
+with col2:
+    st.plotly_chart(create_speedometer(), use_container_width=True, key=str(uuid.uuid4()))
