@@ -94,7 +94,7 @@ st.markdown(
 
 /* Custom CSS for the Company Name cell */
 .company-name-cell {
-    background-color: var(--cellone-color);
+    background-color: #7e7e7e;
     border-radius: 10px; /* Rounded edges */
     padding: 10px; /* Padding for better spacing */
     color: var(--text-color); /* Use theme-based text color */
