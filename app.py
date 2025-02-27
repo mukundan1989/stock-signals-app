@@ -49,8 +49,8 @@ st.markdown(
 	}
 
 	.pretty-table tbody tr td:last-child {
-        border-top-right-radius: 10px;
-        border-bottom-right-radius: 10px;
+        border-top-right-radius: 20px;
+        border-bottom-right-radius: 20px;
 	}
 
 	/* Hover effect for rows */
