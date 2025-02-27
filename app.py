@@ -235,6 +235,47 @@ st.markdown(
         margin-left: 20px; /* Left-align text */
         margin-bottom: 0; /* Remove extra margin */
     }
+
+    /* Fourth grid box with dartboard and arrow icon */
+    .metric-box-accuracy {
+        background: linear-gradient(135deg, #3a3a3a, #2a2a2a); /* Dark grey gradient */
+        padding: 20px; /* Padding for the box */
+        border-radius: 10px;
+        text-align: left; /* Left-align text */
+        color: #ffffff; /* White text */
+        font-size: 18px;
+        font-weight: bold;
+        border: 1px solid #4a4a4a; /* Subtle border */
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Soft shadow */
+        position: relative; /* Required for positioning the icon */
+        overflow: hidden; /* Ensure the icon doesn't overflow */
+    }
+
+    .metric-box-accuracy::before {
+        content: "";
+        background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="50" height="50" viewBox="0 0 24 24" fill="none" stroke="%23ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M16 8l-4 4-4-4"/></svg>'); /* Dartboard with arrow SVG */
+        background-size: 40px 40px; /* Adjust size of the icon */
+        background-position: left top; /* Position the icon at the top-left */
+        background-repeat: no-repeat;
+        opacity: 0.3; /* Blend the icon with the background */
+        position: absolute;
+        top: 20px; /* Adjust top position */
+        left: 20px; /* Adjust left position */
+        width: 40px;
+        height: 40px;
+        z-index: 1; /* Ensure the icon is behind the text */
+    }
+
+    .metric-box-accuracy h2 {
+        margin-top: 60px; /* Push text down to avoid overlapping with the icon */
+        margin-left: 20px; /* Left-align text */
+        margin-bottom: 10px; /* Space between h2 and p */
+    }
+
+    .metric-box-accuracy p {
+        margin-left: 20px; /* Left-align text */
+        margin-bottom: 0; /* Remove extra margin */
+    }
     </style>
     """,
     unsafe_allow_html=True
