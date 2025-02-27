@@ -12,66 +12,55 @@ st.markdown(
         color: #ffffff; /* White text for the entire page */
     }
 
-    /* Custom CSS for elegant table design */
-    .pretty-table {
+	/* Custom CSS for elegant table design with curved edges */
+	.pretty-table {
         width: 100%;
-        border-collapse: collapse;
+        border-collapse: separate; /* Use separate to allow rounded corners */
+        border-spacing: 0 30px; /* Add spacing between rows */
         font-size: 0.9em;
         font-family: sans-serif;
         min-width: 400px;
         box-shadow: 0 0 20px rgba(0, 0, 0, 0.15);
-        border-radius: 10px;
+        border-radius: 30px; /* Rounded edges for the table */
         overflow: hidden;
         text-align: center;
         border: none;
         color: #ffffff; /* White text for the table */
-    }
+	}
 
-    /* Black header with white text */
-    .pretty-table thead tr {
-        background-color: #000000; /* Black header */
-        color: #ffffff; /* White text */
-        text-align: center;
-        border: none;
-    }
+	/* Grey background with curved edges for each row */
+	.pretty-table tbody tr {
+        background-color: #3a3a3a; /* Dark grey background */
+        border-radius: 50px; /* Rounded edges for each row */
+        margin-bottom: 10px; /* Add spacing between rows */
+	}
 
-    /* Padding for table cells */
-    .pretty-table th, .pretty-table td {
+	/* Padding for table cells */
+	.pretty-table th, .pretty-table td {
         padding: 12px 15px;
         text-align: center;
         border: none;
-    }
+	}
 
-    /* Alternating row colors: light grey and dark grey */
-    .pretty-table tbody tr:nth-of-type(odd) {
-        background-color: #3a3a3a; /* Dark grey */
-    }
+	/* Add curved edges to the first and last cells in each row */
+	.pretty-table tbody tr td:first-child {
+        border-top-left-radius: 10px;
+        border-bottom-left-radius: 10px;
+	}
 
-    .pretty-table tbody tr:nth-of-type(even) {
-        background-color: #4a4a4a; /* Light grey */
-    }
+	.pretty-table tbody tr td:last-child {
+        border-top-right-radius: 20px;
+        border-bottom-right-radius: 20px;
+	}
 
-    /* Hover effect for rows */
-    .pretty-table tbody tr:hover {
-        background-color: #5a5a5a; /* Slightly lighter grey on hover */
-    }
+	/* Hover effect for rows */
+	.pretty-table tbody tr:hover {
+        background-color: #4a4a4a; /* Slightly lighter grey on hover */
+	}
 
     /* Ensure the text above the table is white */
     h1, p {
         color: #ffffff !important; /* White text for titles and paragraphs */
-    }
-
-    /* Updated styling for metric boxes with gradient background */
-    .metric-box {
-        background: linear-gradient(135deg, #3a3a3a, #2a2a2a); /* Dark grey gradient */
-        padding: 20px;
-        border-radius: 10px;
-        text-align: center;
-        color: #ffffff; /* White text */
-        font-size: 18px;
-        font-weight: bold;
-        border: 1px solid #4a4a4a; /* Subtle border */
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Soft shadow */
     }
 
     /* Grid container for metric boxes */
@@ -126,12 +115,12 @@ st.markdown(
         color: #ffffff; /* White text */
     }
 
-    /* Custom CSS for the 4th grid box */
-    .metric-box-accuracy {
+    /* First grid box with line chart icon */
+    .metric-box {
         background: linear-gradient(135deg, #3a3a3a, #2a2a2a); /* Dark grey gradient */
-        padding: 20px;
+        padding: 20px; /* Padding for the box */
         border-radius: 10px;
-        text-align: center;
+        text-align: left; /* Left-align text */
         color: #ffffff; /* White text */
         font-size: 18px;
         font-weight: bold;
@@ -141,47 +130,153 @@ st.markdown(
         overflow: hidden; /* Ensure the icon doesn't overflow */
     }
 
-    .metric-box-accuracy::after {
+    .metric-box::before {
         content: "";
-        background-image: url('data:image/svg+xml;utf8,<svg width="100" height="100" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><circle cx="50" cy="50" r="45" fill="%232e2e2e" stroke="%23000" stroke-width="2"/><circle cx="50" cy="50" r="35" fill="%234a4a4a" stroke="%23000" stroke-width="1"/><circle cx="50" cy="50" r="5" fill="%23ff0000" stroke="%23000" stroke-width="1"/><line x1="50" y1="10" x2="50" y2="90" stroke="%23000" stroke-width="1"/><line x1="10" y1="50" x2="90" y2="50" stroke="%23000" stroke-width="1"/><line x1="25" y1="25" x2="75" y2="75" stroke="%23000" stroke-width="1"/><line x1="75" y1="25" x2="25" y2="75" stroke="%23000" stroke-width="1"/></svg>');
-        background-size: 80px 80px; /* Adjust size of the icon */
-        background-position: bottom right; /* Position the icon at the bottom-right corner */
+        background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="50" height="50" viewBox="0 0 24 24" fill="none" stroke="%23ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20V10M18 20V4M6 20v-4"/></svg>'); /* Line chart SVG */
+        background-size: 40px 40px; /* Adjust size of the icon */
+        background-position: left top; /* Position the icon at the top-left */
         background-repeat: no-repeat;
         opacity: 0.3; /* Blend the icon with the background */
         position: absolute;
-        bottom: 10px;
-        right: 10px;
-        width: 80px;
-        height: 80px;
+        top: 20px; /* Adjust top position */
+        left: 20px; /* Adjust left position */
+        width: 40px;
+        height: 40px;
         z-index: 1; /* Ensure the icon is behind the text */
     }
 
-    /* Custom CSS for the 2nd grid box */
+    .metric-box h2 {
+        margin-top: 60px; /* Push text down to avoid overlapping with the icon */
+        margin-left: 20px; /* Left-align text */
+        margin-bottom: 10px; /* Space between h2 and p */
+    }
+
+    .metric-box p {
+        margin-left: 20px; /* Left-align text */
+        margin-bottom: 0; /* Remove extra margin */
+    }
+
+    /* Second grid box with pile of cash icon */
     .metric-box-gain {
         background: linear-gradient(135deg, #3a3a3a, #2a2a2a); /* Dark grey gradient */
-        padding: 20px;
+        padding: 20px; /* Padding for the box */
         border-radius: 10px;
-        text-align: center;
+        text-align: left; /* Left-align text */
         color: #ffffff; /* White text */
         font-size: 18px;
         font-weight: bold;
         border: 1px solid #4a4a4a; /* Subtle border */
         box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Soft shadow */
-        position: relative; /* Required for positioning the graph */
-        overflow: hidden; /* Ensure the graph doesn't overflow */
+        position: relative; /* Required for positioning the icon */
+        overflow: hidden; /* Ensure the icon doesn't overflow */
     }
 
     .metric-box-gain::before {
         content: "";
-        background-image: url('data:image/svg+xml;utf8,<svg width="100%" height="100%" viewBox="0 0 100 50" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="areaGradient" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="%231a1a1a" stop-opacity="0.5" /><stop offset="100%" stop-color="%232a2a2a" stop-opacity="0.2" /></linearGradient></defs><path d="M0 50 L20 30 L40 40 L60 20 L80 35 L100 25 L100 50 Z" fill="url(%23areaGradient)" stroke="%23ffffff" stroke-width="0.5" stroke-opacity="0.3" /></svg>');
-        background-size: cover; /* Cover the entire box */
-        background-position: center; /* Center the graph */
+        background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="50" height="50" viewBox="0 0 24 24" fill="none" stroke="%23ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 1 0 0 7h5a3.5 3.5 0 1 1 0 7H6"/></svg>'); /* Pile of cash SVG */
+        background-size: 40px 40px; /* Adjust size of the icon */
+        background-position: left top; /* Position the icon at the top-left */
+        background-repeat: no-repeat;
+        opacity: 0.3; /* Blend the icon with the background */
         position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        z-index: 1; /* Ensure the graph is behind the text */
+        top: 20px; /* Adjust top position */
+        left: 20px; /* Adjust left position */
+        width: 40px;
+        height: 40px;
+        z-index: 1; /* Ensure the icon is behind the text */
+    }
+
+    .metric-box-gain h2 {
+        margin-top: 60px; /* Push text down to avoid overlapping with the icon */
+        margin-left: 20px; /* Left-align text */
+        margin-bottom: 10px; /* Space between h2 and p */
+    }
+
+    .metric-box-gain p {
+        margin-left: 20px; /* Left-align text */
+        margin-bottom: 0; /* Remove extra margin */
+    }
+
+    /* Third grid box with speedometer gauge icon */
+    .metric-box-speedometer {
+        background: linear-gradient(135deg, #3a3a3a, #2a2a2a); /* Dark grey gradient */
+        padding: 20px; /* Padding for the box */
+        border-radius: 10px;
+        text-align: left; /* Left-align text */
+        color: #ffffff; /* White text */
+        font-size: 18px;
+        font-weight: bold;
+        border: 1px solid #4a4a4a; /* Subtle border */
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Soft shadow */
+        position: relative; /* Required for positioning the icon */
+        overflow: hidden; /* Ensure the icon doesn't overflow */
+    }
+
+    .metric-box-speedometer::before {
+        content: "";
+        background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="50" height="50" viewBox="0 0 24 24" fill="none" stroke="%23ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10zM12 6v6l4 2"/></svg>'); /* Speedometer gauge SVG */
+        background-size: 40px 40px; /* Adjust size of the icon */
+        background-position: left top; /* Position the icon at the top-left */
+        background-repeat: no-repeat;
+        opacity: 0.3; /* Blend the icon with the background */
+        position: absolute;
+        top: 20px; /* Adjust top position */
+        left: 20px; /* Adjust left position */
+        width: 40px;
+        height: 40px;
+        z-index: 1; /* Ensure the icon is behind the text */
+    }
+
+    .metric-box-speedometer h2 {
+        margin-top: 60px; /* Push text down to avoid overlapping with the icon */
+        margin-left: 20px; /* Left-align text */
+        margin-bottom: 10px; /* Space between h2 and p */
+    }
+
+    .metric-box-speedometer p {
+        margin-left: 20px; /* Left-align text */
+        margin-bottom: 0; /* Remove extra margin */
+    }
+
+    /* Fourth grid box with dartboard and arrow icon */
+    .metric-box-accuracy {
+        background: linear-gradient(135deg, #3a3a3a, #2a2a2a); /* Dark grey gradient */
+        padding: 20px; /* Padding for the box */
+        border-radius: 10px;
+        text-align: left; /* Left-align text */
+        color: #ffffff; /* White text */
+        font-size: 18px;
+        font-weight: bold;
+        border: 1px solid #4a4a4a; /* Subtle border */
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Soft shadow */
+        position: relative; /* Required for positioning the icon */
+        overflow: hidden; /* Ensure the icon doesn't overflow */
+    }
+
+    .metric-box-accuracy::before {
+        content: "";
+        background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="50" height="50" viewBox="0 0 24 24" fill="none" stroke="%23ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M16 8l-4 4-4-4"/></svg>'); /* Dartboard with arrow SVG */
+        background-size: 40px 40px; /* Adjust size of the icon */
+        background-position: left top; /* Position the icon at the top-left */
+        background-repeat: no-repeat;
+        opacity: 0.3; /* Blend the icon with the background */
+        position: absolute;
+        top: 20px; /* Adjust top position */
+        left: 20px; /* Adjust left position */
+        width: 40px;
+        height: 40px;
+        z-index: 1; /* Ensure the icon is behind the text */
+    }
+
+    .metric-box-accuracy h2 {
+        margin-top: 60px; /* Push text down to avoid overlapping with the icon */
+        margin-left: 20px; /* Left-align text */
+        margin-bottom: 10px; /* Space between h2 and p */
+    }
+
+    .metric-box-accuracy p {
+        margin-left: 20px; /* Left-align text */
+        margin-bottom: 0; /* Remove extra margin */
     }
     </style>
     """,
@@ -198,7 +293,7 @@ st.markdown(
     <div class="grid-container">
         <div class="metric-box"><h2>43%</h2><p>Above Baseline</p></div>
         <div class="metric-box-gain"><h2>$13,813</h2><p>Gain on Buy</p></div>
-        <div class="metric-box"><h2>+0.75</h2><p>Sentiment Score</p></div>
+        <div class="metric-box-speedometer"><h2>+0.75</h2><p>Sentiment Score</p></div>
         <div class="metric-box-accuracy"><h2>87%</h2><p>Accuracy</p></div>
     </div>
     """,
