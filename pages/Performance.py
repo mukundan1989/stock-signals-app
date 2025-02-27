@@ -50,6 +50,71 @@ st.markdown("""
     /* Trend Colors */
     .positive { color: #00ff9f; }  /* Green */
     .negative { color: #ff4b4b; }  /* Red */
+
+    /* Custom CSS for elegant table design using theme-based colors */
+    .pretty-table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0 10px; /* Adjust spacing between rows */
+        font-size: 0.9em;
+        font-family: sans-serif;
+        min-width: 400px;
+        overflow: hidden;
+        text-align: center;
+        border: none;
+        color: var(--text-color);
+    }
+
+    /* Black background with curved edges for each row */
+    .pretty-table tbody tr {
+        background-color: black; /* Set background color to black */
+        border-radius: 20px; /* Adjust the border-radius for rounded edges */
+        margin-bottom: 10px;
+    }
+ 
+    .pretty-table th {
+        background-color: #1c1c1c; /* Set background color to black */
+        color: #aeaeae !important; /* Set background color to black */
+    } 
+
+    .pretty-table th:first-child {
+        border-top-left-radius: 30px; /* Adjust the border-radius for the first cell */
+        border-bottom-left-radius: 30px;
+    }
+
+    .pretty-table th:last-child {
+        border-top-right-radius: 30px; /* Adjust the border-radius for the first cell */
+        border-bottom-right-radius: 30px;
+    }
+
+    /* Padding for table cells */
+    .pretty-table th, .pretty-table td {
+        padding: 6px 9px;
+        text-align: center;
+        border: none;
+        border-top: 5px solid #282828 !important;
+    }
+
+    /* Add curved edges to the first and last cells in each row */
+    .pretty-table tbody tr td:first-child {
+        border-top-left-radius: 20px; /* Adjust the border-radius for the first cell */
+        border-bottom-left-radius: 20px;
+    }
+
+    .pretty-table tbody tr td:last-child {
+        border-top-right-radius: 20px; /* Adjust the border-radius for the last cell */
+        border-bottom-right-radius: 20px;
+    }
+
+    /* Hover effect for rows */
+    .pretty-table tbody tr:hover {
+        background-color: #333; /* Darker shade for hover effect */
+    }
+
+    /* Ensure the text above the table is white */
+    h1, p {
+        color: var(--text-color) !important;
+    }
     </style>
 """, unsafe_allow_html=True)
 
@@ -232,4 +297,5 @@ if go_clicked:
     df = fetch_model_data(symbol)
     if df is not None and not df.empty:
         st.subheader("Performance Data Table")
-        st.dataframe(df, use_container_width=True, hide_index=True)  # Hide the index column
+        table_html = df.to_html(index=False, classes="pretty-table", escape=False)
+        st.markdown(table_html, unsafe_allow_html=True)
