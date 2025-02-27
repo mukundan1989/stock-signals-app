@@ -19,7 +19,6 @@ st.markdown(
         font-size: 0.9em;
         font-family: sans-serif;
         min-width: 400px;
-        border-radius: 30px;
         overflow: hidden;
         text-align: center;
         border: none;
@@ -31,6 +30,21 @@ st.markdown(
         background-color: black; /* Set background color to black */
         border-radius: 20px; /* Adjust the border-radius for rounded edges */
         margin-bottom: 10px;
+    }
+
+    .pretty-table th {
+        background-color: #1c1c1c; /* Set background color to black */
+        color: #aeaeae !important; /* Set text color to light grey */
+    }
+
+    .pretty-table th:first-child {
+        border-top-left-radius: 30px; /* Adjust the border-radius for the first cell */
+        border-bottom-left-radius: 30px;
+    }
+
+    .pretty-table th:last-child {
+        border-top-right-radius: 30px; /* Adjust the border-radius for the last cell */
+        border-bottom-right-radius: 30px;
     }
 
     /* Padding for table cells */
@@ -60,6 +74,21 @@ st.markdown(
     /* Ensure the text above the table is white */
     h1, p {
         color: var(--text-color) !important;
+    }
+
+    /* Custom CSS for the Sentiment cell */
+    .sentiment-positive {
+        background-color: #2e7d32; /* Green background for positive sentiment */
+        border-radius: 10px;
+        padding: 10px;
+        color: var(--text-color);
+    }
+
+    .sentiment-negative {
+        background-color: #c62828; /* Red background for negative sentiment */
+        border-radius: 10px;
+        padding: 10px;
+        color: var(--text-color);
     }
     </style>
     """,
@@ -97,6 +126,15 @@ def fetch_twitter_signals():
 
         columns = ["Date", "Company Symbol", "Analyzed Tweets", "Sentiment Score", "Sentiment", "Entry Price"]
         df = pd.DataFrame(result, columns=columns)
+
+        # Apply custom CSS to the Sentiment column
+        df["Sentiment"] = df["Sentiment"].apply(
+            lambda x: (
+                '<div class="sentiment-positive">' + x + '</div>'
+            ) if x.lower() == "positive" else (
+                '<div class="sentiment-negative">' + x + '</div>'
+            ) if x.lower() == "negative" else x
+        )
 
         cursor.close()
         conn.close()
