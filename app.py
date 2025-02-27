@@ -64,7 +64,7 @@ st.markdown(
     /* Updated styling for metric boxes with gradient background */
     .metric-box {
         background: linear-gradient(135deg, #3a3a3a, #2a2a2a); /* Dark grey gradient */
-        padding: 20px;
+        padding: 60px 20px 20px 20px;
         border-radius: 10px;
         text-align: center;
         color: #ffffff; /* White text */
