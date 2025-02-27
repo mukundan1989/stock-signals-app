@@ -66,7 +66,7 @@ st.markdown(
         background: linear-gradient(135deg, #3a3a3a, #2a2a2a); /* Dark grey gradient */
         padding: 20px;
         border-radius: 10px;
-        text-align: center;
+        text-align: left; /* Left-align text */
         color: #ffffff; /* White text */
         font-size: 18px;
         font-weight: bold;
@@ -80,16 +80,16 @@ st.markdown(
     .metric-box::before {
         content: "";
         background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="50" height="50" viewBox="0 0 24 24" fill="none" stroke="%23ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20V10M18 20V4M6 20v-4"/></svg>'); /* Line chart SVG */
-        background-size: 50px 50px; /* Adjust size of the icon */
-        background-position: center top; /* Position the icon at the top */
+        background-size: 40px 40px; /* Adjust size of the icon */
+        background-position: left top; /* Position the icon at the top left*/
         background-repeat: no-repeat;
         opacity: 0.3; /* Blend the icon with the background */
         position: absolute;
-        top: 10px;
-        left: 50%;
-        transform: translateX(-50%);
-        width: 50px;
-        height: 50px;
+        top: 20px;
+        left: 20px;
+        
+        width: 40px;
+        height: 40px;
         z-index: 1; /* Ensure the icon is behind the text */
     }
 
