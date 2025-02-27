@@ -4,7 +4,7 @@ import mysql.connector
 import plotly.graph_objects as go
 
 # Set page config
-# st.set_page_config(layout="wide", page_title="Performance Summary", initial_sidebar_state="collapsed")
+st.set_page_config(layout="wide", page_title="Performance Summary", initial_sidebar_state="collapsed")
 
 # Apply modern glassmorphism CSS
 st.markdown("""
@@ -131,7 +131,7 @@ st.markdown("""
 
     /* Styling for the metric boxes */
     .metric-box {
-        background: linear-gradient(10deg, #000000, #232323);
+        background: linear-gradient(15deg, #000000, #232323);
         padding: 20px;
         border-radius: 10px;
         text-align: left;
@@ -250,6 +250,15 @@ st.markdown("""
     .metric-box-speedometer p {
         margin-left: 20px;
         margin-bottom: 0;
+    }
+
+    /* Graph container with curved border */
+    .graph-container {
+        background: #121212;
+        border-radius: 20px; /* Curved border */
+        padding: 20px;
+        margin: 20px 0;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
     }
     </style>
 """, unsafe_allow_html=True)
@@ -416,17 +425,13 @@ if go_clicked:
             </div>
         """.format(int(metrics['win_percentage']), metrics['total_trades'], metrics['profit_factor']), unsafe_allow_html=True)
 
-    # Add spacing before "Equity Curve"
-    st.markdown("<br>", unsafe_allow_html=True)
-
     cumulative_pl_df = fetch_cumulative_pl(symbol)
     if cumulative_pl_df is not None and not cumulative_pl_df.empty:
         st.subheader("Equity Curve")
+        st.markdown('<div class="graph-container">', unsafe_allow_html=True)
         st.plotly_chart(create_cumulative_pl_chart(cumulative_pl_df), use_container_width=True)
+        st.markdown('</div>', unsafe_allow_html=True)
 
-    # Add spacing before "Performance Data Table"
-    st.markdown("<br>", unsafe_allow_html=True)
-    
     df = fetch_model_data(symbol)
     if df is not None and not df.empty:
         st.subheader("Performance Data Table")
