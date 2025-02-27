@@ -161,7 +161,7 @@ def fetch_twitter_signals():
 st.markdown(
     """
     <div class="title-with-logo">
-        <img src="images/twitter-logo.png" alt="Twitter Logo">
+        <img src="..images/twitter-logo.png" alt="Twitter Logo">
         <h1 style='text-align: center;'>Twitter Signals</h1>
     </div>
     """,
