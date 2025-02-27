@@ -84,10 +84,36 @@ st.markdown(
     .stDataFrame tbody tr:hover {
         background-color: #3a3a3a; /* Slightly lighter grey on hover */
     }
+
+    /* Custom styling for Company Symbol column */
+    .symbol-positive {
+        background-color: #4CAF50; /* Elegant green for positive sentiment */
+        color: white;
+        padding: 5px 10px;
+        border-radius: 15px;
+        display: inline-block;
+    }
+
+    .symbol-negative {
+        background-color: #F44336; /* Elegant red for negative sentiment */
+        color: white;
+        padding: 5px 10px;
+        border-radius: 15px;
+        display: inline-block;
+    }
     </style>
     """,
     unsafe_allow_html=True
 )
+
+# Function to apply custom styling to the Company Symbol column
+def style_symbol(row):
+    if row["Sentiment"] == "Positive":
+        return f'<span class="symbol-positive">{row["Company Symbol"]}</span>'
+    elif row["Sentiment"] == "Negative":
+        return f'<span class="symbol-negative">{row["Company Symbol"]}</span>'
+    else:
+        return row["Company Symbol"]
 
 # Page title and description
 st.markdown("<h1 style='text-align: center;'>Twitter Signals</h1>", unsafe_allow_html=True)
@@ -98,7 +124,12 @@ twitter_signals_df = fetch_twitter_signals()
 
 if twitter_signals_df is not None:
     if not twitter_signals_df.empty:
-        st.dataframe(twitter_signals_df, use_container_width=True)  # Use st.dataframe for better styling control
+        # Apply custom styling to the Company Symbol column
+        twitter_signals_df["Company Symbol"] = twitter_signals_df.apply(style_symbol, axis=1)
+
+        # Convert DataFrame to HTML and render it
+        table_html = twitter_signals_df.to_html(escape=False, index=False)
+        st.markdown(table_html, unsafe_allow_html=True)
     else:
         st.warning("No Twitter signals found in the database.")
 else:
