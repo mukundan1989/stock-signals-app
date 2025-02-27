@@ -23,7 +23,8 @@ st.markdown(
         border-radius: 30px;
         overflow: hidden;
         text-align: center;
-        border: none;
+        border: 5px 0 0 0;
+	border-top: solid #282828;
         color: var(--text-color);
 	}
 
