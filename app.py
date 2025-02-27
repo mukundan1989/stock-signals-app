@@ -94,12 +94,12 @@ st.markdown(
 
     .metric-box h2 {
         margin-top: 30px; /* Push text down to avoid overlapping with the icon */
-        margin-left: 20px; /* Left-align text */
+        margin-left: 30px; /* Left-align text */
         margin-bottom: 10px; /* Space between h2 and p */
     }
 
     .metric-box p {
-        margin-left: 20px; /* Left-align text */
+        margin-left: 30px; /* Left-align text */
         margin-bottom: 0; /* Remove extra margin */
     }
 
