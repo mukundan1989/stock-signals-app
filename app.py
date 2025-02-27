@@ -23,8 +23,7 @@ st.markdown(
         border-radius: 30px;
         overflow: hidden;
         text-align: center;
-        border: 5px 0 0 0;
-	border-top: solid #282828;
+        border: none;
         color: var(--text-color);
 	}
 
@@ -39,7 +38,8 @@ st.markdown(
 	.pretty-table th, .pretty-table td {
         padding: 6px 9px;
         text-align: center;
-        border: none;
+        border: 5px 0 0 0;
+	border-top: solid #282828;
 	}
 
 	/* Add curved edges to the first and last cells in each row */
