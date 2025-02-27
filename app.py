@@ -35,7 +35,7 @@ st.markdown(
 	}
  
 	.pretty-table th{
-        background-color: #1b1b1b; /* Set background color to black */
+        background-color: #171717; /* Set background color to black */
 	color: #aeaeae !important; /* Set background color to black */
 	} 
 
