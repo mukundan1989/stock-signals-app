@@ -142,7 +142,7 @@ st.markdown(
         color: #ffffff; /* White text */
     }
 
-    /* Custom CSS for the 4th grid box */
+    /* Custom CSS for the 4th grid box (dark board with arrow) */
     .metric-box-accuracy {
         background: linear-gradient(135deg, #3a3a3a, #2a2a2a); /* Dark grey gradient */
         padding: 20px;
@@ -159,7 +159,7 @@ st.markdown(
 
     .metric-box-accuracy::after {
         content: "";
-        background-image: url('data:image/svg+xml;utf8,<svg width="100" height="100" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><circle cx="50" cy="50" r="45" fill="%232e2e2e" stroke="%23000" stroke-width="2"/><circle cx="50" cy="50" r="35" fill="%234a4a4a" stroke="%23000" stroke-width="1"/><circle cx="50" cy="50" r="5" fill="%23ff0000" stroke="%23000" stroke-width="1"/><line x1="50" y1="10" x2="50" y2="90" stroke="%23000" stroke-width="1"/><line x1="10" y1="50" x2="90" y2="50" stroke="%23000" stroke-width="1"/><line x1="25" y1="25" x2="75" y2="75" stroke="%23000" stroke-width="1"/><line x1="75" y1="25" x2="25" y2="75" stroke="%23000" stroke-width="1"/></svg>');
+        background-image: url('data:image/svg+xml;utf8,<svg width="100" height="100" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100" fill="%232e2e2e" /><path d="M50 10 L90 50 L50 90 L10 50 Z" fill="none" stroke="%23ffffff" stroke-width="2" /><path d="M50 30 L70 50 L50 70 L30 50 Z" fill="none" stroke="%23ffffff" stroke-width="2" /><path d="M50 50 L70 70" stroke="%23ff0000" stroke-width="2" stroke-linecap="round" /></svg>');
         background-size: 80px 80px; /* Adjust size of the icon */
         background-position: bottom right; /* Position the icon at the bottom-right corner */
         background-repeat: no-repeat;
@@ -313,79 +313,3 @@ def fetch_data(table, limit=5):
 
 # Load initial data if not set
 if st.session_state["data"] is None:
-    st.session_state["data"] = fetch_data(st.session_state["selected_table"])
-
-# Add spacing before "Portfolio"
-st.markdown("<br>", unsafe_allow_html=True)
-
-# Display formatted table with pretty headers
-st.write("### Portfolio")
-if st.session_state["data"] is not None:
-    table_html = st.session_state["data"].to_html(index=False, classes="pretty-table", escape=False)
-    st.markdown(table_html, unsafe_allow_html=True)
-
-# Add Stock button
-if st.button("Add Stock"):
-    st.session_state["show_search"] = True
-
-# Show search box when "Add Stock" is clicked
-if st.session_state["show_search"]:
-    symbol = st.text_input("Enter Stock Symbol:")
-    if symbol:
-        try:
-            conn = mysql.connector.connect(
-                host=DB_HOST,
-                database=DB_NAME,
-                user=DB_USER,
-                password=DB_PASSWORD
-            )
-            cursor = conn.cursor()
-            query = f"SELECT date, comp_name, comp_symbol, trade_signal, entry_price FROM `{DB_NAME}`.`{st.session_state['selected_table']}` WHERE comp_symbol = %s"
-            cursor.execute(query, (symbol,))
-            result = cursor.fetchall()
-            cursor.close()
-            conn.close()
-
-            if result:
-                new_row = pd.DataFrame(result, columns=["date", "comp_name", "comp_symbol", "trade_signal", "entry_price"])
-                
-                # Combine company name and symbol into a single column with custom CSS
-                new_row["Company Name"] = new_row.apply(
-                    lambda row: f'<div class="company-name-cell">{row["comp_name"]}<br><small>{row["comp_symbol"]}</small></div>',
-                    axis=1
-                )
-                
-                # Drop the original comp_name and comp_symbol columns
-                new_row = new_row.drop(columns=["comp_name", "comp_symbol"])
-
-                # Add trending graph icons and background to the Trade Signal column
-                new_row["Trade Signal"] = new_row["trade_signal"].apply(
-                    lambda x: (
-                        '<div class="trade-signal-buy">'
-                        '<svg width="50" height="30" viewBox="0 0 50 30" fill="none" xmlns="http://www.w3.org/2000/svg">'
-                        '<path d="M2 20 L8 15 L14 18 L20 12 L26 16 L32 10 L38 14 L44 8 L50 2" stroke="green" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>'
-                        '</svg> ' + x + '</div>'
-                    ) if x.lower() == "buy" else (
-                        '<div class="trade-signal-sell">'
-                        '<svg width="50" height="30" viewBox="0 0 50 30" fill="none" xmlns="http://www.w3.org/2000/svg">'
-                        '<path d="M2 10 L8 15 L14 12 L20 18 L26 14 L32 20 L38 16 L44 22 L50 28" stroke="red" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>'
-                        '</svg> ' + x + '</div>'
-                    ) if x.lower() == "sell" else x
-                )
-
-                # Rename new row to match the table headers
-                new_row = new_row.rename(columns={
-                    "date": "Date",
-                    "entry_price": "Entry Price ($)"
-                })
-
-                # Drop the original trade_signal column to avoid duplication
-                new_row = new_row.drop(columns=["trade_signal"])
-
-                st.session_state["data"] = pd.concat([st.session_state["data"], new_row], ignore_index=True)
-                st.session_state["show_search"] = False
-                st.rerun()
-            else:
-                st.warning("Stock not found!")
-        except Exception as e:
-            st.error(f"Error searching stock: {e}")
