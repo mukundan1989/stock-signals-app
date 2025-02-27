@@ -327,37 +327,6 @@ if "show_search" not in st.session_state:
 # Add spacing before "Select Sentiment Model"
 st.markdown("<br>", unsafe_allow_html=True)
 
-# Paste the new code here
-st.markdown(
-    """
-    <div style="background-color: #000000; border-radius: 10px; padding: 15px; margin-bottom: 20px;">
-        <h3 style="color: #ffffff; text-align: center;">Select Sentiment Model</h3>
-    """,
-    unsafe_allow_html=True
-)
-
-# Existing toggle buttons code
-col1, col2, col3, col4 = st.columns(4)
-
-with col1:
-    if st.toggle("Google Trends", value=(st.session_state["selected_table"] == "gtrend_latest_signal")):
-        toggle_selection("gtrend_latest_signal")
-
-with col2:
-    if st.toggle("News", value=(st.session_state["selected_table"] == "news_latest_signal")):
-        toggle_selection("news_latest_signal")
-
-with col3:
-    if st.toggle("Twitter", value=(st.session_state["selected_table"] == "twitter_latest_signal")):
-        toggle_selection("twitter_latest_signal")
-
-with col4:
-    if st.toggle("Overall", value=(st.session_state["selected_table"] == "overall_latest_signal")):
-        toggle_selection("overall_latest_signal")
-
-# Close the div
-st.markdown("</div>", unsafe_allow_html=True)
-
 # Toggle buttons for selecting models
 st.write("### Select Sentiment Model")
 col1, col2, col3, col4 = st.columns(4)
