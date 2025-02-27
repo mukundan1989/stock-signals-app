@@ -34,7 +34,7 @@ st.markdown(
         margin-bottom: 10px;
 	}
  
-	.pretty-table th {
+	.pretty-table th tr{
  	border-radius: 30px;
         background-color: #1b1b1b; /* Set background color to black */
 	color: #aeaeae !important; /* Set background color to black */
