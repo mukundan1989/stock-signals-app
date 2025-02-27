@@ -163,13 +163,13 @@ st.markdown(
     }
 
     .metric-box h2 {
-        margin-top: 60px;
-        margin-left: 20px;
-        margin-bottom: 10px;
+        margin-top: 30px;
+        margin-left: 5px;
+        margin-bottom: 1px;
     }
 
     .metric-box p {
-        margin-left: 20px;
+        margin-left: 5px;
         margin-bottom: 0;
     }
 
@@ -204,13 +204,13 @@ st.markdown(
     }
 
     .metric-box-gain h2 {
-        margin-top: 60px;
-        margin-left: 20px;
-        margin-bottom: 10px;
+        margin-top: 30px;
+        margin-left: 5px;
+        margin-bottom: 1px;
     }
 
     .metric-box-gain p {
-        margin-left: 20px;
+        margin-left: 5px;
         margin-bottom: 0;
     }
 
@@ -245,13 +245,13 @@ st.markdown(
     }
 
     .metric-box-speedometer h2 {
-        margin-top: 60px;
-        margin-left: 20px;
-        margin-bottom: 10px;
+        margin-top: 30px;
+        margin-left: 5px;
+        margin-bottom: 1px;
     }
 
     .metric-box-speedometer p {
-        margin-left: 20px;
+        margin-left: 5px;
         margin-bottom: 0;
     }
 
@@ -286,13 +286,13 @@ st.markdown(
     }
 
     .metric-box-accuracy h2 {
-        margin-top: 60px;
-        margin-left: 20px;
-        margin-bottom: 10px;
+        margin-top: 30px;
+        margin-left: 5px;
+        margin-bottom: 1px;
     }
 
     .metric-box-accuracy p {
-        margin-left: 20px;
+        margin-left: 5px;
         margin-bottom: 0;
     }
     </style>
