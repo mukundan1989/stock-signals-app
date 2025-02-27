@@ -158,7 +158,7 @@ st.markdown(
 
     /* Second grid box with pile of cash icon */
     .metric-box-gain {
-        background: linear-gradient(135deg, var(--secondary-background-color), var(--background-color));
+        background: linear-gradient(1deg, #000000, #202020)
         padding: 20px;
         border-radius: 10px;
         text-align: left;
