@@ -36,7 +36,7 @@ st.markdown(
 
 	/* Padding for table cells */
 	.pretty-table th, .pretty-table td {
-        padding: 12px 15px;
+        padding: 6px 9px;
         text-align: center;
         border: none;
 	}
