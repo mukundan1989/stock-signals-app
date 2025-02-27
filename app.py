@@ -64,7 +64,7 @@ st.markdown(
     /* Updated styling for metric boxes with gradient background */
     .metric-box {
         background: linear-gradient(135deg, #3a3a3a, #2a2a2a); /* Dark grey gradient */
-        padding: 60px 20px 20px 20px;
+        padding: 20px;
         border-radius: 10px;
         text-align: center;
         color: #ffffff; /* White text */
@@ -91,6 +91,17 @@ st.markdown(
         width: 50px;
         height: 50px;
         z-index: 1; /* Ensure the icon is behind the text */
+    }
+
+    .metric-box h2 {
+        margin-top: 60px; /* Push text down to avoid overlapping with the icon */
+        margin-left: 20px; /* Left-align text */
+        margin-bottom: 10px; /* Space between h2 and p */
+    }
+
+    .metric-box p {
+        margin-left: 20px; /* Left-align text */
+        margin-bottom: 0; /* Remove extra margin */
     }
 
     /* Grid container for metric boxes */
