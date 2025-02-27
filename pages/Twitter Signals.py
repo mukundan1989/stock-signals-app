@@ -100,8 +100,11 @@ st.markdown(
     }
 
     .title-with-logo img {
-        width: 40px; /* Adjust the size of the logo */
-        height: 40px;
+        width: 70px; /* Adjust the size of the logo */
+        height: 70px;
+        background: #000;
+        padding: 3px;
+        border-radius: 5px;
     }
     </style>
     """,
