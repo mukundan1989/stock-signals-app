@@ -117,7 +117,7 @@ st.markdown(
 
     /* First grid box with line chart icon */
     .metric-box {
-        background: linear-gradient(45deg, #000000, #232323);
+        background: linear-gradient(15deg, #000000, #232323);
         padding: 20px;
         border-radius: 10px;
         text-align: left;
@@ -158,7 +158,7 @@ st.markdown(
 
     /* Second grid box with pile of cash icon */
     .metric-box-gain {
-        background: linear-gradient(45deg, #000000, #232323);
+        background: linear-gradient(15deg, #000000, #232323);
         padding: 20px;
         border-radius: 10px;
         text-align: left;
@@ -199,7 +199,7 @@ st.markdown(
 
     /* Third grid box with speedometer gauge icon */
     .metric-box-speedometer {
-        background: linear-gradient(45deg, #000000, #232323);
+        background: linear-gradient(15deg, #000000, #232323);
         padding: 20px;
         border-radius: 10px;
         text-align: left;
@@ -240,7 +240,7 @@ st.markdown(
 
     /* Fourth grid box with dartboard and arrow icon */
     .metric-box-accuracy {
-        background: linear-gradient(45deg, #000000, #232323);
+        background: linear-gradient(15deg, #000000, #232323);
         padding: 20px;
         border-radius: 10px;
         text-align: left;
