@@ -16,7 +16,7 @@ st.markdown(
 	.pretty-table {
         width: 100%;
         border-collapse: separate; /* Use separate to allow rounded corners */
-        border-spacing: 0 10px; /* Add spacing between rows */
+        border-spacing: 0 30px; /* Add spacing between rows */
         font-size: 0.9em;
         font-family: sans-serif;
         min-width: 400px;
