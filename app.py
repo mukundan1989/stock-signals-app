@@ -117,7 +117,7 @@ st.markdown(
 
     /* First grid box with line chart icon */
     .metric-box {
-        background: linear-gradient(15deg, #000000, #232323);
+        background: linear-gradient(45deg, #000000, #232323);
         padding: 20px;
         border-radius: 10px;
         text-align: left;
@@ -158,7 +158,7 @@ st.markdown(
 
     /* Second grid box with pile of cash icon */
     .metric-box-gain {
-        background: linear-gradient(15deg, #000000, #232323)
+        background: linear-gradient(45deg, #000000, #232323);
         padding: 20px;
         border-radius: 10px;
         text-align: left;
@@ -173,7 +173,8 @@ st.markdown(
 
     .metric-box-gain::before {
         content: "";
-        background: linear-gradient(15deg, #000000, #232323) background-size: 40px 40px;
+        background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="50" height="50" viewBox="0 0 24 24" fill="none" stroke="%23ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 1 0 0 7h5a3.5 3.5 0 1 1 0 7H6"/></svg>');
+        background-size: 40px 40px;
         background-position: left top;
         background-repeat: no-repeat;
         opacity: 0.3;
@@ -198,7 +199,7 @@ st.markdown(
 
     /* Third grid box with speedometer gauge icon */
     .metric-box-speedometer {
-        background: linear-gradient(15deg, #000000, #232323) background-size: 40px 40px;
+        background: linear-gradient(45deg, #000000, #232323);
         padding: 20px;
         border-radius: 10px;
         text-align: left;
@@ -239,7 +240,7 @@ st.markdown(
 
     /* Fourth grid box with dartboard and arrow icon */
     .metric-box-accuracy {
-        background: linear-gradient(15deg, #000000, #232323) background-size: 40px 40px;
+        background: linear-gradient(45deg, #000000, #232323);
         padding: 20px;
         border-radius: 10px;
         text-align: left;
