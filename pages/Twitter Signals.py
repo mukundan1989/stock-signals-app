@@ -47,33 +47,34 @@ st.markdown(
     """
     <style>
     /* Remove table borders */
-    .stDataFrame table {
+    .custom-table {
         border-collapse: separate;
         border-spacing: 0 10px; /* Add space between rows */
         border: none; /* Remove table borders */
+        width: 100%;
     }
 
     /* Dark grey background for each row with curved borders */
-    .stDataFrame tbody tr {
+    .custom-table tbody tr {
         background-color: #2a2a2a; /* Dark grey background */
         border-radius: 10px; /* Curved borders */
         border: none; /* Remove row borders */
     }
 
     /* Add space between rows */
-    .stDataFrame tbody tr:not(:last-child) {
+    .custom-table tbody tr:not(:last-child) {
         margin-bottom: 10px; /* Space between rows */
     }
 
     /* Ensure the table cells have padding and text alignment */
-    .stDataFrame th, .stDataFrame td {
+    .custom-table th, .custom-table td {
         padding: 12px 15px;
         text-align: center;
         border: none; /* Remove cell borders */
     }
 
     /* Header styling */
-    .stDataFrame thead tr {
+    .custom-table thead tr {
         background-color: #000000; /* Black header */
         color: #ffffff; /* White text */
         border-radius: 10px; /* Curved borders for header */
@@ -81,7 +82,7 @@ st.markdown(
     }
 
     /* Hover effect for rows */
-    .stDataFrame tbody tr:hover {
+    .custom-table tbody tr:hover {
         background-color: #3a3a3a; /* Slightly lighter grey on hover */
     }
 
@@ -107,13 +108,13 @@ st.markdown(
 )
 
 # Function to apply custom styling to the Company Symbol column
-def style_symbol(row):
-    if row["Sentiment"] == "Positive":
-        return f'<span class="symbol-positive">{row["Company Symbol"]}</span>'
-    elif row["Sentiment"] == "Negative":
-        return f'<span class="symbol-negative">{row["Company Symbol"]}</span>'
+def style_symbol(symbol, sentiment):
+    if sentiment == "Positive":
+        return f'<span class="symbol-positive">{symbol}</span>'
+    elif sentiment == "Negative":
+        return f'<span class="symbol-negative">{symbol}</span>'
     else:
-        return row["Company Symbol"]
+        return symbol
 
 # Page title and description
 st.markdown("<h1 style='text-align: center;'>Twitter Signals</h1>", unsafe_allow_html=True)
@@ -125,10 +126,14 @@ twitter_signals_df = fetch_twitter_signals()
 if twitter_signals_df is not None:
     if not twitter_signals_df.empty:
         # Apply custom styling to the Company Symbol column
-        twitter_signals_df["Company Symbol"] = twitter_signals_df.apply(style_symbol, axis=1)
+        twitter_signals_df["Company Symbol"] = twitter_signals_df.apply(
+            lambda row: style_symbol(row["Company Symbol"], row["Sentiment"]), axis=1
+        )
 
-        # Convert DataFrame to HTML and render it
-        table_html = twitter_signals_df.to_html(escape=False, index=False)
+        # Convert DataFrame to HTML
+        table_html = twitter_signals_df.to_html(escape=False, index=False, classes="custom-table")
+
+        # Display the table using st.markdown
         st.markdown(table_html, unsafe_allow_html=True)
     else:
         st.warning("No Twitter signals found in the database.")
