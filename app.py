@@ -2,14 +2,17 @@ import streamlit as st
 import pandas as pd
 import mysql.connector
 
-# Set page config
-st.set_page_config(layout="wide", page_title="Stock Sentimeter", initial_sidebar_state="collapsed")
-
-# Apply custom CSS for table row styling
+# Custom CSS for dark-themed elegant table design
 st.markdown(
     """
     <style>
-    /* Custom CSS for table row backgrounds */
+    /* Target the main container (st-emotion-cache-bm2z3a) and set a dark grey background */
+    .st-emotion-cache-bm2z3a {
+        background-color: #2a2a2a; /* Dark grey background */
+        color: #ffffff; /* White text for the entire page */
+    }
+
+    /* Custom CSS for elegant table design */
     .pretty-table {
         width: 100%;
         border-collapse: collapse;
@@ -21,57 +24,164 @@ st.markdown(
         overflow: hidden;
         text-align: center;
         border: none;
-        color: var(--text-color); /* Use theme text color */
+        color: #ffffff; /* White text for the table */
     }
 
+    /* Black header with white text */
     .pretty-table thead tr {
-        background-color: var(--secondary-background-color); /* Use theme secondary background */
-        color: var(--text-color); /* Use theme text color */
+        background-color: #000000; /* Black header */
+        color: #ffffff; /* White text */
         text-align: center;
         border: none;
     }
 
+    /* Padding for table cells */
     .pretty-table th, .pretty-table td {
         padding: 12px 15px;
         text-align: center;
         border: none;
     }
 
+    /* Alternating row colors: light grey and dark grey */
     .pretty-table tbody tr:nth-of-type(odd) {
-        background-color: rgba(255, 255, 255, 0.05); /* Light background for odd rows */
+        background-color: #3a3a3a; /* Dark grey */
     }
 
     .pretty-table tbody tr:nth-of-type(even) {
-        background-color: rgba(255, 255, 255, 0.1); /* Slightly darker background for even rows */
+        background-color: #4a4a4a; /* Light grey */
     }
 
+    /* Hover effect for rows */
     .pretty-table tbody tr:hover {
-        background-color: rgba(255, 255, 255, 0.2); /* Hover effect */
+        background-color: #5a5a5a; /* Slightly lighter grey on hover */
     }
 
-    /* Glassmorphism Button Styling */
-    .stButton button {
-        background: rgba(255, 255, 255, 0.1);
-        border: 1px solid rgba(255, 255, 255, 0.1);
+    /* Ensure the text above the table is white */
+    h1, p {
+        color: #ffffff !important; /* White text for titles and paragraphs */
+    }
+
+    /* Updated styling for metric boxes with gradient background */
+    .metric-box {
+        background: linear-gradient(135deg, #3a3a3a, #2a2a2a); /* Dark grey gradient */
+        padding: 20px;
         border-radius: 10px;
-        color: var(--text-color);
+        text-align: center;
+        color: #ffffff; /* White text */
+        font-size: 18px;
+        font-weight: bold;
+        border: 1px solid #4a4a4a; /* Subtle border */
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Soft shadow */
+    }
+
+    /* Grid container for metric boxes */
+    .grid-container {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 10px;
+        justify-content: center;
+        align-items: center;
+    }
+
+    @media (max-width: 600px) {
+        .grid-container { grid-template-columns: repeat(2, 1fr); gap: 5px; }
+    }
+
+    /* Styling for the "Add Stock" button */
+    .stButton button {
+        background-color: #000000; /* Black background */
+        color: #ffffff; /* White text */
+        border-radius: 5px;
         padding: 10px 20px;
         font-size: 16px;
         font-weight: bold;
-        transition: background 0.3s ease;
+        border: none;
+        transition: background-color 0.3s ease;
     }
 
     .stButton button:hover {
-        background: rgba(255, 255, 255, 0.2);
+        background-color: #333333; /* Slightly lighter black on hover */
     }
 
-    /* Glassmorphism Text Input Styling */
-    .stTextInput input {
-        background: rgba(255, 255, 255, 0.1);
-        border: 1px solid rgba(255, 255, 255, 0.1);
+    /* Custom CSS for the Company Name cell */
+    .company-name-cell {
+        background-color: #3a3a3a; /* Dark grey background */
+        border-radius: 10px; /* Rounded edges */
+        padding: 10px; /* Padding for better spacing */
+        color: #ffffff; /* White text */
+    }
+
+    /* Custom CSS for the Trade Signal cell */
+    .trade-signal-buy {
+        background-color: #2e7d32; /* Green background for Buy */
+        border-radius: 10px; /* Rounded edges */
+        padding: 10px; /* Padding for better spacing */
+        color: #ffffff; /* White text */
+    }
+
+    .trade-signal-sell {
+        background-color: #c62828; /* Red background for Sell */
+        border-radius: 10px; /* Rounded edges */
+        padding: 10px; /* Padding for better spacing */
+        color: #ffffff; /* White text */
+    }
+
+    /* Custom CSS for the 4th grid box */
+    .metric-box-accuracy {
+        background: linear-gradient(135deg, #3a3a3a, #2a2a2a); /* Dark grey gradient */
+        padding: 20px;
         border-radius: 10px;
-        color: var(--text-color);
-        padding: 10px;
+        text-align: center;
+        color: #ffffff; /* White text */
+        font-size: 18px;
+        font-weight: bold;
+        border: 1px solid #4a4a4a; /* Subtle border */
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Soft shadow */
+        position: relative; /* Required for positioning the icon */
+        overflow: hidden; /* Ensure the icon doesn't overflow */
+    }
+
+    .metric-box-accuracy::after {
+        content: "";
+        background-image: url('data:image/svg+xml;utf8,<svg width="100" height="100" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><circle cx="50" cy="50" r="45" fill="%232e2e2e" stroke="%23000" stroke-width="2"/><circle cx="50" cy="50" r="35" fill="%234a4a4a" stroke="%23000" stroke-width="1"/><circle cx="50" cy="50" r="5" fill="%23ff0000" stroke="%23000" stroke-width="1"/><line x1="50" y1="10" x2="50" y2="90" stroke="%23000" stroke-width="1"/><line x1="10" y1="50" x2="90" y2="50" stroke="%23000" stroke-width="1"/><line x1="25" y1="25" x2="75" y2="75" stroke="%23000" stroke-width="1"/><line x1="75" y1="25" x2="25" y2="75" stroke="%23000" stroke-width="1"/></svg>');
+        background-size: 80px 80px; /* Adjust size of the icon */
+        background-position: bottom right; /* Position the icon at the bottom-right corner */
+        background-repeat: no-repeat;
+        opacity: 0.3; /* Blend the icon with the background */
+        position: absolute;
+        bottom: 10px;
+        right: 10px;
+        width: 80px;
+        height: 80px;
+        z-index: 1; /* Ensure the icon is behind the text */
+    }
+
+    /* Custom CSS for the 2nd grid box */
+    .metric-box-gain {
+        background: linear-gradient(135deg, #3a3a3a, #2a2a2a); /* Dark grey gradient */
+        padding: 20px;
+        border-radius: 10px;
+        text-align: center;
+        color: #ffffff; /* White text */
+        font-size: 18px;
+        font-weight: bold;
+        border: 1px solid #4a4a4a; /* Subtle border */
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Soft shadow */
+        position: relative; /* Required for positioning the graph */
+        overflow: hidden; /* Ensure the graph doesn't overflow */
+    }
+
+    .metric-box-gain::before {
+        content: "";
+        background-image: url('data:image/svg+xml;utf8,<svg width="100%" height="100%" viewBox="0 0 100 50" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="areaGradient" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="%231a1a1a" stop-opacity="0.5" /><stop offset="100%" stop-color="%232a2a2a" stop-opacity="0.2" /></linearGradient></defs><path d="M0 50 L20 30 L40 40 L60 20 L80 35 L100 25 L100 50 Z" fill="url(%23areaGradient)" stroke="%23ffffff" stroke-width="0.5" stroke-opacity="0.3" /></svg>');
+        background-size: cover; /* Cover the entire box */
+        background-position: center; /* Center the graph */
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 1; /* Ensure the graph is behind the text */
     }
     </style>
     """,
@@ -86,10 +196,10 @@ st.write("<p style='text-align: center;'>Know stock market trends and make smart
 st.markdown(
     """
     <div class="grid-container">
-        <div class="metric-card"><h2>43%</h2><p>Above Baseline</p></div>
-        <div class="metric-card"><h2>$13,813</h2><p>Gain on Buy</p></div>
-        <div class="metric-card"><h2>+0.75</h2><p>Sentiment Score</p></div>
-        <div class="metric-card"><h2>87%</h2><p>Accuracy</p></div>
+        <div class="metric-box"><h2>43%</h2><p>Above Baseline</p></div>
+        <div class="metric-box-gain"><h2>$13,813</h2><p>Gain on Buy</p></div>
+        <div class="metric-box"><h2>+0.75</h2><p>Sentiment Score</p></div>
+        <div class="metric-box-accuracy"><h2>87%</h2><p>Accuracy</p></div>
     </div>
     """,
     unsafe_allow_html=True
@@ -162,22 +272,27 @@ def fetch_data(table, limit=5):
         cursor.close()
         conn.close()
 
-        # Combine company name and symbol into a single column
-        df["Company Name"] = df["comp_name"] + "<br><small>" + df["comp_symbol"] + "</small>"
+        # Combine company name and symbol into a single column with custom CSS
+        df["Company Name"] = df.apply(
+            lambda row: f'<div class="company-name-cell">{row["comp_name"]}<br><small>{row["comp_symbol"]}</small></div>',
+            axis=1
+        )
         
         # Drop the original comp_name and comp_symbol columns
         df = df.drop(columns=["comp_name", "comp_symbol"])
 
-        # Add trending graph icons to the Trade Signal column
+        # Add trending graph icons and background to the Trade Signal column
         df["Trade Signal"] = df["trade_signal"].apply(
             lambda x: (
+                '<div class="trade-signal-buy">'
                 '<svg width="50" height="30" viewBox="0 0 50 30" fill="none" xmlns="http://www.w3.org/2000/svg">'
                 '<path d="M2 20 L8 15 L14 18 L20 12 L26 16 L32 10 L38 14 L44 8 L50 2" stroke="green" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>'
-                '</svg> ' + x
+                '</svg> ' + x + '</div>'
             ) if x.lower() == "buy" else (
+                '<div class="trade-signal-sell">'
                 '<svg width="50" height="30" viewBox="0 0 50 30" fill="none" xmlns="http://www.w3.org/2000/svg">'
                 '<path d="M2 10 L8 15 L14 12 L20 18 L26 14 L32 20 L38 16 L44 22 L50 28" stroke="red" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>'
-                '</svg> ' + x
+                '</svg> ' + x + '</div>'
             ) if x.lower() == "sell" else x
         )
 
@@ -202,10 +317,10 @@ if st.session_state["data"] is None:
 # Add spacing before "Portfolio"
 st.markdown("<br>", unsafe_allow_html=True)
 
-# Display formatted table with row-based background colors
+# Display formatted table with pretty headers
 st.write("### Portfolio")
 if st.session_state["data"] is not None:
-    table_html = st.session_state["data"].to_html(index=False, escape=False, classes="pretty-table")
+    table_html = st.session_state["data"].to_html(index=False, classes="pretty-table", escape=False)
     st.markdown(table_html, unsafe_allow_html=True)
 
 # Add Stock button
@@ -233,22 +348,27 @@ if st.session_state["show_search"]:
             if result:
                 new_row = pd.DataFrame(result, columns=["date", "comp_name", "comp_symbol", "trade_signal", "entry_price"])
                 
-                # Combine company name and symbol into a single column
-                new_row["Company Name"] = new_row["comp_name"] + "<br><small>" + new_row["comp_symbol"] + "</small>"
+                # Combine company name and symbol into a single column with custom CSS
+                new_row["Company Name"] = new_row.apply(
+                    lambda row: f'<div class="company-name-cell">{row["comp_name"]}<br><small>{row["comp_symbol"]}</small></div>',
+                    axis=1
+                )
                 
                 # Drop the original comp_name and comp_symbol columns
                 new_row = new_row.drop(columns=["comp_name", "comp_symbol"])
 
-                # Add trending graph icons to the Trade Signal column
+                # Add trending graph icons and background to the Trade Signal column
                 new_row["Trade Signal"] = new_row["trade_signal"].apply(
                     lambda x: (
+                        '<div class="trade-signal-buy">'
                         '<svg width="50" height="30" viewBox="0 0 50 30" fill="none" xmlns="http://www.w3.org/2000/svg">'
                         '<path d="M2 20 L8 15 L14 18 L20 12 L26 16 L32 10 L38 14 L44 8 L50 2" stroke="green" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>'
-                        '</svg> ' + x
+                        '</svg> ' + x + '</div>'
                     ) if x.lower() == "buy" else (
+                        '<div class="trade-signal-sell">'
                         '<svg width="50" height="30" viewBox="0 0 50 30" fill="none" xmlns="http://www.w3.org/2000/svg">'
                         '<path d="M2 10 L8 15 L14 12 L20 18 L26 14 L32 20 L38 16 L44 22 L50 28" stroke="red" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>'
-                        '</svg> ' + x
+                        '</svg> ' + x + '</div>'
                     ) if x.lower() == "sell" else x
                 )
 
