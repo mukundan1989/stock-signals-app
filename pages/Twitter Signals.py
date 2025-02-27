@@ -46,11 +46,18 @@ def fetch_twitter_signals():
 st.markdown(
     """
     <style>
+    /* Remove table borders */
+    .stDataFrame table {
+        border-collapse: separate;
+        border-spacing: 0 10px; /* Add space between rows */
+        border: none; /* Remove table borders */
+    }
+
     /* Dark grey background for each row with curved borders */
     .stDataFrame tbody tr {
         background-color: #2a2a2a; /* Dark grey background */
         border-radius: 10px; /* Curved borders */
-        margin-bottom: 10px; /* Space between rows */
+        border: none; /* Remove row borders */
     }
 
     /* Add space between rows */
@@ -62,12 +69,15 @@ st.markdown(
     .stDataFrame th, .stDataFrame td {
         padding: 12px 15px;
         text-align: center;
+        border: none; /* Remove cell borders */
     }
 
     /* Header styling */
     .stDataFrame thead tr {
         background-color: #000000; /* Black header */
         color: #ffffff; /* White text */
+        border-radius: 10px; /* Curved borders for header */
+        border: none; /* Remove header borders */
     }
 
     /* Hover effect for rows */
