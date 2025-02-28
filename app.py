@@ -74,6 +74,14 @@ st.markdown(
         background-color: #161616; /* Darker shade for hover effect */
     }
 
+    .stHorizontalBlock {
+        background-color: #1c1c1c; /* Set background color to black */
+        color: #aeaeae !important; /* Set background color to black */
+        padding: 6px 9px;
+        text-align: center;
+        border: 2px solid #282828 !important; 
+    }
+
     /* Ensure the text above the table is white */
     h1, p {
         color: var(--text-color) !important;
