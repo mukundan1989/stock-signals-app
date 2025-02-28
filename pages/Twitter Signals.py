@@ -258,7 +258,7 @@ st.markdown(
     """
     <div class="title-with-logo">
         <img src="https://raw.githubusercontent.com/mukundan1989/stock-signals-app/refs/heads/main/images/twitter-logo.png" alt="Twitter Logo" class="logo">
-        <h1 style='text-align: center;'>Twitter (X) Signals</h1>
+        <h1 style='text-align: center;'>X Signals</h1>
     </div>
     """,
     unsafe_allow_html=True
