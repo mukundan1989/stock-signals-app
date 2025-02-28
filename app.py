@@ -16,7 +16,7 @@ st.markdown(
         width: 100%;
         border-collapse: separate;
         border-spacing: 0 10px; /* Adjust spacing between rows */
-        font-size: 0.9em;
+        font-size: 0.8em;
         font-family: sans-serif;
         min-width: 400px;
         /*box-shadow: 0 0 20px rgba(0, 0, 0, 0.15);*/
@@ -54,7 +54,7 @@ st.markdown(
 
 	/* Padding for table cells */
 	.pretty-table td {
-        padding: 6px 9px;
+        padding: 5px 8px;
         text-align: center;
 	border: none;
 	border-top: 5px solid #282828 !important;
@@ -73,7 +73,7 @@ st.markdown(
 
 	/* Hover effect for rows */
 	.pretty-table tbody tr:hover {
-        background-color: #1e1e1e; /* Darker shade for hover effect */
+        background-color: #161616; /* Darker shade for hover effect */
 	}
 
     /* Ensure the text above the table is white */
