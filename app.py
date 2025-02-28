@@ -165,8 +165,8 @@ st.markdown(
 
     /* First grid box with line chart icon */
     .metric-box {
-        background: rgb(36,36,36);
-	background: radial-gradient(circle, rgba(0,0,0,1) 0%, rgba(29,29,29,1) 46%, rgba(0,0,0,1) 100%);
+        background: rgb(24,24,24);
+	background: radial-gradient(circle, rgba(24,24,24,1) 0%, rgba(0,0,0,1) 100%);
         padding: 20px;
         border-radius: 10px;
         text-align: left;
