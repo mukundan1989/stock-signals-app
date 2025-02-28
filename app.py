@@ -17,7 +17,7 @@ st.markdown(
         border-collapse: separate;
         border-spacing: 0 10px; /* Adjust spacing between rows */
         font-size: 0.8em;
-        font-family: sans-serif;
+        font-family: "Source Sans Pro", sans-serif;
         min-width: 400px;
         /*box-shadow: 0 0 20px rgba(0, 0, 0, 0.15);*/
         /*border-radius: 30px;*/
