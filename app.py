@@ -16,9 +16,6 @@ st.markdown(
         width: 36px; /* Default size for desktop */
         height: 36px;
         margin-bottom: 10px; /* Spacing between logo and title */
-        display: block;
-        margin-left: auto;
-        margin-right: auto;
     }
 
     /* Adjust logo size for smaller screens */
@@ -125,8 +122,8 @@ st.markdown(
 
     /* Styling for the "Add Stock" button */
     .stButton button {
-        background-color: #00ccff;
-        color: white;
+        background-color: var(--primary-color);
+        color: var(--text-color);
         border-radius: 5px;
         padding: 10px 20px;
         font-size: 16px;
@@ -136,19 +133,19 @@ st.markdown(
     }
 
     .stButton button:hover {
-        background-color: #0099cc;
+        background-color: var(--primary-hover-color);
     }
 
     /* Custom CSS for the Company Name cell */
     .company-name-cell {
-        color: var(--text-color);
         text-align: center;
     }
 
     .company-symbol {
         background-color: #212121;
-        border-radius: 10px;
+        border-radius: 4px;
         padding: 2px 6px;
+        color: var(--text-color);
         display: inline-block;
         margin-top: 4px;
     }
@@ -168,7 +165,7 @@ st.markdown(
         color: var(--text-color);
     }
 
-    /* Metric box styles */
+    /* First grid box with line chart icon */
     .metric-box {
         background: linear-gradient(15deg, #000000, #1b1b1b);
         padding: 20px;
@@ -183,7 +180,174 @@ st.markdown(
         overflow: hidden;
     }
 
-    /* Other metric box styles remain unchanged */
+    .metric-box::before {
+        content: "";
+        background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="50" height="50" viewBox="0 0 24 24" fill="none" stroke="%23ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20V10M18 20V4M6 20v-4"/></svg>');
+        background-size: 40px 40px;
+        background-position: left top;
+        background-repeat: no-repeat;
+        opacity: 0.3;
+        position: absolute;
+        top: 20px;
+        left: 20px;
+        width: 40px;
+        height: 40px;
+        z-index: 1;
+    }
+
+    .metric-box h2 {
+        margin-top: 30px;
+        margin-left: 5px;
+        margin-bottom: 1px;
+    }
+
+    .metric-box p {
+        margin-left: 5px;
+        margin-bottom: 0;
+    }
+
+    /* Second grid box with pile of cash icon */
+    .metric-box-gain {
+        background: linear-gradient(15deg, #000000, #1b1b1b);
+        padding: 20px;
+        border-radius: 10px;
+        text-align: left;
+        color: var(--text-color);
+        font-size: 18px;
+        font-weight: bold;
+        border: 1px solid var(--border-color);
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .metric-box-gain::before {
+        content: "";
+        background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="50" height="50" viewBox="0 0 24 24" fill="none" stroke="%23ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 1 0 0 7h5a3.5 3.5 0 1 1 0 7H6"/></svg>');
+        background-size: 40px 40px;
+        background-position: left top;
+        background-repeat: no-repeat;
+        opacity: 0.3;
+        position: absolute;
+        top: 20px;
+        left: 20px;
+        width: 40px;
+        height: 40px;
+        z-index: 1;
+    }
+
+    .metric-box-gain h2 {
+        margin-top: 30px;
+        margin-left: 5px;
+        margin-bottom: 1px;
+    }
+
+    .metric-box-gain p {
+        margin-left: 5px;
+        margin-bottom: 0;
+    }
+
+    /* Third grid box with speedometer gauge icon */
+    .metric-box-speedometer {
+        background: linear-gradient(15deg, #000000, #1b1b1b);
+        padding: 20px;
+        border-radius: 10px;
+        text-align: left;
+        color: var(--text-color);
+        font-size: 18px;
+        font-weight: bold;
+        border: 1px solid var(--border-color);
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .metric-box-speedometer::before {
+        content: "";
+        background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="50" height="50" viewBox="0 0 24 24" fill="none" stroke="%23ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10zM12 6v6l4 2"/></svg>');
+        background-size: 40px 40px;
+        background-position: left top;
+        background-repeat: no-repeat;
+        opacity: 0.3;
+        position: absolute;
+        top: 20px;
+        left: 20px;
+        width: 40px;
+        height: 40px;
+        z-index: 1;
+    }
+
+    .metric-box-speedometer h2 {
+        margin-top: 30px;
+        margin-left: 5px;
+        margin-bottom: 1px;
+    }
+
+    .metric-box-speedometer p {
+        margin-left: 5px;
+        margin-bottom: 0;
+    }
+
+    /* Fourth grid box with dartboard and arrow icon */
+    .metric-box-accuracy {
+        background: linear-gradient(15deg, #000000, #1b1b1b);
+        padding: 20px;
+        border-radius: 10px;
+        text-align: left;
+        color: var(--text-color);
+        font-size: 18px;
+        font-weight: bold;
+        border: 1px solid var(--border-color);
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .metric-box-accuracy::before {
+        content: "";
+        background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="50" height="50" viewBox="0 0 24 24" fill="none" stroke="%23ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M16 8l-4 4-4-4"/></svg>');
+        background-size: 40px 40px;
+        background-position: left top;
+        background-repeat: no-repeat;
+        opacity: 0.3;
+        position: absolute;
+        top: 20px;
+        left: 20px;
+        width: 40px;
+        height: 40px;
+        z-index: 1;
+    }
+
+    .metric-box-accuracy h2 {
+        margin-top: 30px;
+        margin-left: 5px;
+        margin-bottom: 1px;
+    }
+
+    .metric-box-accuracy p {
+        margin-left: 5px;
+        margin-bottom: 0;
+    }
+
+    /* Custom CSS for aligning titles to the left */
+    .left-align {
+        text-align: left;
+        display: flex;
+        align-items: center;
+    }
+
+    .left-align svg {
+        margin-right: 10px;
+    }
+    
+    .st-b1 {
+        background-color: #000;
+    }
+
+    .st-bt {
+        background-color: #fff;
+    }
+    
     </style>
     """,
     unsafe_allow_html=True
@@ -192,9 +356,9 @@ st.markdown(
 # Streamlit UI - Portfolio Section
 st.markdown(
     """
-    <div style="text-align: center;">
+    <div style="display: flex; flex-direction: column; align-items: center;">
         <img src="https://raw.githubusercontent.com/mukundan1989/stock-signals-app/refs/heads/main/images/main-logo.png" alt="Logo" class="logo">
-        <h1>Stock Sentimeter</h1>
+        <h1 style='text-align: center;'>Stock Sentimeter</h1>
     </div>
     """,
     unsafe_allow_html=True
@@ -244,10 +408,10 @@ st.markdown(
     """
     <div class="left-align">
         <svg width="36" height="36" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="padding: 4px;">
-			<path d="M6 9H4C3.46957 9 2.96086 9.21071 2.58579 9.58579C2.21071 9.96086 2 10.4696 2 11V19C2 19.5304 2.21071 20.0391 2.58579 20.4142C2.96086 20.7893 3.46957 21 4 21H6C6.53043 21 7.03914 20.7893 7.41421 20.4142C7.78929 20.0391 8 19.5304 8 19V11C8 10.4696 7.78929 9.96086 7.41421 9.58579C7.03914 9.21071 6.53043 9 6 9Z" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-			<path d="M14 3H12C11.4696 3 10.9609 3.21071 10.5858 3.58579C10.2107 3.96086 10 4.46957 10 5V19C10 19.5304 10.2107 20.0391 10.5858 20.4142C10.9609 20.7893 11.4696 21 12 21H14C14.5304 21 15.0391 20.7893 15.4142 20.4142C15.7893 20.0391 16 19.5304 16 19V5C16 4.46957 15.7893 3.96086 15.4142 3.58579C15.0391 3.21071 14.5304 3 14 3Z" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-			<path d="M20 13H18C17.4696 13 16.9609 13.2107 16.5858 13.5858C16.2107 13.9609 16 14.4696 16 15V19C16 19.5304 16.2107 20.0391 16.5858 20.4142C16.9609 20.7893 17.4696 21 18 21H20C20.5304 21 21.0391 20.7893 21.4142 20.4142C21.7893 20.0391 22 19.5304 22 19V15C22 14.4696 21.7893 13.9609 21.4142 13.5858C21.0391 13.2107 20.5304 13 20 13Z" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-		</svg>
+            <path d="M6 9H4C3.46957 9 2.96086 9.21071 2.58579 9.58579C2.21071 9.96086 2 10.4696 2 11V19C2 19.5304 2.21071 20.0391 2.58579 20.4142C2.96086 20.7893 3.46957 21 4 21H6C6.53043 21 7.03914 20.7893 7.41421 20.4142C7.78929 20.0391 8 19.5304 8 19V11C8 10.4696 7.78929 9.96086 7.41421 9.58579C7.03914 9.21071 6.53043 9 6 9Z" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M14 3H12C11.4696 3 10.9609 3.21071 10.5858 3.58579C10.2107 3.96086 10 4.46957 10 5V19C10 19.5304 10.2107 20.0391 10.5858 20.4142C10.9609 20.7893 11.4696 21 12 21H14C14.5304 21 15.0391 20.7893 15.4142 20.4142C15.7893 20.0391 16 19.5304 16 19V5C16 4.46957 15.7893 3.96086 15.4142 3.58579C15.0391 3.21071 14.5304 3 14 3Z" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M20 13H18C17.4696 13 16.9609 13.2107 16.5858 13.5858C16.2107 13.9609 16 14.4696 16 15V19C16 19.5304 16.2107 20.0391 16.5858 20.4142C16.9609 20.7893 17.4696 21 18 21H20C20.5304 21 21.0391 20.7893 21.4142 20.4142C21.7893 20.0391 22 19.5304 22 19V15C22 14.4696 21.7893 13.9609 21.4142 13.5858C21.0391 13.2107 20.5304 13 20 13Z" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
         <h3>Select Sentiment Model</h3>
     </div>
     """,
@@ -294,11 +458,11 @@ def fetch_data(table, limit=5):
         cursor.close()
         conn.close()
 
-        # In the fetch_data function, modify the company name cell formatting:
-		df["Company Name"] = df.apply(
-			lambda row: f'<div class="company-name-cell">{row["comp_name"]}<br><small class="company-symbol">{row["comp_symbol"]}</small></div>',
-			axis=1
-		)
+        # Combine company name and symbol into a single column with custom CSS
+        df["Company Name"] = df.apply(
+            lambda row: f'<div class="company-name-cell">{row["comp_name"]}<br><small class="company-symbol">{row["comp_symbol"]}</small></div>',
+            axis=1
+        )
         
         # Drop the original comp_name and comp_symbol columns
         df = df.drop(columns=["comp_name", "comp_symbol"])
@@ -344,9 +508,9 @@ st.markdown(
     """
     <div class="left-align">
         <svg width="36" height="36" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="padding: 4px;">
-			<path d="M20 7H4C2.89543 7 2 7.89543 2 9V19C2 20.1046 2.89543 21 4 21H20C21.1046 21 22 20.1046 22 19V9C22 7.89543 21.1046 7 20 7Z" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-			<path d="M16 21V5C16 4.46957 15.7893 3.96086 15.4142 3.58579C15.0391 3.21071 14.5304 3 14 3H10C9.46957 3 8.96086 3.21071 8.58579 3.58579C8.21071 3.96086 8 4.46957 8 5V21" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-		</svg>
+            <path d="M20 7H4C2.89543 7 2 7.89543 2 9V19C2 20.1046 2.89543 21 4 21H20C21.1046 21 22 20.1046 22 19V9C22 7.89543 21.1046 7 20 7Z" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M16 21V5C16 4.46957 15.7893 3.96086 15.4142 3.58579C15.0391 3.21071 14.5304 3 14 3H10C9.46957 3 8.96086 3.21071 8.58579 3.58579C8.21071 3.96086 8 4.46957 8 5V21" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
         <h3>Portfolio</h3>
     </div>
     """,
@@ -384,7 +548,7 @@ if st.session_state["show_search"]:
                 
                 # Combine company name and symbol into a single column with custom CSS
                 new_row["Company Name"] = new_row.apply(
-                    lambda row: f'<div class="company-name-cell">{row["comp_name"]}<br><small>{row["comp_symbol"]}</small></div>',
+                    lambda row: f'<div class="company-name-cell">{row["comp_name"]}<br><small class="company-symbol">{row["comp_symbol"]}</small></div>',
                     axis=1
                 )
                 
