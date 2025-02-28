@@ -150,14 +150,14 @@ st.markdown(
 
     /* Custom CSS for the Trade Signal cell */
     .trade-signal-buy {
-        background-color: #2e7d32;
+        background-color: #6eb330;
         border-radius: 10px;
         padding: 10px;
         color: var(--text-color);
     }
 
     .trade-signal-sell {
-        background-color: #c62828;
+        background-color: #db503a;
         border-radius: 10px;
         padding: 10px;
         color: var(--text-color);
