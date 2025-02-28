@@ -337,6 +337,15 @@ st.markdown(
     .left-align svg {
         margin-right: 10px;
     }
+    
+    .st-b1 {
+    	background-color: #000;
+    }
+
+    .st-bt {
+        background-color: #fff;
+    }
+    
     </style>
     """,
     unsafe_allow_html=True
