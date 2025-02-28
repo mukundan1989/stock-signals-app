@@ -12,69 +12,67 @@ st.markdown(
         color: var(--text-color);
     }
 
-	.pretty-table {
+    .pretty-table {
         width: 100%;
         border-collapse: separate;
         border-spacing: 0 10px; /* Adjust spacing between rows */
         font-size: 0.9em;
         font-family: "Source Sans Pro", sans-serif;
         min-width: 400px;
-        /*box-shadow: 0 0 20px rgba(0, 0, 0, 0.15);*/
-        /*border-radius: 30px;*/
         overflow: hidden;
         text-align: center;
         border: none;
         color: var(--text-color);
-	}
+    }
 
-	/* Black background with curved edges for each row */
-	.pretty-table tbody tr {
+    /* Black background with curved edges for each row */
+    .pretty-table tbody tr {
         background-color: black; /* Set background color to black */
         border-radius: 20px; /* Adjust the border-radius for rounded edges */
         margin-bottom: 10px;
-	}
+    }
 
-	.pretty-table th:first-child {
+    .pretty-table th:first-child {
         border-top-left-radius: 30px; /* Adjust the border-radius for the first cell */
         border-bottom-left-radius: 30px;
-	}
+    }
 
- 	.pretty-table th:last-child {
+    .pretty-table th:last-child {
         border-top-right-radius: 30px; /* Adjust the border-radius for the first cell */
         border-bottom-right-radius: 30px;
-	}
+    }
 
-	.pretty-table th{
+    .pretty-table th{
         background-color: #1c1c1c; /* Set background color to black */
-	color: #aeaeae !important; /* Set background color to black */
+        color: #aeaeae !important; /* Set background color to black */
         padding: 6px 9px;
         text-align: center;
-	border: 2px solid #282828 !important; 
-	} 
+        border: 2px solid #282828 !important; 
+    } 
 
-	/* Padding for table cells */
-	.pretty-table td {
+    /* Padding for table cells */
+    .pretty-table td {
         padding: 5px 8px;
         text-align: center;
-	border: none;
-	border-top: 5px solid #282828 !important;
-	}
+        border: none;
+        border-top: 5px solid #282828 !important;
+    }
 
-	/* Add curved edges to the first and last cells in each row */
-	.pretty-table tbody tr td:first-child {
+    /* Add curved edges to the first and last cells in each row */
+    .pretty-table tbody tr td:first-child {
         border-top-left-radius: 20px; /* Adjust the border-radius for the first cell */
         border-bottom-left-radius: 20px;
-	}
+    }
 
-	.pretty-table tbody tr td:last-child {
+    .pretty-table tbody tr td:last-child {
         border-top-right-radius: 20px; /* Adjust the border-radius for the last cell */
         border-bottom-right-radius: 20px;
-	}
+    }
 
-	/* Hover effect for rows */
-	.pretty-table tbody tr:hover {
+    /* Hover effect for rows */
+    .pretty-table tbody tr:hover {
         background-color: #161616; /* Darker shade for hover effect */
-	}
+    }
 
     /* Ensure the text above the table is white */
     h1, p {
@@ -110,15 +108,15 @@ st.markdown(
         background-color: var(--primary-hover-color);
     }
 
-/* Custom CSS for the Company Name cell */
-.company-name-cell {
-    background-color: #212121;
-    border-radius: 10px; /* Rounded edges */
-    padding: 6px; /* Padding for better spacing */
-    color: var(--text-color); /* Use theme-based text color */
-    text-align: center; /* Center-align text */
-    display: inline-block; /* Ensure the background wraps the content */
-}
+    /* Custom CSS for the Company Name cell */
+    .company-name-cell {
+        background-color: #212121;
+        border-radius: 10px; /* Rounded edges */
+        padding: 6px; /* Padding for better spacing */
+        color: var(--text-color); /* Use theme-based text color */
+        text-align: center; /* Center-align text */
+        display: inline-block; /* Ensure the background wraps the content */
+    }
 
     /* Custom CSS for the Trade Signal cell */
     .trade-signal-buy {
@@ -298,15 +296,43 @@ st.markdown(
         margin-left: 5px;
         margin-bottom: 0;
     }
+
+    /* Background for toggle buttons section */
+    .toggle-buttons-container {
+        background-color: #1c1c1c;
+        padding: 10px;
+        border-radius: 10px;
+        margin-bottom: 20px;
+    }
+
+    /* Icon for Select Sentiment Model title */
+    .sentiment-model-icon {
+        display: inline-block;
+        vertical-align: middle;
+        margin-right: 10px;
+    }
+
+    /* Icon for Portfolio title */
+    .portfolio-icon {
+        display: inline-block;
+        vertical-align: middle;
+        margin-right: 10px;
+    }
     </style>
     """,
     unsafe_allow_html=True
 )
 
-# Rest of the code remains unchanged...
-
 # Streamlit UI - Portfolio Section
-st.markdown("<h1 style='text-align: center;'>Stock Sentimeter</h1>", unsafe_allow_html=True)
+st.markdown(
+    """
+    <div style="display: flex; align-items: center; justify-content: center;">
+        <img src="https://upload.wikimedia.org/wikipedia/commons/3/3a/Stock_market_chart_example.png" alt="Logo" style="width: 50px; height: 50px; margin-right: 10px;">
+        <h1 style='text-align: center;'>Stock Sentimeter</h1>
+    </div>
+    """,
+    unsafe_allow_html=True
+)
 st.write("<p style='text-align: center;'>Know stock market trends and make smarter investment decisions with our intuitive portfolio tool.</p>", unsafe_allow_html=True)
 
 # **2×2 Grid Layout Using HTML**
@@ -348,7 +374,18 @@ if "show_search" not in st.session_state:
 st.markdown("<br>", unsafe_allow_html=True)
 
 # Toggle buttons for selecting models
-st.write("### Select Sentiment Model")
+st.markdown(
+    """
+    <div class="toggle-buttons-container">
+        <div style="display: flex; align-items: center;">
+            <img src="https://upload.wikimedia.org/wikipedia/commons/6/6b/Chart_icon.png" alt="Sentiment Model Icon" class="sentiment-model-icon" style="width: 24px; height: 24px;">
+            <h3>Select Sentiment Model</h3>
+        </div>
+    </div>
+    """,
+    unsafe_allow_html=True
+)
+
 col1, col2, col3, col4 = st.columns(4)
 
 def toggle_selection(table_key):
@@ -435,7 +472,16 @@ if st.session_state["data"] is None:
 st.markdown("<br>", unsafe_allow_html=True)
 
 # Display formatted table with pretty headers
-st.write("### Portfolio")
+st.markdown(
+    """
+    <div style="display: flex; align-items: center;">
+        <img src="https://upload.wikimedia.org/wikipedia/commons/4/4a/Portfolio_icon.png" alt="Portfolio Icon" class="portfolio-icon" style="width: 24px; height: 24px;">
+        <h3>Portfolio</h3>
+    </div>
+    """,
+    unsafe_allow_html=True
+)
+
 if st.session_state["data"] is not None:
     table_html = st.session_state["data"].to_html(index=False, classes="pretty-table", escape=False)
     st.markdown(table_html, unsafe_allow_html=True)
