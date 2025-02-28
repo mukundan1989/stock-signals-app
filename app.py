@@ -12,6 +12,28 @@ st.markdown(
         color: var(--text-color);
     }
 
+    .logo {
+        width: 36px; /* Default size for desktop */
+        height: 36px;
+        margin-right: 10px; /* Spacing between logo and title */
+    }
+
+    /* Adjust logo size for smaller screens */
+    @media (max-width: 768px) {
+        .logo {
+            width: 30px; /* Smaller size for tablets */
+            height: 30px;
+        }
+    }
+
+    /* Adjust logo size for mobile devices */
+    @media (max-width: 480px) {
+        .logo {
+            width: 24px; /* Smallest size for mobile */
+            height: 24px;
+        }
+    }
+
     .pretty-table {
         width: 100%;
         border-collapse: separate;
@@ -318,7 +340,7 @@ st.markdown(
 st.markdown(
     """
     <div style="display: flex; align-items: center; justify-content: center;">
-        <img src="https://raw.githubusercontent.com/mukundan1989/stock-signals-app/refs/heads/main/images/main-logo.png" alt="Logo" style="margin-right: 10px;">
+        <img src="https://raw.githubusercontent.com/mukundan1989/stock-signals-app/refs/heads/main/images/main-logo.png" alt="Logo" class="logo">
         <h1 style='text-align: center;'>Stock Sentimeter</h1>
     </div>
     """,
