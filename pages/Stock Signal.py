@@ -223,6 +223,22 @@ st.markdown("""
         font-size: 100px;
         color: #00ff9f;
     }
+
+    /* Custom CSS for the title with logo */
+    .title-with-logo {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px; /* Space between logo and title */
+    }
+
+    .title-with-logo img {
+        width: 70px; /* Adjust the size of the logo */
+        height: 70px;
+        background: #000;
+        padding: 3px;
+        border-radius: 5px;
+    }
     </style>
 """, unsafe_allow_html=True)
 
@@ -279,10 +295,16 @@ def create_speedometer():
     fig.update_layout(height=200, width=200, margin=dict(t=20, b=20, l=20, r=20), paper_bgcolor='rgba(0,0,0,0)', font=dict(color='#ffffff'))
     return fig
 
-# Title (Now in White)
-st.markdown("""
-    <h1 style="text-align: center; color: white;">Stock Signal Page</h1>
-""", unsafe_allow_html=True)
+# Title with Twitter logo
+st.markdown(
+    """
+    <div class="title-with-logo">
+        <img src="https://raw.githubusercontent.com/mukundan1989/stock-signals-app/refs/heads/main/images/stocksignal-icon.png" alt="Twitter Logo" class="logo">
+        <h1 style='text-align: center;'>Stock Signal Page</h1>
+    </div>
+    """,
+    unsafe_allow_html=True
+)
 
 # Company Information Block
 st.markdown("""
