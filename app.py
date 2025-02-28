@@ -13,24 +13,24 @@ st.markdown(
     }
 
     .logo {
-        width: 36px; /* Default size for desktop */
-        height: 36px;
-        margin-bottom: 10px; /* Spacing between logo and title */
+        width: 46px; /* Default size for desktop */
+        height: 46px;
+        margin-bottom: 2px; /* Spacing between logo and title */
     }
 
     /* Adjust logo size for smaller screens */
     @media (max-width: 768px) {
         .logo {
-            width: 30px; /* Smaller size for tablets */
-            height: 30px;
+            width: 32px; /* Smaller size for tablets */
+            height: 32px;
         }
     }
 
     /* Adjust logo size for mobile devices */
     @media (max-width: 480px) {
         .logo {
-            width: 24px; /* Smallest size for mobile */
-            height: 24px;
+            width: 26px; /* Smallest size for mobile */
+            height: 26px;
         }
     }
 
@@ -141,7 +141,7 @@ st.markdown(
         text-align: center;
     }
 
-    .company-symbol {
+    .company-name-cell small {
         background-color: #212121;
         border-radius: 4px;
         padding: 2px 6px;
