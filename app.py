@@ -142,7 +142,7 @@ st.markdown(
     }
 
     .company-name-cell small {
-        background-color: #212121;
+        background-color: #313131;
         border-radius: 4px;
         padding: 2px 6px;
         color: var(--text-color);
