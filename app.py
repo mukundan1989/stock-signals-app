@@ -37,7 +37,6 @@ st.markdown(
     .stHorizontalBlock {
         background-color: black; /* Set background color to black */
         border-radius: 20px; /* Adjust the border-radius for rounded edges */
-        margin-bottom: 10px;
 	padding: 10px 20px 20px 20px;
     }
 
