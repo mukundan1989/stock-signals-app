@@ -299,7 +299,7 @@ def create_speedometer():
 st.markdown(
     """
     <div class="title-with-logo">
-        <img src="https://raw.githubusercontent.com/mukundan1989/stock-signals-app/refs/heads/main/images/twitter-logo.png" alt="Twitter Logo" class="logo">
+        <img src="https://raw.githubusercontent.com/mukundan1989/stock-signals-app/refs/heads/main/images/stocksignal-icon.png" alt="Twitter Logo" class="logo">
         <h1 style='text-align: center;'>Stock Signal Page</h1>
     </div>
     """,
