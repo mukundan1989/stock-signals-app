@@ -49,7 +49,7 @@ st.markdown(
 	color: #aeaeae !important; /* Set background color to black */
         padding: 6px 9px;
         text-align: center;
-	border: 2px solid #fff !important; 
+	border: 2px solid #282828 !important; 
 	} 
 
 	/* Padding for table cells */
