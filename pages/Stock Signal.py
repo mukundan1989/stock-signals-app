@@ -22,6 +22,12 @@ st.markdown("""
         text-align: center;
         margin: 10px;
     }
+
+    .stHorizontalBlock {
+        background-color: black; /* Set background color to black */
+        border-radius: 20px; /* Adjust the border-radius for rounded edges */
+        padding: 10px 20px 20px 20px;
+    }
     
     .metric-card:hover {
         transform: translateY(-5px);
