@@ -318,7 +318,7 @@ st.markdown(
 st.markdown(
     """
     <div style="display: flex; align-items: center; justify-content: center;">
-        <img src="https://via.placeholder.com/50" alt="Logo" style="margin-right: 10px;">
+        <img src="https://raw.githubusercontent.com/mukundan1989/stock-signals-app/refs/heads/main/images/main-logo.png" alt="Logo" style="margin-right: 10px;">
         <h1 style='text-align: center;'>Stock Sentimeter</h1>
     </div>
     """,
