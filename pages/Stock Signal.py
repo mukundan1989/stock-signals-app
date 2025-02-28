@@ -209,6 +209,20 @@ st.markdown("""
         text-align: center;
         color: #00ff00;
     }
+
+    /* Center align text vertically */
+    .vertical-center {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 100%;
+    }
+
+    /* Larger arrow icon */
+    .large-arrow {
+        font-size: 100px;
+        color: #00ff9f;
+    }
     </style>
 """, unsafe_allow_html=True)
 
@@ -302,9 +316,11 @@ col1, col2, col3 = st.columns([1, 2, 1])
 with col1:
     # First column: Keyword analyzed and count
     st.markdown("""
-        <div style="text-align: center; color: white;">
-            <h2>Keywords Analyzed</h2>
-            <p style="font-size: 24px; font-weight: bold;">145</p>
+        <div class="vertical-center">
+            <div>
+                <h2 style="text-align: center; color: white;">Keywords Analyzed</h2>
+                <p style="font-size: 24px; font-weight: bold; text-align: center; color: white;">145</p>
+            </div>
         </div>
     """, unsafe_allow_html=True)
 
@@ -317,8 +333,8 @@ with col2:
 with col3:
     # Third column: Green arrow icon
     st.markdown("""
-        <div style="text-align: center;">
-            <span style="font-size: 48px; color: #00ff9f;">&#9650;</span>
+        <div class="vertical-center">
+            <span class="large-arrow">&#9650;</span>
         </div>
     """, unsafe_allow_html=True)
 
@@ -327,14 +343,24 @@ st.markdown("""
     <div class="block-title">News Sentiment</div>
 """, unsafe_allow_html=True)
 
-col1, col2 = st.columns([1, 2])
+col1, col2, col3 = st.columns([1, 2, 1])
+
 with col1:
     st.markdown("""
-        <div class="metric-box">
-            <h2>70%</h2>
-            <p>Positive Sentiment</p>
-            <div class="sentiment-icon">&#9650;</div>
+        <div class="vertical-center">
+            <div>
+                <h2 style="text-align: center; color: white;">Positive Sentiment</h2>
+                <p style="font-size: 24px; font-weight: bold; text-align: center; color: white;">70%</p>
+            </div>
         </div>
     """, unsafe_allow_html=True)
+
 with col2:
     st.plotly_chart(create_speedometer(), use_container_width=True, key=str(uuid.uuid4()))
+
+with col3:
+    st.markdown("""
+        <div class="vertical-center">
+            <span class="large-arrow">&#9650;</span>
+        </div>
+    """, unsafe_allow_html=True)
