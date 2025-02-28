@@ -290,17 +290,31 @@ st.markdown("""
     <div class="block-title">Twitter Sentiment</div>
 """, unsafe_allow_html=True)
 
-col1, col2 = st.columns([1, 2])
+# Create three columns for the layout
+col1, col2, col3 = st.columns([1, 2, 1])
+
 with col1:
+    # First column: Keyword analyzed and count
     st.markdown("""
-        <div class="metric-box">
-            <h2>145</h2>
-            <p>Keywords</p>
-            <div class="sentiment-icon">&#9650;</div>
+        <div style="text-align: center; color: white;">
+            <h2>Keywords Analyzed</h2>
+            <p style="font-size: 24px; font-weight: bold;">145</p>
         </div>
     """, unsafe_allow_html=True)
+
 with col2:
-    st.plotly_chart(create_donut_chart(), use_container_width=True, key=str(uuid.uuid4()))
+    # Second column: Donut chart (only chart, no legend)
+    donut_fig = create_donut_chart()
+    donut_fig.update_layout(showlegend=False)  # Hide the legend
+    st.plotly_chart(donut_fig, use_container_width=True, key=str(uuid.uuid4()))
+
+with col3:
+    # Third column: Green arrow icon
+    st.markdown("""
+        <div style="text-align: center;">
+            <span style="font-size: 48px; color: #00ff9f;">&#9650;</span>
+        </div>
+    """, unsafe_allow_html=True)
 
 # News Sentiment Block
 st.markdown("""
