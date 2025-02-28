@@ -73,7 +73,7 @@ st.markdown(
 
 	/* Hover effect for rows */
 	.pretty-table tbody tr:hover {
-        background-color: #333; /* Darker shade for hover effect */
+        background-color: #1e1e1e; /* Darker shade for hover effect */
 	}
 
     /* Ensure the text above the table is white */
