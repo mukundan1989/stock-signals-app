@@ -33,11 +33,6 @@ st.markdown(
         border-radius: 20px; /* Adjust the border-radius for rounded edges */
         margin-bottom: 10px;
 	}
- 
-	.pretty-table th{
-        background-color: #1c1c1c; /* Set background color to black */
-	color: #aeaeae !important; /* Set background color to black */
-	} 
 
 	.pretty-table th:first-child {
         border-top-left-radius: 30px; /* Adjust the border-radius for the first cell */
@@ -49,8 +44,16 @@ st.markdown(
         border-bottom-right-radius: 30px;
 	}
 
+	.pretty-table th{
+        background-color: #1c1c1c; /* Set background color to black */
+	color: #aeaeae !important; /* Set background color to black */
+        padding: 6px 9px;
+        text-align: center;
+	border: 2px solid #fff !important; 
+	} 
+
 	/* Padding for table cells */
-	.pretty-table th, .pretty-table td {
+	.pretty-table td {
         padding: 6px 9px;
         text-align: center;
 	border: none;
