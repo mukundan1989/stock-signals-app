@@ -57,7 +57,7 @@ st.markdown(
 
     /* Black background with curved edges for each row */
     .pretty-table tbody tr {
-        background-color: black; /* Set background color to black */
+        background-color: #161616; /* Set background color to black */
         border-radius: 20px; /* Adjust the border-radius for rounded edges */
         margin-bottom: 10px;
     }
@@ -73,8 +73,8 @@ st.markdown(
     }
 
     .pretty-table th{
-        background-color: #1c1c1c; /* Set background color to black */
-        color: #aeaeae !important; /* Set background color to black */
+        background-color: #000; /* Set background color to black */
+        color: #fff !important; /* Set background color to black */
         padding: 6px 9px;
         text-align: center;
         border: 2px solid #282828 !important; 
