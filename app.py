@@ -19,6 +19,8 @@ st.markdown(
         font-size: 0.9em;
         font-family: "Source Sans Pro", sans-serif;
         min-width: 400px;
+        /*box-shadow: 0 0 20px rgba(0, 0, 0, 0.15);*/
+        /*border-radius: 30px;*/
         overflow: hidden;
         text-align: center;
         border: none;
@@ -72,14 +74,6 @@ st.markdown(
     /* Hover effect for rows */
     .pretty-table tbody tr:hover {
         background-color: #161616; /* Darker shade for hover effect */
-    }
-
-    .stHorizontalBlock {
-        background-color: #1c1c1c; /* Set background color to black */
-        color: #aeaeae !important; /* Set background color to black */
-        padding: 6px 9px;
-        text-align: center;
-        border: 2px solid #282828 !important; 
     }
 
     /* Ensure the text above the table is white */
@@ -305,25 +299,14 @@ st.markdown(
         margin-bottom: 0;
     }
 
-    /* Background for toggle buttons section */
-    .toggle-buttons-container {
-        background-color: #1c1c1c;
-        padding: 10px;
-        border-radius: 10px;
-        margin-bottom: 20px;
+    /* Custom CSS for aligning titles to the left */
+    .left-align {
+        text-align: left;
+        display: flex;
+        align-items: center;
     }
 
-    /* Icon for Select Sentiment Model title */
-    .sentiment-model-icon {
-        display: inline-block;
-        vertical-align: middle;
-        margin-right: 10px;
-    }
-
-    /* Icon for Portfolio title */
-    .portfolio-icon {
-        display: inline-block;
-        vertical-align: middle;
+    .left-align svg {
         margin-right: 10px;
     }
     </style>
@@ -335,7 +318,7 @@ st.markdown(
 st.markdown(
     """
     <div style="display: flex; align-items: center; justify-content: center;">
-        <img src="https://upload.wikimedia.org/wikipedia/commons/3/3a/Stock_market_chart_example.png" alt="Logo" style="width: 50px; height: 50px; margin-right: 10px;">
+        <img src="https://via.placeholder.com/50" alt="Logo" style="margin-right: 10px;">
         <h1 style='text-align: center;'>Stock Sentimeter</h1>
     </div>
     """,
@@ -384,11 +367,11 @@ st.markdown("<br>", unsafe_allow_html=True)
 # Toggle buttons for selecting models
 st.markdown(
     """
-    <div class="toggle-buttons-container">
-        <div style="display: flex; align-items: center;">
-            <img src="https://upload.wikimedia.org/wikipedia/commons/6/6b/Chart_icon.png" alt="Sentiment Model Icon" class="sentiment-model-icon" style="width: 24px; height: 24px;">
-            <h3>Select Sentiment Model</h3>
-        </div>
+    <div class="left-align">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <h3>Select Sentiment Model</h3>
     </div>
     """,
     unsafe_allow_html=True
@@ -482,8 +465,12 @@ st.markdown("<br>", unsafe_allow_html=True)
 # Display formatted table with pretty headers
 st.markdown(
     """
-    <div style="display: flex; align-items: center;">
-        <img src="https://upload.wikimedia.org/wikipedia/commons/4/4a/Portfolio_icon.png" alt="Portfolio Icon" class="portfolio-icon" style="width: 24px; height: 24px;">
+    <div class="left-align">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M3 3V21H21" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M18 6L16 8L12 4" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M18 14L16 16L12 12" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
         <h3>Portfolio</h3>
     </div>
     """,
