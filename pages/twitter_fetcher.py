@@ -6,8 +6,8 @@ import http.client
 # Configuration
 API_KEY = "1ce12aafcdmshdb6eea1ac608501p1ab501jsn4a47cc5027ce"  # Your RapidAPI key
 API_HOST = "twitter154.p.rapidapi.com"  # API host
-KEYWORDS_FILE = "twitterdir/keywords.txt"  # Path to the keywords file
-OUTPUT_DIR = "twitterdir/output"  # Directory to save JSON files
+KEYWORDS_FILE = os.path.join(os.getcwd(), "twitterdir", "keywords.txt")  # Path to the keywords file
+OUTPUT_DIR = os.path.join(os.getcwd(), "twitterdir", "output")  # Directory to save JSON files
 
 # Ensure output directory exists
 os.makedirs(OUTPUT_DIR, exist_ok=True)
@@ -48,9 +48,11 @@ def fetch_tweets():
             st.write(f"Fetching tweets for: {keyword}")
             result = fetch_tweets_for_keyword(keyword)
 
-            # Save the result to a JSON file
-            sanitized_keyword = keyword.replace(" ", "_").replace("/", "_")  # Sanitize filename
+            # Sanitize the keyword for filename
+            sanitized_keyword = "".join(c for c in keyword if c.isalnum() or c in ("_", "-"))
             output_file = os.path.join(OUTPUT_DIR, f"{sanitized_keyword}.json")
+
+            # Save the result to a JSON file
             with open(output_file, "w", encoding="utf-8") as outfile:
                 outfile.write(result)
 
@@ -62,6 +64,9 @@ def fetch_tweets():
 # Streamlit UI
 st.title("Twitter Data Fetcher")
 st.write("Fetch tweets for keywords listed in 'keywords.txt' and save them as JSON files.")
+
+# Debug: Print current working directory
+st.write(f"Current working directory: {os.getcwd()}")
 
 if st.button("Go"):
     st.write("Fetching tweets...")
