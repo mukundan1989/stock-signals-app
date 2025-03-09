@@ -21,6 +21,9 @@ def test_github_token():
     Test the GitHub token to ensure it is valid.
     """
     try:
+        st.write("Testing GitHub token...")
+        st.write(f"Token being used: {GITHUB_TOKEN}")  # Debugging: Print the token
+
         headers = {
             "Authorization": f"Bearer {GITHUB_TOKEN}",
             "Accept": "application/vnd.github.v3+json"
