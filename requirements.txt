@@ -8,3 +8,4 @@ yfinance
 matplotlib
 numpy
 seaborn
+requests
