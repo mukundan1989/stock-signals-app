@@ -9,3 +9,4 @@ matplotlib
 numpy
 seaborn
 requests
+PyGithub
