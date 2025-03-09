@@ -9,8 +9,7 @@ API_KEY = "1ce12aafcdmshdb6eea1ac608501p1ab501jsn4a47cc5027ce"  # Your RapidAPI 
 API_HOST = "twitter154.p.rapidapi.com"  # API host
 KEYWORDS_FILE = "twitterdir/keywords.txt"  # Path to the keywords file
 OUTPUT_DIR = "twitterdir/output"  # Directory to save JSON files
-GITHUB_TOKEN = st.secrets["GITHUB_TOKEN"]
-st.write("GitHub token accessed successfully!")
+GITHUB_TOKEN = st.secrets["GITHUB_TOKEN"]  # Securely access GitHub token from Streamlit Secrets
 GITHUB_REPO = "mukundan1989/stock-signals-app"  # Replace with your GitHub repo
 
 # Ensure output directory exists
@@ -50,6 +49,8 @@ def push_to_github(file_path, content):
         st.success(f"Pushed {file_path} to GitHub.")
     except Exception as e:
         st.error(f"Error pushing to GitHub: {e}")
+        # Debugging: Print the full error message
+        st.write(f"Full error details: {str(e)}")
 
 def fetch_tweets():
     """
