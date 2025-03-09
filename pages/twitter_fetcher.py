@@ -2,6 +2,7 @@ import streamlit as st
 import os
 import json
 import http.client
+import requests
 from github import Github  # PyGithub library
 
 # Configuration
@@ -14,6 +15,25 @@ GITHUB_REPO = "mukundan1989/stock-signals-app"  # Replace with your GitHub repo
 
 # Ensure output directory exists
 os.makedirs(OUTPUT_DIR, exist_ok=True)
+
+def test_github_token():
+    """
+    Test the GitHub token to ensure it is valid.
+    """
+    try:
+        headers = {
+            "Authorization": f"Bearer {GITHUB_TOKEN}",
+            "Accept": "application/vnd.github.v3+json"
+        }
+        response = requests.get("https://api.github.com/user", headers=headers)
+        if response.status_code == 200:
+            st.success("GitHub token is valid!")
+            st.write("GitHub user details:", response.json())
+        else:
+            st.error(f"GitHub token is invalid. Status code: {response.status_code}")
+            st.write("Response details:", response.json())
+    except Exception as e:
+        st.error(f"Error testing GitHub token: {e}")
 
 def fetch_tweets_for_keyword(keyword):
     """
@@ -90,6 +110,12 @@ def fetch_tweets():
 st.title("Twitter Data Fetcher")
 st.write("Fetch tweets for keywords listed in 'keywords.txt' and save them as JSON files.")
 
+# Test GitHub token
+if st.button("Test GitHub Token"):
+    st.write("Testing GitHub token...")
+    test_github_token()
+
+# Fetch tweets
 if st.button("Go"):
     st.write("Fetching tweets...")
     fetch_tweets()
