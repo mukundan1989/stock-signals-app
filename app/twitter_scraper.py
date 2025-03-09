@@ -1,36 +1,61 @@
 import streamlit as st
-import json
+import http.client
 import os
+import json
 
-def load_keywords(file_path):
-    """Reads keywords from a text file."""
-    try:
-        with open(file_path, "r") as file:
-            keywords = [line.strip() for line in file.readlines() if line.strip()]
-        return keywords
-    except FileNotFoundError:
-        st.error(f"File not found: {file_path}")
-        return []
+# Configuration
+KEYWORDS_FILE = "twitterdir/keywords.txt"  # Path in the GitHub repository
+OUTPUT_DIR = "output/"  # Change this to your desired output directory
+API_KEY = "1ce12aafcdmshdb6eea1ac608501p1ab501jsn4a47cc5027ce"  # Replace with your actual RapidAPI key
+API_HOST = "twitter154.p.rapidapi.com"
 
-def save_json(data, output_dir, filename="output.json"):
-    """Saves data to a JSON file in the specified output directory."""
-    os.makedirs(output_dir, exist_ok=True)
-    file_path = os.path.join(output_dir, filename)
-    with open(file_path, "w") as json_file:
-        json.dump(data, json_file, indent=4)
-    return file_path
+# Ensure output directory exists
+os.makedirs(OUTPUT_DIR, exist_ok=True)
 
+def fetch_tweets_for_keyword(keyword):
+    """Fetch tweets for a specific keyword from the API."""
+    conn = http.client.HTTPSConnection(API_HOST)
+    
+    headers = {
+        'x-rapidapi-key': API_KEY,
+        'x-rapidapi-host': API_HOST
+    }
+    
+    endpoint = f"/search/search?query={keyword}&section=latest&min_retweets=1&min_likes=1&limit=50&start_date=2024-07-01&language=en&end_date=2024-07-31"
+    conn.request("GET", endpoint, headers=headers)
+    
+    res = conn.getresponse()
+    data = res.read()
+    conn.close()
+    
+    return data.decode("utf-8")
+
+def process_keywords():
+    """Reads keywords from the file and fetches tweets."""
+    if not os.path.exists(KEYWORDS_FILE):
+        st.error(f"Keywords file '{KEYWORDS_FILE}' not found.")
+        return
+    
+    with open(KEYWORDS_FILE, "r") as file:
+        keywords = [line.strip() for line in file if line.strip()]
+    
+    results = {}
+    for keyword in keywords:
+        try:
+            st.write(f"Fetching tweets for: {keyword}")
+            result = fetch_tweets_for_keyword(keyword)
+            sanitized_keyword = keyword.replace(" ", "_").replace("/", "_")
+            output_file = os.path.join(OUTPUT_DIR, f"{sanitized_keyword}.json")
+            with open(output_file, "w", encoding="utf-8") as outfile:
+                outfile.write(result)
+            results[keyword] = output_file
+            st.success(f"Saved tweets for '{keyword}' to {output_file}")
+        except Exception as e:
+            st.error(f"Error fetching tweets for '{keyword}': {e}")
+    
 # Streamlit UI
-st.title("Keyword Processing App")
-
-# Define file paths
-keyword_file = "twitterdir/keywords.txt"
-output_dir = "outputdir"  # Change this if needed
+st.title("Twitter Keyword Extractor")
+st.write("Fetch tweets for keywords listed in `twitterdir/keywords.txt`")
 
 if st.button("Go"):
-    keywords = load_keywords(keyword_file)
-    if keywords:
-        output_data = {"keywords": keywords}
-        output_file = save_json(output_data, output_dir)
-        st.success(f"Output saved to {output_file}")
-        st.json(output_data)
+    process_keywords()
