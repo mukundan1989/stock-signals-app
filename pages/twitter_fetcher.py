@@ -9,7 +9,8 @@ API_KEY = "1ce12aafcdmshdb6eea1ac608501p1ab501jsn4a47cc5027ce"  # Your RapidAPI 
 API_HOST = "twitter154.p.rapidapi.com"  # API host
 KEYWORDS_FILE = "twitterdir/keywords.txt"  # Path to the keywords file
 OUTPUT_DIR = "twitterdir/output"  # Directory to save JSON files
-GITHUB_TOKEN = st.secrets["GITHUB_TOKEN"]  # Securely access GitHub token from Streamlit Secrets
+GITHUB_TOKEN = st.secrets["GITHUB_TOKEN"]
+st.write("GitHub token accessed successfully!")
 GITHUB_REPO = "mukundan1989/stock-signals-app"  # Replace with your GitHub repo
 
 # Ensure output directory exists
