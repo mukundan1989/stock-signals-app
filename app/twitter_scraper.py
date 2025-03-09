@@ -4,9 +4,9 @@ import os
 import json
 
 # Configuration
-KEYWORDS_FILE = "twitterdir/keywords.txt"  # Path in the GitHub repository
-OUTPUT_DIR = "output/"  # Change this to your desired output directory
-API_KEY = "1ce12aafcdmshdb6eea1ac608501p1ab501jsn4a47cc5027ce"  # Replace with your actual RapidAPI key
+KEYWORDS_FILE = "twitterdir/keywords.txt"  # Path to keywords file
+OUTPUT_DIR = "output/"  # Change this to your output directory
+API_KEY = "your_rapidapi_key"  # Replace with actual API key
 API_HOST = "twitter154.p.rapidapi.com"
 
 # Ensure output directory exists
@@ -52,10 +52,11 @@ def process_keywords():
             st.success(f"Saved tweets for '{keyword}' to {output_file}")
         except Exception as e:
             st.error(f"Error fetching tweets for '{keyword}': {e}")
-    
-# Streamlit UI
-st.title("Twitter Keyword Extractor")
-st.write("Fetch tweets for keywords listed in `twitterdir/keywords.txt`")
 
-if st.button("Go"):
-    process_keywords()
+def run_twitter_scraper():
+    """Streamlit UI for Twitter Scraper."""
+    st.title("Twitter Keyword Extractor")
+    st.write("Fetch tweets for keywords listed in `twitterdir/keywords.txt`")
+
+    if st.button("Go"):
+        process_keywords()
