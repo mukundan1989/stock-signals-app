@@ -6,7 +6,7 @@ import json
 # Configuration
 KEYWORDS_FILE = "twitterdir/keywords.txt"  # Path to keywords file
 OUTPUT_DIR = "output/"  # Change this to your output directory
-API_KEY = "your_rapidapi_key"  # Replace with actual API key
+API_KEY = "1ce12aafcdmshdb6eea1ac608501p1ab501jsn4a47cc5027ce"  # Replace with actual API key
 API_HOST = "twitter154.p.rapidapi.com"
 
 # Ensure output directory exists
