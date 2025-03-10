@@ -3,7 +3,7 @@ import os
 import json
 import http.client
 import pandas as pd
-import shutil  # For deleting directories
+import shutil  # For clearing directories
 
 # Configuration
 API_KEY = "1ce12aafcdmshdb6eea1ac608501p1ab501jsn4a47cc5027ce"  # Your RapidAPI key
@@ -19,19 +19,6 @@ os.makedirs(CSV_OUTPUT_DIR, exist_ok=True)
 # Initialize session state for status table
 if "status_table" not in st.session_state:
     st.session_state["status_table"] = []
-
-def clear_tmp_storage():
-    """
-    Clear the /tmp/twitterdir/output/ and /tmp/twitterdir/csv_output/ directories.
-    """
-    if os.path.exists(JSON_OUTPUT_DIR):
-        shutil.rmtree(JSON_OUTPUT_DIR)  # Delete the directory and its contents
-        os.makedirs(JSON_OUTPUT_DIR)  # Recreate the directory
-    if os.path.exists(CSV_OUTPUT_DIR):
-        shutil.rmtree(CSV_OUTPUT_DIR)  # Delete the directory and its contents
-        os.makedirs(CSV_OUTPUT_DIR)  # Recreate the directory
-    st.session_state["status_table"] = []  # Clear the status table
-    st.success("Cleared existing data in /tmp storage.")
 
 def fetch_tweets_for_keyword(keyword):
     """
@@ -63,9 +50,6 @@ def fetch_tweets():
     if not keywords:
         st.warning("No keywords found in the file. Please add keywords to 'keywords.txt'.")
         return
-
-    # Clear existing data in /tmp storage
-    clear_tmp_storage()
 
     for keyword in keywords:
         try:
@@ -149,12 +133,34 @@ def convert_json_to_csv():
         except Exception as e:
             st.error(f"Error converting {json_file} to CSV: {e}")
 
+def clear_temp():
+    """
+    Clear the /tmp/twitterdir/output and /tmp/twitterdir/csv_output folders.
+    """
+    try:
+        # Remove JSON output directory
+        if os.path.exists(JSON_OUTPUT_DIR):
+            shutil.rmtree(JSON_OUTPUT_DIR)
+            os.makedirs(JSON_OUTPUT_DIR, exist_ok=True)
+
+        # Remove CSV output directory
+        if os.path.exists(CSV_OUTPUT_DIR):
+            shutil.rmtree(CSV_OUTPUT_DIR)
+            os.makedirs(CSV_OUTPUT_DIR, exist_ok=True)
+
+        # Clear the status table
+        st.session_state["status_table"] = []
+
+        st.success("Temporary files cleared successfully!")
+    except Exception as e:
+        st.error(f"Error clearing temporary files: {e}")
+
 # Streamlit UI
 st.title("Twitter Data Fetcher")
 st.write("Fetch tweets for keywords listed in 'keywords.txt' and save them as JSON files.")
 
 # Buttons side by side
-col1, col2 = st.columns(2)
+col1, col2, col3 = st.columns(3)
 with col1:
     if st.button("Fetch Tweets"):
         st.write("Fetching tweets...")
@@ -166,6 +172,12 @@ with col2:
         st.write("Converting JSON files to CSV...")
         convert_json_to_csv()
         st.write("Conversion completed!")
+
+with col3:
+    if st.button("Clear Temp"):
+        st.write("Clearing temporary files...")
+        clear_temp()
+        st.write("Process completed!")
 
 # Status Table
 if st.session_state["status_table"]:
