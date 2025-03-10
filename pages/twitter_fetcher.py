@@ -29,7 +29,7 @@ def fetch_tweets_for_keyword(keyword):
         'x-rapidapi-key': API_KEY,
         'x-rapidapi-host': API_HOST
     }
-    endpoint = f"/search/search?query={keyword}&section=latest&min_retweets=1&min_likes=1&limit=50&start_date=2024-07-01&language=en&end_date=2024-07-31"
+    endpoint = f"/search/search?query={keyword}&section=latest&min_retweets=1&min_likes=1&limit=50&start_date=2025-01-01&language=en&end_date=2025-03-10"
     conn.request("GET", endpoint, headers=headers)
     res = conn.getresponse()
     data = res.read()
