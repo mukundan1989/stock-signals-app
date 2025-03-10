@@ -2,41 +2,15 @@ import streamlit as st
 import os
 import json
 import http.client
-import requests
-from github import Github  # PyGithub library
 
 # Configuration
 API_KEY = "1ce12aafcdmshdb6eea1ac608501p1ab501jsn4a47cc5027ce"  # Your RapidAPI key
 API_HOST = "twitter154.p.rapidapi.com"  # API host
 KEYWORDS_FILE = "twitterdir/keywords.txt"  # Path to the keywords file
-OUTPUT_DIR = "twitterdir/output"  # Directory to save JSON files
-GITHUB_TOKEN = st.secrets["GITHUB_TOKEN"]  # Securely access GitHub token from Streamlit Secrets
-GITHUB_REPO = "mukundan1989/stock-signals-app"  # Replace with your GitHub repo
+OUTPUT_DIR = "/tmp/twitterdir/output"  # Save files to Streamlit's persistent storage
 
 # Ensure output directory exists
 os.makedirs(OUTPUT_DIR, exist_ok=True)
-
-def test_github_token():
-    """
-    Test the GitHub token to ensure it is valid.
-    """
-    try:
-        st.write("Testing GitHub token...")
-        st.write(f"Token being used: {GITHUB_TOKEN}")  # Debugging: Print the token
-
-        headers = {
-            "Authorization": f"Bearer {GITHUB_TOKEN}",
-            "Accept": "application/vnd.github.v3+json"
-        }
-        response = requests.get("https://api.github.com/user", headers=headers)
-        if response.status_code == 200:
-            st.success("GitHub token is valid!")
-            st.write("GitHub user details:", response.json())
-        else:
-            st.error(f"GitHub token is invalid. Status code: {response.status_code}")
-            st.write("Response details:", response.json())
-    except Exception as e:
-        st.error(f"Error testing GitHub token: {e}")
 
 def fetch_tweets_for_keyword(keyword):
     """
@@ -53,27 +27,6 @@ def fetch_tweets_for_keyword(keyword):
     data = res.read()
     conn.close()
     return data.decode("utf-8")
-
-def push_to_github(file_path, content):
-    """
-    Push a file to GitHub using the GitHub API.
-    """
-    try:
-        github = Github(GITHUB_TOKEN)
-        repo = github.get_repo(GITHUB_REPO)
-        with open(file_path, "r") as file:
-            content = file.read()
-        repo.create_file(
-            path=file_path,  # Path in the repository
-            message=f"Add {os.path.basename(file_path)}",  # Commit message
-            content=content,  # File content
-            branch="main"  # Branch to push to
-        )
-        st.success(f"Pushed {file_path} to GitHub.")
-    except Exception as e:
-        st.error(f"Error pushing to GitHub: {e}")
-        # Debugging: Print the full error message
-        st.write(f"Full error details: {str(e)}")
 
 def fetch_tweets():
     """
@@ -103,23 +56,40 @@ def fetch_tweets():
 
             st.success(f"Saved tweets for '{keyword}' to: {output_file}")
 
-            # Push the file to GitHub
-            push_to_github(output_file, result)
-
         except Exception as e:
             st.error(f"Error fetching tweets for '{keyword}': {e}")
+
+def list_saved_files():
+    """
+    List all saved JSON files in the output directory.
+    """
+    if os.path.exists(OUTPUT_DIR):
+        files = os.listdir(OUTPUT_DIR)
+        if files:
+            st.write("### Saved JSON Files")
+            for file in files:
+                st.write(f"- {file}")
+                # Add a download button for each file
+                with open(os.path.join(OUTPUT_DIR, file), "r") as f:
+                    st.download_button(
+                        label=f"Download {file}",
+                        data=f.read(),
+                        file_name=file,
+                        mime="application/json"
+                    )
+        else:
+            st.warning("No JSON files found in the output directory.")
+    else:
+        st.warning("Output directory does not exist.")
 
 # Streamlit UI
 st.title("Twitter Data Fetcher")
 st.write("Fetch tweets for keywords listed in 'keywords.txt' and save them as JSON files.")
 
-# Test GitHub token
-if st.button("Test GitHub Token"):
-    st.write("Testing GitHub token...")
-    test_github_token()
-
-# Fetch tweets
 if st.button("Go"):
     st.write("Fetching tweets...")
     fetch_tweets()
     st.write("Process completed!")
+
+# Display saved files
+list_saved_files()
