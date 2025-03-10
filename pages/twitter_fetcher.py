@@ -15,6 +15,10 @@ CSV_OUTPUT_DIR = "/tmp/twitterdir/csv_output"  # Directory to save CSV files
 os.makedirs(JSON_OUTPUT_DIR, exist_ok=True)
 os.makedirs(CSV_OUTPUT_DIR, exist_ok=True)
 
+# Initialize session state for tracking status
+if "status_df" not in st.session_state:
+    st.session_state["status_df"] = pd.DataFrame(columns=["Keyword", "JSON Output", "CSV Conversion"])
+
 def fetch_tweets_for_keyword(keyword):
     """
     Fetch tweets for a specific keyword from the API.
@@ -56,6 +60,15 @@ def fetch_tweets():
             output_file = os.path.join(JSON_OUTPUT_DIR, f"{sanitized_keyword}.json")
             with open(output_file, "w", encoding="utf-8") as outfile:
                 outfile.write(result)
+
+            # Update status in session state
+            if keyword not in st.session_state["status_df"]["Keyword"].values:
+                st.session_state["status_df"] = pd.concat(
+                    [st.session_state["status_df"], pd.DataFrame({"Keyword": [keyword], "JSON Output": ["✅ Completed"], "CSV Conversion": ["❌ Not Completed"]})],
+                    ignore_index=True,
+                )
+            else:
+                st.session_state["status_df"].loc[st.session_state["status_df"]["Keyword"] == keyword, "JSON Output"] = "✅ Completed"
 
             st.success(f"Saved tweets for '{keyword}' to: {output_file}")
 
@@ -108,6 +121,11 @@ def convert_json_to_csv():
 
             # Save to CSV
             df.to_csv(csv_file_path, index=False)
+
+            # Update status in session state
+            keyword = os.path.splitext(json_file)[0].replace("_", " ")
+            st.session_state["status_df"].loc[st.session_state["status_df"]["Keyword"] == keyword, "CSV Conversion"] = "✅ Completed"
+
             st.success(f"Converted {json_file} -> {csv_file_name}")
 
         except Exception as e:
@@ -139,6 +157,10 @@ def list_files(directory, file_extension):
 # Streamlit UI
 st.title("Twitter Data Fetcher")
 st.write("Fetch tweets for keywords listed in 'keywords.txt' and save them as JSON files.")
+
+# Display status table
+st.write("### Status Table")
+st.dataframe(st.session_state["status_df"], use_container_width=True)
 
 if st.button("Fetch Tweets"):
     st.write("Fetching tweets...")
