@@ -157,3 +157,24 @@ if st.session_state["status_table"]:
     st.table(status_df)
 else:
     st.write("No actions performed yet. Fetch tweets to see the status.")
+
+# Display CSV files in a collapsible multi-column layout
+if os.path.exists(CSV_OUTPUT_DIR):
+    csv_files = [f for f in os.listdir(CSV_OUTPUT_DIR) if f.endswith(".csv")]
+    if csv_files:
+        with st.expander("Download Converted CSV Files"):
+            # Create 3 columns for the download buttons
+            cols = st.columns(3)
+            for i, csv_file in enumerate(csv_files):
+                with cols[i % 3]:  # Distribute buttons across columns
+                    with open(os.path.join(CSV_OUTPUT_DIR, csv_file), "r") as f:
+                        st.download_button(
+                            label=f"Download {csv_file}",
+                            data=f.read(),
+                            file_name=csv_file,
+                            mime="text/csv"
+                        )
+    else:
+        st.warning("No CSV files found in the output directory.")
+else:
+    st.warning("CSV output directory does not exist.")
