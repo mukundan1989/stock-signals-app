@@ -15,9 +15,9 @@ CSV_OUTPUT_DIR = "/tmp/twitterdir/csv_output"  # Directory to save CSV files
 os.makedirs(JSON_OUTPUT_DIR, exist_ok=True)
 os.makedirs(CSV_OUTPUT_DIR, exist_ok=True)
 
-# Initialize session state for tracking status
-if "status_df" not in st.session_state:
-    st.session_state["status_df"] = pd.DataFrame(columns=["Keyword", "JSON Output", "CSV Conversion"])
+# Initialize session state for status table
+if "status_table" not in st.session_state:
+    st.session_state["status_table"] = []
 
 def fetch_tweets_for_keyword(keyword):
     """
@@ -61,14 +61,12 @@ def fetch_tweets():
             with open(output_file, "w", encoding="utf-8") as outfile:
                 outfile.write(result)
 
-            # Update status in session state
-            if keyword not in st.session_state["status_df"]["Keyword"].values:
-                st.session_state["status_df"] = pd.concat(
-                    [st.session_state["status_df"], pd.DataFrame({"Keyword": [keyword], "JSON Output": ["✅ Completed"], "CSV Conversion": ["❌ Not Completed"]})],
-                    ignore_index=True,
-                )
-            else:
-                st.session_state["status_df"].loc[st.session_state["status_df"]["Keyword"] == keyword, "JSON Output"] = "✅ Completed"
+            # Update status table
+            st.session_state["status_table"].append({
+                "Keyword": keyword,
+                "Tweet Extract JSON": "✅",
+                "CSV Output": "❌"
+            })
 
             st.success(f"Saved tweets for '{keyword}' to: {output_file}")
 
@@ -122,56 +120,40 @@ def convert_json_to_csv():
             # Save to CSV
             df.to_csv(csv_file_path, index=False)
 
-            # Update status in session state
-            keyword = os.path.splitext(json_file)[0].replace("_", " ")
-            st.session_state["status_df"].loc[st.session_state["status_df"]["Keyword"] == keyword, "CSV Conversion"] = "✅ Completed"
+            # Update status table
+            keyword = json_file.replace(".json", "").replace("_", " ")
+            for entry in st.session_state["status_table"]:
+                if entry["Keyword"] == keyword:
+                    entry["CSV Output"] = "✅"
+                    break
 
             st.success(f"Converted {json_file} -> {csv_file_name}")
 
         except Exception as e:
             st.error(f"Error converting {json_file} to CSV: {e}")
 
-def list_files(directory, file_extension):
-    """
-    List files in a directory with a specific extension.
-    """
-    if os.path.exists(directory):
-        files = [f for f in os.listdir(directory) if f.endswith(file_extension)]
-        if files:
-            st.write(f"### {file_extension.upper()} Files in {directory}")
-            for file in files:
-                st.write(f"- {file}")
-                # Add a download button for each file
-                with open(os.path.join(directory, file), "r") as f:
-                    st.download_button(
-                        label=f"Download {file}",
-                        data=f.read(),
-                        file_name=file,
-                        mime="text/csv" if file_extension == ".csv" else "application/json"
-                    )
-        else:
-            st.warning(f"No {file_extension.upper()} files found in {directory}.")
-    else:
-        st.warning(f"Directory {directory} does not exist.")
-
 # Streamlit UI
 st.title("Twitter Data Fetcher")
 st.write("Fetch tweets for keywords listed in 'keywords.txt' and save them as JSON files.")
 
-# Display status table
-st.write("### Status Table")
-st.dataframe(st.session_state["status_df"], use_container_width=True)
+# Buttons side by side
+col1, col2 = st.columns(2)
+with col1:
+    if st.button("Fetch Tweets"):
+        st.write("Fetching tweets...")
+        fetch_tweets()
+        st.write("Process completed!")
 
-if st.button("Fetch Tweets"):
-    st.write("Fetching tweets...")
-    fetch_tweets()
-    st.write("Process completed!")
+with col2:
+    if st.button("Convert JSON to CSV"):
+        st.write("Converting JSON files to CSV...")
+        convert_json_to_csv()
+        st.write("Conversion completed!")
 
-if st.button("Convert JSON to CSV"):
-    st.write("Converting JSON files to CSV...")
-    convert_json_to_csv()
-    st.write("Conversion completed!")
-
-# Display saved JSON and CSV files
-list_files(JSON_OUTPUT_DIR, ".json")
-list_files(CSV_OUTPUT_DIR, ".csv")
+# Status Table
+if st.session_state["status_table"]:
+    st.write("### Status Table")
+    status_df = pd.DataFrame(st.session_state["status_table"])
+    st.table(status_df)
+else:
+    st.write("No actions performed yet. Fetch tweets to see the status.")
