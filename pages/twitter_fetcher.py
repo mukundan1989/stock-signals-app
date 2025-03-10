@@ -3,6 +3,7 @@ import os
 import json
 import http.client
 import pandas as pd
+import shutil  # For deleting directories
 
 # Configuration
 API_KEY = "1ce12aafcdmshdb6eea1ac608501p1ab501jsn4a47cc5027ce"  # Your RapidAPI key
@@ -18,6 +19,19 @@ os.makedirs(CSV_OUTPUT_DIR, exist_ok=True)
 # Initialize session state for status table
 if "status_table" not in st.session_state:
     st.session_state["status_table"] = []
+
+def clear_tmp_storage():
+    """
+    Clear the /tmp/twitterdir/output/ and /tmp/twitterdir/csv_output/ directories.
+    """
+    if os.path.exists(JSON_OUTPUT_DIR):
+        shutil.rmtree(JSON_OUTPUT_DIR)  # Delete the directory and its contents
+        os.makedirs(JSON_OUTPUT_DIR)  # Recreate the directory
+    if os.path.exists(CSV_OUTPUT_DIR):
+        shutil.rmtree(CSV_OUTPUT_DIR)  # Delete the directory and its contents
+        os.makedirs(CSV_OUTPUT_DIR)  # Recreate the directory
+    st.session_state["status_table"] = []  # Clear the status table
+    st.success("Cleared existing data in /tmp storage.")
 
 def fetch_tweets_for_keyword(keyword):
     """
@@ -49,6 +63,9 @@ def fetch_tweets():
     if not keywords:
         st.warning("No keywords found in the file. Please add keywords to 'keywords.txt'.")
         return
+
+    # Clear existing data in /tmp storage
+    clear_tmp_storage()
 
     for keyword in keywords:
         try:
