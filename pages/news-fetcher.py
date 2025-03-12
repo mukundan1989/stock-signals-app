@@ -10,15 +10,17 @@ import shutil
 import re
 
 # Configuration
-API_KEY = "3cf0736f79mshe60115701a871c4p19c558jsncccfd9521243"  # Your RapidAPI key
+API_KEY = "1ce12aafcdmshdb6eea1ac608501p1ab501jsn4a47cc5027ce"  # Your RapidAPI key
 API_HOST = "seeking-alpha.p.rapidapi.com"  # API host
 SYMBOL_FILE = "twitterdir/symbollist.txt"  # Path to the symbols file (from GitHub repo)
-OUTPUT_DIR = "/tmp/twitterdir"  # Directory to save CSV files
+OUTPUT_DIR = "/tmp/newsdir"  # Directory to save CSV files
 os.makedirs(OUTPUT_DIR, exist_ok=True)  # Ensure the output directory exists
 
-# Initialize session state for status table
+# Initialize session state for status table and process status
 if "status_table" not in st.session_state:
     st.session_state["status_table"] = []
+if "process_status" not in st.session_state:
+    st.session_state["process_status"] = []
 
 # Function to fetch article metadata
 def fetch_articles(symbol, since_timestamp, until_timestamp):
@@ -45,7 +47,7 @@ def fetch_articles(symbol, since_timestamp, until_timestamp):
             time.sleep(2)  # Avoid rate limits
 
         except Exception as e:
-            st.error(f"Error fetching articles for {symbol}: {e}")
+            st.session_state["process_status"].append(f"Error fetching articles for {symbol}: {e}")
             return None
 
     return all_news_data
@@ -62,7 +64,7 @@ def fetch_content(news_id):
         res = conn.getresponse()
         return res.read().decode('utf-8')
     except Exception as e:
-        st.error(f"Error fetching content for ID {news_id}: {e}")
+        st.session_state["process_status"].append(f"Error fetching content for ID {news_id}: {e}")
         return None
 
 # Function to clean HTML content
@@ -104,11 +106,12 @@ col1, col2, col3 = st.columns(3)
 with col1:
     if st.button("Fetch Articles"):
         st.session_state["status_table"] = []  # Reset status table
+        st.session_state["process_status"] = []  # Reset process status
         with open(SYMBOL_FILE, "r") as f:
             symbols = [line.strip() for line in f.readlines()]
 
         for symbol in symbols:
-            st.write(f"Fetching articles for: {symbol}")
+            st.session_state["process_status"].append(f"Fetching articles for: {symbol}")
             articles = fetch_articles(symbol, since_timestamp, until_timestamp)
             if articles:
                 file_name = os.path.join(OUTPUT_DIR, f"{symbol.lower()}_news_data.csv")
@@ -131,17 +134,21 @@ with col1:
                     "Symbol": symbol,
                     "Number of Articles Extracted": len(articles)
                 })
+                st.session_state["process_status"].append(f"Saved {len(articles)} articles for {symbol}")
             else:
                 st.session_state["status_table"].append({
                     "Symbol": symbol,
                     "Number of Articles Extracted": "API Error"
                 })
+                st.session_state["process_status"].append(f"Failed to fetch articles for {symbol}")
 
 with col2:
     if st.button("Get Content"):
+        st.session_state["process_status"] = []  # Reset process status
         csv_files = [f for f in os.listdir(OUTPUT_DIR) if f.endswith("_news_data.csv")]
         for csv_file in csv_files:
             symbol = csv_file.replace("_news_data.csv", "")
+            st.session_state["process_status"].append(f"Fetching content for {symbol}")
             df = pd.read_csv(os.path.join(OUTPUT_DIR, csv_file))
             if 'Content' not in df.columns:
                 df['Content'] = None
@@ -153,23 +160,49 @@ with col2:
                     time.sleep(1)  # Avoid rate limits
 
             df.to_csv(os.path.join(OUTPUT_DIR, csv_file), index=False)
-            st.write(f"Updated content for {symbol}")
+            st.session_state["process_status"].append(f"Updated content for {symbol}")
 
 with col3:
     if st.button("Clean Up"):
+        st.session_state["process_status"] = []  # Reset process status
         csv_files = [f for f in os.listdir(OUTPUT_DIR) if f.endswith("_news_data.csv")]
         for csv_file in csv_files:
             symbol = csv_file.replace("_news_data.csv", "")
+            st.session_state["process_status"].append(f"Cleaning content for {symbol}")
             df = pd.read_csv(os.path.join(OUTPUT_DIR, csv_file))
             if 'Content' in df.columns:
                 df['Extracted'] = df['Content'].apply(extract_content)
                 df.to_csv(os.path.join(OUTPUT_DIR, csv_file), index=False)
-                st.write(f"Cleaned content for {symbol}")
+                st.session_state["process_status"].append(f"Cleaned content for {symbol}")
 
 # Display status table
 if st.session_state["status_table"]:
     st.write("### Status Table")
     status_df = pd.DataFrame(st.session_state["status_table"])
     st.table(status_df)
+
+# Display process status
+if st.session_state["process_status"]:
+    st.write("### Process Status")
+    for status in st.session_state["process_status"]:
+        st.write(status)
+
+# Download Section
+if os.path.exists(OUTPUT_DIR):
+    csv_files = [f for f in os.listdir(OUTPUT_DIR) if f.endswith("_news_data.csv")]
+    if csv_files:
+        st.write("### Download Extracted Files")
+        cols = st.columns(3)
+        for i, csv_file in enumerate(csv_files):
+            with cols[i % 3]:  # Distribute buttons across columns
+                with open(os.path.join(OUTPUT_DIR, csv_file), "r") as f:
+                    st.download_button(
+                        label=f"Download {csv_file}",
+                        data=f.read(),
+                        file_name=csv_file,
+                        mime="text/csv"
+                    )
+    else:
+        st.warning("No CSV files found in the output directory.")
 else:
-    st.write("No actions performed yet. Fetch articles to see the status.")
+    st.warning("Output directory does not exist.")
