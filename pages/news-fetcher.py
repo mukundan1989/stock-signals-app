@@ -10,7 +10,7 @@ import shutil
 import re
 
 # Configuration
-API_KEY = "1ce12aafcdmshdb6eea1ac608501p1ab501jsn4a47cc5027ce"  # Your RapidAPI key
+API_KEY = "3cf0736f79mshe60115701a871c4p19c558jsncccfd9521243"  # Your RapidAPI key
 API_HOST = "seeking-alpha.p.rapidapi.com"  # API host
 SYMBOL_FILE = "twitterdir/symbollist.txt"  # Path to the symbols file (from GitHub repo)
 OUTPUT_DIR = "/tmp/twitterdir"  # Directory to save CSV files
