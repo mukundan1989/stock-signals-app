@@ -7,12 +7,13 @@ import os
 import pandas as pd
 from datetime import datetime
 import shutil
+import re
 
 # Configuration
 API_KEY = "1ce12aafcdmshdb6eea1ac608501p1ab501jsn4a47cc5027ce"  # Your RapidAPI key
 API_HOST = "seeking-alpha.p.rapidapi.com"  # API host
 SYMBOL_FILE = "twitterdir/symbollist.txt"  # Path to the symbols file (from GitHub repo)
-OUTPUT_DIR = "/tmp/newsdir"  # Directory to save CSV files
+OUTPUT_DIR = "/tmp/twitterdir"  # Directory to save CSV files
 os.makedirs(OUTPUT_DIR, exist_ok=True)  # Ensure the output directory exists
 
 # Initialize session state for status table
@@ -95,8 +96,8 @@ with col2:
     to_date = st.date_input("To Date", value=datetime(2023, 10, 31))
 
 # Convert dates to timestamps
-since_timestamp = int(from_date.timestamp())
-until_timestamp = int(to_date.timestamp())
+since_timestamp = int(datetime.combine(from_date, datetime.min.time()).timestamp())
+until_timestamp = int(datetime.combine(to_date, datetime.min.time()).timestamp())
 
 # Buttons
 col1, col2, col3 = st.columns(3)
