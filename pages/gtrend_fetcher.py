@@ -6,19 +6,23 @@ import streamlit as st
 import re  # For cleaning keywords
 import time  # For adding delays
 import json  # For handling JSON payloads
+from serpapi import GoogleSearch  # For fetching Google Trends data
 
 # Configuration
-API_KEY = "1ce12aafcdmshdb6eea1ac608501p1ab501jsn4a47cc5027ce"  # Your RapidAPI key
-API_HOST = "meta-llama-3-8b.p.rapidapi.com"  # API host
-COMPANY_NAMES_FILE = "twitterdir/comp_names.txt"  # Path to the company names file
-KEYWORDS_OUTPUT_DIR = "/tmp/gtrenssdsdir/output"  # Directory to save keyword CSV files
+API_KEY = "1ce12aafcdmshdb6eea1ac608501p1ab501jsn4a47cc5027ce"  # Your RapidAPI key for Llama API
+SERPAPI_KEY = "00d04ad3fedf5a39974184171ae64492e3198cc07ed608cad0af9a780ee6f4c0"  # Your SerpAPI key
+API_HOST = "meta-llama-3-8b.p.rapidapi.com"  # API host for Llama API
+COMPANY_NAMES_FILE = "repo/comp_names.txt"  # Path to the company names file
+KEYWORDS_OUTPUT_DIR = "/tmp/gtrendkeywords/output"  # Directory to save keyword CSV files
+TRENDS_OUTPUT_DIR = "/tmp/gtrendoutput/json/output"  # Directory to save Google Trends JSON files
 
 # Ensure output directories exist
 os.makedirs(KEYWORDS_OUTPUT_DIR, exist_ok=True)
+os.makedirs(TRENDS_OUTPUT_DIR, exist_ok=True)
 
 # Streamlit App Title
 st.title("Google Trends Keyword Extractor")
-st.write("Fetching keywords for companies listed in 'comp_names.txt'.")
+st.write("Fetching keywords for companies listed in 'comp_names.txt' and Google Trends data.")
 
 # Read the company names from the text file
 try:
@@ -28,6 +32,76 @@ try:
 except FileNotFoundError:
     st.error(f"File '{COMPANY_NAMES_FILE}' not found. Please ensure the file exists in the 'repo' folder.")
     st.stop()
+
+# Function to fetch Google Trends data
+def fetch_google_trends_data(keywords, data_type, date_range, api_key, language="en", location="us"):
+    """
+    Fetch Google Trends data using the provided parameters.
+
+    :param keywords: Comma-separated string of keywords.
+    :param data_type: Data type for the trends (e.g., TIMESERIES).
+    :param date_range: Date range for the query (e.g., "2023-01-01 2023-12-31").
+    :param api_key: API key for the Google Trends API.
+    :param language: Language for the trends data (e.g., "en").
+    :param location: Location for the trends data (e.g., "us").
+    :return: Results as a dictionary, or None in case of an error.
+    """
+    params = {
+        "engine": "google_trends",
+        "q": keywords,
+        "data_type": data_type,
+        "date": date_range,
+        "api_key": api_key,
+        "hl": language,  # Language parameter
+        "gl": location   # Location parameter
+    }
+
+    try:
+        search = GoogleSearch(params)
+        results = search.get_dict()
+        return results
+    except Exception as e:
+        st.error(f"Error fetching data for range {date_range}: {e}")
+        return None
+
+# Function to process all keyword files and fetch Google Trends data
+def fetch_trends_for_all_files():
+    """
+    Fetch Google Trends data for all keyword files in the output directory.
+    """
+    st.write("Fetching Google Trends data...")
+
+    data_type = "TIMESERIES"
+    date_ranges = ["2020-01-01 2024-11-30"]  # Specify the date range
+    language = "en"  # Language for the trends data
+    location = "us"  # Location for the trends data
+
+    for company in companies_list:
+        csv_filename = f"{company.lower().replace(' ', '_')}_llama_keywords.csv"
+        csv_path = os.path.join(KEYWORDS_OUTPUT_DIR, csv_filename)
+
+        if not os.path.exists(csv_path):
+            st.warning(f"No keyword file found for '{company}'. Skipping.")
+            continue
+
+        # Read all keywords from the CSV file
+        with open(csv_path, "r") as file:
+            keywords = [row[0] for row in csv.reader(file) if row][1:]  # Skip the header
+            keywords_str = ",".join(keywords)  # Use all keywords
+
+        # Fetch Google Trends data
+        trends_data = fetch_google_trends_data(
+            keywords_str, data_type, date_ranges[0], SERPAPI_KEY, language, location
+        )
+
+        if trends_data:
+            # Save the trends data to a JSON file
+            output_file_name = csv_filename.replace('.csv', '_trends.json')
+            output_file_path = os.path.join(TRENDS_OUTPUT_DIR, output_file_name)
+            with open(output_file_path, 'w') as output_file:
+                json.dump(trends_data, output_file, indent=2)
+
+            st.success(f"Google Trends data for '{company}' saved to {output_file_path}")
 
 # Button to start fetching keywords
 if st.button("Fetch Keywords"):
@@ -153,3 +227,27 @@ if selected_file:
         st.write(keywords)
     else:
         st.error(f"File '{selected_file}' not found.")
+
+# Button to fetch Google Trends data
+st.write("### Get Google Trend Values")
+if st.button("Get Google Trend Values"):
+    fetch_trends_for_all_files()
+
+# Display downloadable Google Trends files
+st.write("### Download Google Trends Files")
+if os.path.exists(TRENDS_OUTPUT_DIR):
+    trends_files = [f for f in os.listdir(TRENDS_OUTPUT_DIR) if f.endswith('.json')]
+    if trends_files:
+        for file_name in trends_files:
+            file_path = os.path.join(TRENDS_OUTPUT_DIR, file_name)
+            with open(file_path, "r") as file:
+                st.download_button(
+                    label=f"Download {file_name}",
+                    data=file.read(),
+                    file_name=file_name,
+                    mime="application/json"
+                )
+    else:
+        st.warning("No Google Trends files found in the output directory.")
+else:
+    st.warning("Google Trends output directory does not exist.")
