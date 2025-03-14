@@ -86,35 +86,38 @@ if st.button("Fetch Keywords"):
 
     st.write("Keyword fetching completed!")
 
-# Display the output table
-st.write("### Output Table")
+# Create a table with Company Name and Keyword File Name
+st.write("### Keyword Files Table")
 
-# Create a DataFrame for the table
-output_data = []
+# Initialize a list to store table data
+table_data = []
+
+# Loop through companies and check if their keyword files exist
 for company in companies_list:
     csv_filename = f"{company.lower().replace(' ', '_')}_chatgpt_keywords.csv"
     csv_path = os.path.join(KEYWORDS_OUTPUT_DIR, csv_filename)
-    if os.path.exists(csv_path):
-        output_data.append({"Company Name": company, "Keywords File": csv_filename})
 
-# Convert to DataFrame
-output_df = pd.DataFrame(output_data)
+    # Check if the file exists
+    if os.path.exists(csv_path):
+        table_data.append({"Company Name": company, "Keyword File Name": csv_filename})
+    else:
+        table_data.append({"Company Name": company, "Keyword File Name": "File not found"})
 
 # Display the table
-st.table(output_df)
+st.table(table_data)
 
-# Add functionality to show keywords in a popup-style dialog
-for index, row in output_df.iterrows():
-    csv_filename = row["Keywords File"]
-    csv_path = os.path.join(KEYWORDS_OUTPUT_DIR, csv_filename)
+# Add functionality to display keywords when a file name is clicked
+st.write("### View Keywords")
+selected_file = st.selectbox("Select a keyword file to view:", [row["Keyword File Name"] for row in table_data if row["Keyword File Name"] != "File not found"])
 
-    # Read the keywords from the CSV file
-    with open(csv_path, mode='r') as file:
-        reader = csv.reader(file)
-        keywords = [row[0] for row in reader if row]  # Extract keywords
+if selected_file:
+    csv_path = os.path.join(KEYWORDS_OUTPUT_DIR, selected_file)
+    if os.path.exists(csv_path):
+        with open(csv_path, "r") as file:
+            reader = csv.reader(file)
+            keywords = [row[0] for row in reader if row]  # Read keywords from the CSV file
 
-    # Create a popup-style dialog using Streamlit's expander
-    with st.expander(f"Keywords for {row['Company Name']}"):
-        st.write("### Extracted Keywords")
-        for keyword in keywords:
-            st.write(f"- {keyword}")
+        st.write(f"Keywords in '{selected_file}':")
+        st.write(keywords)
+    else:
+        st.error(f"File '{selected_file}' not found.")
