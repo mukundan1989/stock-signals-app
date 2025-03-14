@@ -3,11 +3,12 @@ import csv
 import os
 import pandas as pd
 import streamlit as st
+import re  # For cleaning keywords
 
 # Configuration
 API_KEY = "1ce12aafcdmshdb6eea1ac608501p1ab501jsn4a47cc5027ce"  # Your RapidAPI key
 API_HOST = "open-ai21.p.rapidapi.com"  # API host
-COMPANY_NAMES_FILE = "twitterdir/comp_names.txt"  # Path to the company names file
+COMPANY_NAMES_FILE = "repo/comp_names.txt"  # Path to the company names file
 KEYWORDS_OUTPUT_DIR = "/tmp/gtrendsdir/output"  # Directory to save keyword CSV files
 
 # Ensure output directories exist
@@ -65,15 +66,24 @@ if st.button("Fetch Keywords"):
             try:
                 # Extract and clean the list of keywords
                 keywords_str = response_data['result']
-                keywords_list = keywords_str.split("\n")[3:13]  # Extract only the keywords
-                keywords_list = [kw.strip().split('. ')[-1] for kw in keywords_list]
+                keywords_list = keywords_str.split("\n")[1:]  # Skip the first line (header)
 
-                # Write the keywords to a CSV file in the output folder
+                # Clean each keyword
+                cleaned_keywords = []
+                for kw in keywords_list:
+                    # Remove hyphens, quotes, and non-alphabetic characters (except spaces)
+                    kw = kw.replace("-", "").replace('"', '')  # Remove hyphens and quotes
+                    kw = re.sub(r"[^a-zA-Z\s]", "", kw)  # Remove non-alphabetic characters (except spaces)
+                    kw = kw.strip()  # Remove leading/trailing spaces
+                    if kw:  # Add only non-empty keywords
+                        cleaned_keywords.append(kw)
+
+                # Write the cleaned keywords to a CSV file
                 csv_path = os.path.join(KEYWORDS_OUTPUT_DIR, csv_filename)
                 with open(csv_path, mode='w', newline='') as file:
                     writer = csv.writer(file)
                     writer.writerow(['chatgpt'])  # Write the header
-                    for keyword in keywords_list:
+                    for keyword in cleaned_keywords:
                         writer.writerow([keyword])
 
                 st.success(f"Keywords for '{company}' saved to {csv_path}")
