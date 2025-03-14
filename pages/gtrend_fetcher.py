@@ -4,12 +4,13 @@ import os
 import pandas as pd
 import streamlit as st
 import re  # For cleaning keywords
+import time  # For adding delays
 
 # Configuration
 API_KEY = "1ce12aafcdmshdb6eea1ac608501p1ab501jsn4a47cc5027ce"  # Your RapidAPI key
 API_HOST = "open-ai21.p.rapidapi.com"  # API host
 COMPANY_NAMES_FILE = "twitterdir/comp_names.txt"  # Path to the company names file
-KEYWORDS_OUTPUT_DIR = "/tmp/gtrendsdire/output"  # Directory to save keyword CSV files
+KEYWORDS_OUTPUT_DIR = "/tmp/gtrendsdir/output"  # Directory to save keyword CSV files
 
 # Ensure output directories exist
 os.makedirs(KEYWORDS_OUTPUT_DIR, exist_ok=True)
@@ -56,43 +57,62 @@ if st.button("Fetch Keywords"):
             "web_access": False
         }
 
-        # Make the API request
-        response = requests.post(url, json=payload, headers=headers)
+        # Retry logic for rate limiting
+        max_retries = 3  # Maximum number of retries
+        retry_delay = 2  # Delay between retries in seconds
 
-        # Check if the response is successful
-        if response.status_code == 200:
-            response_data = response.json()
-
+        for attempt in range(max_retries):
             try:
-                # Extract and clean the list of keywords
-                keywords_str = response_data['result']
-                keywords_list = keywords_str.split("\n")[1:]  # Skip the first line (header)
+                # Make the API request
+                response = requests.post(url, json=payload, headers=headers)
 
-                # Clean each keyword
-                cleaned_keywords = []
-                for kw in keywords_list:
-                    # Remove hyphens, quotes, and non-alphabetic characters (except spaces)
-                    kw = kw.replace("-", "").replace('"', '')  # Remove hyphens and quotes
-                    kw = re.sub(r"[^a-zA-Z\s]", "", kw)  # Remove non-alphabetic characters (except spaces)
-                    kw = kw.strip()  # Remove leading/trailing spaces
-                    if kw:  # Add only non-empty keywords
-                        cleaned_keywords.append(kw)
+                # Check if the response is successful
+                if response.status_code == 200:
+                    response_data = response.json()
 
-                # Write the cleaned keywords to a CSV file
-                csv_path = os.path.join(KEYWORDS_OUTPUT_DIR, csv_filename)
-                with open(csv_path, mode='w', newline='') as file:
-                    writer = csv.writer(file)
-                    writer.writerow(['chatgpt'])  # Write the header
-                    for keyword in cleaned_keywords:
-                        writer.writerow([keyword])
+                    # Extract and clean the list of keywords
+                    keywords_str = response_data['result']
+                    keywords_list = keywords_str.split("\n")[1:]  # Skip the first line (header)
 
-                st.success(f"Keywords for '{company}' saved to {csv_path}")
+                    # Clean each keyword
+                    cleaned_keywords = []
+                    for kw in keywords_list:
+                        # Remove hyphens, quotes, and non-alphabetic characters (except spaces)
+                        kw = kw.replace("-", "").replace('"', '')  # Remove hyphens and quotes
+                        kw = re.sub(r"[^a-zA-Z\s]", "", kw)  # Remove non-alphabetic characters (except spaces)
+                        kw = kw.strip()  # Remove leading/trailing spaces
+                        if kw:  # Add only non-empty keywords
+                            cleaned_keywords.append(kw)
 
-            except KeyError as e:
-                st.error(f"KeyError for '{company}': {e}. Please check the response structure.")
+                    # Write the cleaned keywords to a CSV file
+                    csv_path = os.path.join(KEYWORDS_OUTPUT_DIR, csv_filename)
+                    with open(csv_path, mode='w', newline='') as file:
+                        writer = csv.writer(file)
+                        writer.writerow(['chatgpt'])  # Write the header
+                        for keyword in cleaned_keywords:
+                            writer.writerow([keyword])
+
+                    st.success(f"Keywords for '{company}' saved to {csv_path}")
+                    break  # Exit the retry loop if successful
+
+                elif response.status_code == 429:
+                    st.warning(f"Rate limit exceeded for '{company}'. Retrying in {retry_delay} seconds...")
+                    time.sleep(retry_delay)  # Wait before retrying
+                    continue  # Retry the request
+
+                else:
+                    st.error(f"Failed to retrieve data for '{company}'. Status code: {response.status_code}")
+                    break  # Exit the retry loop if the error is not rate-limiting
+
+            except Exception as e:
+                st.error(f"Error fetching data for '{company}': {e}")
+                break  # Exit the retry loop if an unexpected error occurs
 
         else:
-            st.error(f"Failed to retrieve data for '{company}'. Status code: {response.status_code}")
+            st.error(f"Max retries ({max_retries}) reached for '{company}'. Skipping.")
+
+        # Add a delay between requests to avoid rate limiting
+        time.sleep(1)  # Wait 1 second before the next request
 
     st.write("Keyword fetching completed!")
 
