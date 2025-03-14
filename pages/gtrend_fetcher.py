@@ -6,7 +6,7 @@ import pandas as pd
 # Configuration
 API_KEY = "fa106911d1msh3c9f067ace5be00p1071cfjsn4fc681388b27"  # Your RapidAPI key
 API_HOST = "open-ai21.p.rapidapi.com"  # API host
-COMPANY_SYMBOLS_FILE = "twitterdir/comp_names.csv"  # Path to the company symbols file
+COMPANY_SYMBOLS_FILE = "twitterdir/comp_names.txt"  # Path to the company symbols file
 KEYWORDS_OUTPUT_DIR = "/tmp/gtrendsdir/output"  # Directory to save keyword CSV files
 
 # Ensure output directories exist
