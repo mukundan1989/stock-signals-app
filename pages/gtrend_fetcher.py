@@ -3,22 +3,26 @@ import csv
 import os
 import pandas as pd
 
-# Read the symbols from a CSV file in the repo folder
-repo_folder = os.path.join(os.getcwd(), "repo")  # Assuming the CSV file is in a folder named "repo"
-symbols_df = pd.read_csv(os.path.join(repo_folder, "top_500_marketcap_companies.csv"))  # Read the CSV file
+# Configuration
+API_KEY = "fa106911d1msh3c9f067ace5be00p1071cfjsn4fc681388b27"  # Your RapidAPI key
+API_HOST = "open-ai21.p.rapidapi.com"  # API host
+COMPANY_SYMBOLS_FILE = "repo/top_500_marketcap_companies.csv"  # Path to the company symbols file
+KEYWORDS_OUTPUT_DIR = "/tmp/gtrendsdir/output"  # Directory to save keyword CSV files
+
+# Ensure output directories exist
+os.makedirs(KEYWORDS_OUTPUT_DIR, exist_ok=True)
+
+# Read the symbols from the CSV file
+symbols_df = pd.read_csv(COMPANY_SYMBOLS_FILE)  # Read the CSV file
 symbols_list = symbols_df['symbols'].tolist()  # Extract the list of company symbols
 
 # Define the API endpoint and headers
-url = "https://open-ai21.p.rapidapi.com/chatgpt"
+url = f"https://{API_HOST}/chatgpt"
 headers = {
-    "x-rapidapi-key": "fa106911d1msh3c9f067ace5be00p1071cfjsn4fc681388b27",
-    "x-rapidapi-host": "open-ai21.p.rapidapi.com",
+    "x-rapidapi-key": API_KEY,
+    "x-rapidapi-host": API_HOST,
     "Content-Type": "application/json"
 }
-
-# Set the output folder location to the temp folder in the GitHub repo
-output_folder = os.path.join(os.getcwd(), "temp")  # Output will be saved in the "temp" folder
-os.makedirs(output_folder, exist_ok=True)  # Ensure the folder exists
 
 # Loop through each symbol to get the keywords
 for symbol in symbols_list:
@@ -51,7 +55,7 @@ for symbol in symbols_list:
             keywords_list = [kw.strip().split('. ')[-1] for kw in keywords_list]
 
             # Write the keywords to a CSV file in the output folder
-            csv_path = os.path.join(output_folder, csv_filename)
+            csv_path = os.path.join(KEYWORDS_OUTPUT_DIR, csv_filename)
             with open(csv_path, mode='w', newline='') as file:
                 writer = csv.writer(file)
                 writer.writerow(['chatgpt'])  # Write the header
