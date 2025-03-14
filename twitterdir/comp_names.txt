@@ -3,7 +3,6 @@ import csv
 import os
 import pandas as pd
 import streamlit as st
-import time  # For rate limiting
 
 # Configuration
 API_KEY = "1ce12aafcdmshdb6eea1ac608501p1ab501jsn4a47cc5027ce"  # Your RapidAPI key
@@ -82,14 +81,8 @@ if st.button("Fetch Keywords"):
             except KeyError as e:
                 st.error(f"KeyError for '{company}': {e}. Please check the response structure.")
 
-        elif response.status_code == 429:
-            st.error(f"Rate limit exceeded for '{company}'. Waiting for 60 seconds before retrying...")
-            time.sleep(60)  # Wait for 60 seconds
-            continue  # Retry the request
         else:
             st.error(f"Failed to retrieve data for '{company}'. Status code: {response.status_code}")
-
-        time.sleep(1)  # Add a 1-second delay between requests
 
     st.write("Keyword fetching completed!")
 
