@@ -7,8 +7,8 @@ import streamlit as st
 # Configuration
 API_KEY = "1ce12aafcdmshdb6eea1ac608501p1ab501jsn4a47cc5027ce"  # Your RapidAPI key
 API_HOST = "open-ai21.p.rapidapi.com"  # API host
-COMPANY_NAMES_FILE = "twitterdir/comp_names.txt"  # Path to the company names file
-KEYWORDS_OUTPUT_DIR = "/tmp/gtrendsdire/output"  # Directory to save keyword CSV files
+COMPANY_NAMES_FILE = "repo/comp_names.txt"  # Path to the company names file
+KEYWORDS_OUTPUT_DIR = "/tmp/gtrendsdissr/output"  # Directory to save keyword CSV files
 
 # Ensure output directories exist
 os.makedirs(KEYWORDS_OUTPUT_DIR, exist_ok=True)
@@ -86,38 +86,17 @@ if st.button("Fetch Keywords"):
 
     st.write("Keyword fetching completed!")
 
-# Create a table with Company Name and Keyword File Name
-st.write("### Keyword Files Table")
+# Display the list of companies
+st.write("### List of Companies")
+st.write(companies_list)
 
-# Initialize a list to store table data
-table_data = []
-
-# Loop through companies and check if their keyword files exist
-for company in companies_list:
-    csv_filename = f"{company.lower().replace(' ', '_')}_chatgpt_keywords.csv"
-    csv_path = os.path.join(KEYWORDS_OUTPUT_DIR, csv_filename)
-
-    # Check if the file exists
-    if os.path.exists(csv_path):
-        table_data.append({"Company Name": company, "Keyword File Name": csv_filename})
+# Display the output directory contents
+if os.path.exists(KEYWORDS_OUTPUT_DIR):
+    st.write("### Output Directory Contents")
+    output_files = os.listdir(KEYWORDS_OUTPUT_DIR)
+    if output_files:
+        st.write(output_files)
     else:
-        table_data.append({"Company Name": company, "Keyword File Name": "File not found"})
-
-# Display the table
-st.table(table_data)
-
-# Add functionality to display keywords when a file name is clicked
-st.write("### View Keywords")
-selected_file = st.selectbox("Select a keyword file to view:", [row["Keyword File Name"] for row in table_data if row["Keyword File Name"] != "File not found"])
-
-if selected_file:
-    csv_path = os.path.join(KEYWORDS_OUTPUT_DIR, selected_file)
-    if os.path.exists(csv_path):
-        with open(csv_path, "r") as file:
-            reader = csv.reader(file)
-            keywords = [row[0] for row in reader if row]  # Read keywords from the CSV file
-
-        st.write(f"Keywords in '{selected_file}':")
-        st.write(keywords)
-    else:
-        st.error(f"File '{selected_file}' not found.")
+        st.warning("No output files found in the directory.")
+else:
+    st.warning("Output directory does not exist.")
