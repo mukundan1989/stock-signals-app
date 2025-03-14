@@ -8,10 +8,10 @@ import time  # For adding delays
 import json  # For handling JSON payloads
 
 # Configuration
-API_KEY = "1ce12aafcdmshdb6eea1ac608501p1ab501jsn4fc681388b27"  # Your RapidAPI key
+API_KEY = "1ce12aafcdmshdb6eea1ac608501p1ab501jsn4a47cc5027ce"  # Your RapidAPI key
 API_HOST = "meta-llama-3-8b.p.rapidapi.com"  # API host
 COMPANY_NAMES_FILE = "twitterdir/comp_names.txt"  # Path to the company names file
-KEYWORDS_OUTPUT_DIR = "/tmp/gtressndsdir/output"  # Directory to save keyword CSV files
+KEYWORDS_OUTPUT_DIR = "/tmp/gtrenssdsdir/output"  # Directory to save keyword CSV files
 
 # Ensure output directories exist
 os.makedirs(KEYWORDS_OUTPUT_DIR, exist_ok=True)
