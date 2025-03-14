@@ -3,6 +3,7 @@ import csv
 import os
 import pandas as pd
 import streamlit as st
+import time  # For rate limiting
 
 # Configuration
 API_KEY = "1ce12aafcdmshdb6eea1ac608501p1ab501jsn4a47cc5027ce"  # Your RapidAPI key
@@ -81,43 +82,46 @@ if st.button("Fetch Keywords"):
             except KeyError as e:
                 st.error(f"KeyError for '{company}': {e}. Please check the response structure.")
 
+        elif response.status_code == 429:
+            st.error(f"Rate limit exceeded for '{company}'. Waiting for 60 seconds before retrying...")
+            time.sleep(60)  # Wait for 60 seconds
+            continue  # Retry the request
         else:
             st.error(f"Failed to retrieve data for '{company}'. Status code: {response.status_code}")
 
+        time.sleep(1)  # Add a 1-second delay between requests
+
     st.write("Keyword fetching completed!")
 
-# Create a table with Company Name and Keyword File Name
-st.write("### Keyword Files Table")
+# Display the output table
+st.write("### Output Table")
 
-# Initialize a list to store table data
-table_data = []
-
-# Loop through companies and check if their keyword files exist
+# Create a DataFrame for the table
+output_data = []
 for company in companies_list:
     csv_filename = f"{company.lower().replace(' ', '_')}_chatgpt_keywords.csv"
     csv_path = os.path.join(KEYWORDS_OUTPUT_DIR, csv_filename)
-
-    # Check if the file exists
     if os.path.exists(csv_path):
-        table_data.append({"Company Name": company, "Keyword File Name": csv_filename})
-    else:
-        table_data.append({"Company Name": company, "Keyword File Name": "File not found"})
+        output_data.append({"Company Name": company, "Keywords File": csv_filename})
+
+# Convert to DataFrame
+output_df = pd.DataFrame(output_data)
 
 # Display the table
-st.table(table_data)
+st.table(output_df)
 
-# Add functionality to display keywords when a file name is clicked
-st.write("### View Keywords")
-selected_file = st.selectbox("Select a keyword file to view:", [row["Keyword File Name"] for row in table_data if row["Keyword File Name"] != "File not found"])
+# Add functionality to show keywords in a popup-style dialog
+for index, row in output_df.iterrows():
+    csv_filename = row["Keywords File"]
+    csv_path = os.path.join(KEYWORDS_OUTPUT_DIR, csv_filename)
 
-if selected_file:
-    csv_path = os.path.join(KEYWORDS_OUTPUT_DIR, selected_file)
-    if os.path.exists(csv_path):
-        with open(csv_path, "r") as file:
-            reader = csv.reader(file)
-            keywords = [row[0] for row in reader if row]  # Read keywords from the CSV file
+    # Read the keywords from the CSV file
+    with open(csv_path, mode='r') as file:
+        reader = csv.reader(file)
+        keywords = [row[0] for row in reader if row]  # Extract keywords
 
-        st.write(f"Keywords in '{selected_file}':")
-        st.write(keywords)
-    else:
-        st.error(f"File '{selected_file}' not found.")
+    # Create a popup-style dialog using Streamlit's expander
+    with st.expander(f"Keywords for {row['Company Name']}"):
+        st.write("### Extracted Keywords")
+        for keyword in keywords:
+            st.write(f"- {keyword}")
