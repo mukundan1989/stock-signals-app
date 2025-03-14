@@ -10,3 +10,4 @@ numpy
 seaborn
 requests
 PyGithub
+google-search-results
