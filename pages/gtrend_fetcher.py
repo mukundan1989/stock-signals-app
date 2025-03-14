@@ -86,17 +86,35 @@ if st.button("Fetch Keywords"):
 
     st.write("Keyword fetching completed!")
 
-# Display the list of companies
-st.write("### List of Companies")
-st.write(companies_list)
+# Display the output table
+st.write("### Output Table")
 
-# Display the output directory contents
-if os.path.exists(KEYWORDS_OUTPUT_DIR):
-    st.write("### Output Directory Contents")
-    output_files = os.listdir(KEYWORDS_OUTPUT_DIR)
-    if output_files:
-        st.write(output_files)
-    else:
-        st.warning("No output files found in the directory.")
-else:
-    st.warning("Output directory does not exist.")
+# Create a DataFrame for the table
+output_data = []
+for company in companies_list:
+    csv_filename = f"{company.lower().replace(' ', '_')}_chatgpt_keywords.csv"
+    csv_path = os.path.join(KEYWORDS_OUTPUT_DIR, csv_filename)
+    if os.path.exists(csv_path):
+        output_data.append({"Company Name": company, "Keywords File": csv_filename})
+
+# Convert to DataFrame
+output_df = pd.DataFrame(output_data)
+
+# Display the table
+st.table(output_df)
+
+# Add functionality to show keywords in a popup-style dialog
+for index, row in output_df.iterrows():
+    csv_filename = row["Keywords File"]
+    csv_path = os.path.join(KEYWORDS_OUTPUT_DIR, csv_filename)
+
+    # Read the keywords from the CSV file
+    with open(csv_path, mode='r') as file:
+        reader = csv.reader(file)
+        keywords = [row[0] for row in reader if row]  # Extract keywords
+
+    # Create a popup-style dialog using Streamlit's expander
+    with st.expander(f"Keywords for {row['Company Name']}"):
+        st.write("### Extracted Keywords")
+        for keyword in keywords:
+            st.write(f"- {keyword}")
