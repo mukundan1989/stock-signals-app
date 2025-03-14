@@ -2,9 +2,9 @@ companies
 Apple
 NVIDIA
 Microsoft
-Alphabet (Google)
+Alphabet
 Amazon
-Meta Platforms (Facebook)
+Meta Platforms
 Tesla
 Broadcom
 Berkshire Hathaway
@@ -50,7 +50,7 @@ Intuit
 Caterpillar
 QUALCOMM
 Texas Instruments
-Booking Holdings (Booking.com)
+Booking Holdings
 Verizon
 Danaher
 ATT
@@ -175,7 +175,7 @@ Aflac
 Freddie Mac
 MetLife
 Ares Management
-BNY Mellon (Bank of New York Mellon)
+BNY Mellon
 Copart
 Block
 Roper Technologies
@@ -351,7 +351,7 @@ Ventas
 GlobalFoundries
 American Water Works
 Expedia Group
-Archer Daniels Midland (ADM)
+Archer Daniels Midland
 Ameren
 West Pharmaceutical
 LyondellBasell
@@ -447,7 +447,7 @@ Trimble
 Alexandria Real Estate Equities
 Hormel Foods
 J. B. Hunt
-KeyCorp (KeyBank)
+KeyCorp
 NiSource
 Omnicom
 Gen Digital
@@ -483,7 +483,7 @@ US Foods
 Masco
 Kimco Realty
 AspenTech
-AMH (American Homes 4 Rent)
+American Homes 4 Rent
 Comfort Systems
 Fidelity National Financial
 Expeditors
