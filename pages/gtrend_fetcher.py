@@ -6,9 +6,9 @@ import streamlit as st
 
 # Configuration
 API_KEY = "1ce12aafcdmshdb6eea1ac608501p1ab501jsn4a47cc5027ce"  # Your RapidAPI key
-API_HOST = "open-ai21.p.rapidapi.com"  # API host
+API_HOST = "meta-llama-3-8b.p.rapidapi.co"  # API host
 COMPANY_NAMES_FILE = "twitterdir/comp_names.txt"  # Path to the company names file
-KEYWORDS_OUTPUT_DIR = "/tmp/gtrendsdissr/output"  # Directory to save keyword CSV files
+KEYWORDS_OUTPUT_DIR = "/tmp/gtrendsdisssr/output"  # Directory to save keyword CSV files
 
 # Ensure output directories exist
 os.makedirs(KEYWORDS_OUTPUT_DIR, exist_ok=True)
