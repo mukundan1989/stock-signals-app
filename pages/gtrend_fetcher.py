@@ -6,15 +6,15 @@ import pandas as pd
 # Configuration
 API_KEY = "fa106911d1msh3c9f067ace5be00p1071cfjsn4fc681388b27"  # Your RapidAPI key
 API_HOST = "open-ai21.p.rapidapi.com"  # API host
-COMPANY_SYMBOLS_FILE = "twitterdir/comp_names.txt"  # Path to the company symbols file
+COMPANY_NAMES_FILE = "twitterdir/comp_names.txt"  # Path to the company names file
 KEYWORDS_OUTPUT_DIR = "/tmp/gtrendsdir/output"  # Directory to save keyword CSV files
 
 # Ensure output directories exist
 os.makedirs(KEYWORDS_OUTPUT_DIR, exist_ok=True)
 
-# Read the symbols from the CSV file
-symbols_df = pd.read_csv(COMPANY_SYMBOLS_FILE)  # Read the CSV file
-symbols_list = symbols_df['symbols'].tolist()  # Extract the list of company symbols
+# Read the company names from the text file
+with open(COMPANY_NAMES_FILE, "r") as file:
+    companies_list = [line.strip() for line in file if line.strip()]  # Read and clean the company names
 
 # Define the API endpoint and headers
 url = f"https://{API_HOST}/chatgpt"
@@ -24,9 +24,9 @@ headers = {
     "Content-Type": "application/json"
 }
 
-# Loop through each symbol to get the keywords
-for symbol in symbols_list:
-    csv_filename = f"{symbol.lower().replace(' ', '_')}_chatgpt_keywords.csv"
+# Loop through each company to get the keywords
+for company in companies_list:
+    csv_filename = f"{company.lower().replace(' ', '_')}_chatgpt_keywords.csv"
 
     # Prepare the payload for the API request
     payload = {
@@ -34,7 +34,7 @@ for symbol in symbols_list:
             {
                 "role": "user",
                 "content": (
-                    f"Provide a list of top fifteen important keywords associated with the company \"{symbol}\", focusing on its most popular products, services, or core offerings. The keywords should reflect areas where demand or interest can be analyzed using Google Trends data. Ensure the keywords are specific, and highly representative of the company's primary focus. Give the output as a bulletted list with no other extra characters or text."
+                    f"Provide a list of top fifteen important keywords associated with the company \"{company}\", focusing on its most popular products, services, or core offerings. The keywords should reflect areas where demand or interest can be analyzed using Google Trends data. Ensure the keywords are specific, and highly representative of the company's primary focus. Give the output as a bulletted list with no other extra characters or text."
                 )
             }
         ],
@@ -62,10 +62,10 @@ for symbol in symbols_list:
                 for keyword in keywords_list:
                     writer.writerow([keyword])
 
-            print(f"Keywords for {symbol} saved to {csv_path}")
+            print(f"Keywords for {company} saved to {csv_path}")
 
         except KeyError as e:
-            print(f"KeyError for {symbol}: {e}. Please check the response structure.")
+            print(f"KeyError for {company}: {e}. Please check the response structure.")
 
     else:
-        print(f"Failed to retrieve data for {symbol}. Status code: {response.status_code}")
+        print(f"Failed to retrieve data for {company}. Status code: {response.status_code}")
