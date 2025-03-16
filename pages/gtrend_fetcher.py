@@ -102,26 +102,45 @@ def fetch_trends_for_all_files():
         # Split keywords into groups of 5
         keyword_groups = split_keywords(keywords, group_size=5)
 
+        # Initialize a list to store combined timeline data
+        combined_timeline_data = []
+
         # Fetch Google Trends data for each group
-        all_trends_data = {}
         for group in keyword_groups:
             keywords_str = ",".join(group)  # Convert the group to a comma-separated string
             trends_data = fetch_google_trends_data(
                 keywords_str, data_type, date_ranges[0], SERPAPI_KEY, language, location
             )
 
-            if trends_data:
-                # Add the results to the combined data
-                all_trends_data.update(trends_data)
+            if trends_data and "interest_over_time" in trends_data:
+                # Extract timeline data for this group
+                timeline_data = trends_data["interest_over_time"].get("timeline_data", [])
+                combined_timeline_data.extend(timeline_data)
 
-        if all_trends_data:
+        if combined_timeline_data:
+            # Create a combined response structure
+            combined_response = {
+                "search_metadata": {
+                    "status": "Success",
+                    "total_keywords": len(keywords),
+                    "date_range": date_ranges[0],
+                    "language": language,
+                    "location": location
+                },
+                "interest_over_time": {
+                    "timeline_data": combined_timeline_data
+                }
+            }
+
             # Save the combined trends data to a JSON file
             output_file_name = csv_filename.replace('.csv', '_trends.json')
             output_file_path = os.path.join(TRENDS_OUTPUT_DIR, output_file_name)
             with open(output_file_path, 'w') as output_file:
-                json.dump(all_trends_data, output_file, indent=2)
+                json.dump(combined_response, output_file, indent=2)
 
             st.success(f"Google Trends data for '{company}' saved to {output_file_path}")
+        else:
+            st.warning(f"No Google Trends data found for '{company}'.")
 
 # Button to start fetching keywords
 if st.button("Fetch Keywords"):
