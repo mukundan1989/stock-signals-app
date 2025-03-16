@@ -9,12 +9,12 @@ import json  # For handling JSON payloads
 from serpapi import GoogleSearch  # For fetching Google Trends data
 
 # Configuration
-API_KEY = "1ce12aafcdmshdb6eea1ac608501p1ab501jsn4a47cc5027ce"  # Your RapidAPI key for Llama API
-SERPAPI_KEY = "00d04ad3fedf5a39974184171ae64492e3198cc07ed608cad0af9a780ee6f4c0"  # Your SerpAPI key
+API_KEY = "1ce12aafcdmshdb6eea1ac608501p1ab501jsn4fc681388b27"  # Your RapidAPI key for Llama API
+SERPAPI_KEY = "85f1efaedeed8b213c459d6973f27ba731ec82ab6612bad27a6e37ebd1164df1"  # Your SerpAPI key
 API_HOST = "meta-llama-3-8b.p.rapidapi.com"  # API host for Llama API
 COMPANY_NAMES_FILE = "twitterdir/comp_names.txt"  # Path to the company names file
 KEYWORDS_OUTPUT_DIR = "/tmp/gtrendkeywords/output"  # Directory to save keyword CSV files
-TRENDS_OUTPUT_DIR = "/tmp/gtrendoutput/json/output"  # Directory to save Google Trends JSON files
+TRENDS_OUTPUT_DIR = "/tmp/gtrendoutputz/json/output"  # Directory to save Google Trends JSON files
 
 # Ensure output directories exist
 os.makedirs(KEYWORDS_OUTPUT_DIR, exist_ok=True)
@@ -64,6 +64,17 @@ def fetch_google_trends_data(keywords, data_type, date_range, api_key, language=
         st.error(f"Error fetching data for range {date_range}: {e}")
         return None
 
+# Function to split keywords into groups of 5
+def split_keywords(keywords, group_size=5):
+    """
+    Split a list of keywords into groups of the specified size.
+
+    :param keywords: List of keywords.
+    :param group_size: Maximum number of keywords per group.
+    :return: List of keyword groups.
+    """
+    return [keywords[i:i + group_size] for i in range(0, len(keywords), group_size)]
+
 # Function to process all keyword files and fetch Google Trends data
 def fetch_trends_for_all_files():
     """
@@ -87,19 +98,28 @@ def fetch_trends_for_all_files():
         # Read all keywords from the CSV file
         with open(csv_path, "r") as file:
             keywords = [row[0] for row in csv.reader(file) if row][1:]  # Skip the header
-            keywords_str = ",".join(keywords)  # Use all keywords
 
-        # Fetch Google Trends data
-        trends_data = fetch_google_trends_data(
-            keywords_str, data_type, date_ranges[0], SERPAPI_KEY, language, location
-        )
+        # Split keywords into groups of 5
+        keyword_groups = split_keywords(keywords, group_size=5)
 
-        if trends_data:
-            # Save the trends data to a JSON file
+        # Fetch Google Trends data for each group
+        all_trends_data = {}
+        for group in keyword_groups:
+            keywords_str = ",".join(group)  # Convert the group to a comma-separated string
+            trends_data = fetch_google_trends_data(
+                keywords_str, data_type, date_ranges[0], SERPAPI_KEY, language, location
+            )
+
+            if trends_data:
+                # Add the results to the combined data
+                all_trends_data.update(trends_data)
+
+        if all_trends_data:
+            # Save the combined trends data to a JSON file
             output_file_name = csv_filename.replace('.csv', '_trends.json')
             output_file_path = os.path.join(TRENDS_OUTPUT_DIR, output_file_name)
             with open(output_file_path, 'w') as output_file:
-                json.dump(trends_data, output_file, indent=2)
+                json.dump(all_trends_data, output_file, indent=2)
 
             st.success(f"Google Trends data for '{company}' saved to {output_file_path}")
 
