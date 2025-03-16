@@ -13,8 +13,8 @@ API_KEY = "1ce12aafcdmshdb6eea1ac608501p1ab501jsn4fc681388b27"  # Your RapidAPI 
 SERPAPI_KEY = "85f1efaedeed8b213c459d6973f27ba731ec82ab6612bad27a6e37ebd1164df1"  # Your SerpAPI key
 API_HOST = "meta-llama-3-8b.p.rapidapi.com"  # API host for Llama API
 COMPANY_NAMES_FILE = "twitterdir/comp_names.txt"  # Path to the company names file
-KEYWORDS_OUTPUT_DIR = "/tmp/gtrendkeywords/output"  # Directory to save keyword CSV files
-TRENDS_OUTPUT_DIR = "/tmp/gtrendoutputz/json/output"  # Directory to save Google Trends JSON files
+KEYWORDS_OUTPUT_DIR = "/tmp/gtrendsdir/output"  # Directory to save keyword CSV files
+TRENDS_OUTPUT_DIR = "/tmp/gtrendsdir/trend/output"  # Directory to save Google Trends JSON files
 
 # Ensure output directories exist
 os.makedirs(KEYWORDS_OUTPUT_DIR, exist_ok=True)
@@ -64,18 +64,18 @@ def fetch_google_trends_data(keywords, data_type, date_range, api_key, language=
         st.error(f"Error fetching data for range {date_range}: {e}")
         return None
 
-# Function to split keywords into groups of 5
-def split_keywords(keywords, group_size=5):
+# Function to split keywords into chunks of 5
+def split_keywords(keywords, chunk_size=5):
     """
-    Split a list of keywords into groups of the specified size.
+    Split a list of keywords into chunks of a specified size.
 
     :param keywords: List of keywords.
-    :param group_size: Maximum number of keywords per group.
-    :return: List of keyword groups.
+    :param chunk_size: Size of each chunk (default is 5).
+    :return: List of keyword chunks.
     """
-    return [keywords[i:i + group_size] for i in range(0, len(keywords), group_size)]
+    return [keywords[i:i + chunk_size] for i in range(0, len(keywords), chunk_size)]
 
-# Function to process all keyword files and fetch Google Trends data
+# Function to fetch Google Trends data for all keyword files
 def fetch_trends_for_all_files():
     """
     Fetch Google Trends data for all keyword files in the output directory.
@@ -95,52 +95,41 @@ def fetch_trends_for_all_files():
             st.warning(f"No keyword file found for '{company}'. Skipping.")
             continue
 
-        # Read all keywords from the CSV file
+        # Read keywords from the CSV file
         with open(csv_path, "r") as file:
             keywords = [row[0] for row in csv.reader(file) if row][1:]  # Skip the header
 
-        # Split keywords into groups of 5
-        keyword_groups = split_keywords(keywords, group_size=5)
+        # Split keywords into chunks of 5
+        keyword_chunks = split_keywords(keywords)
 
-        # Initialize a list to store combined timeline data
-        combined_timeline_data = []
+        all_data = {}
+        for i, chunk in enumerate(keyword_chunks):
+            keywords_str = ",".join(chunk)
 
-        # Fetch Google Trends data for each group
-        for group in keyword_groups:
-            keywords_str = ",".join(group)  # Convert the group to a comma-separated string
+            # Fetch Google Trends data for the current chunk
             trends_data = fetch_google_trends_data(
                 keywords_str, data_type, date_ranges[0], SERPAPI_KEY, language, location
             )
 
-            if trends_data and "interest_over_time" in trends_data:
-                # Extract timeline data for this group
-                timeline_data = trends_data["interest_over_time"].get("timeline_data", [])
-                combined_timeline_data.extend(timeline_data)
+            if trends_data:
+                all_data[f"part_{i + 1}"] = trends_data
 
-        if combined_timeline_data:
-            # Create a combined response structure
-            combined_response = {
-                "search_metadata": {
-                    "status": "Success",
-                    "total_keywords": len(keywords),
-                    "date_range": date_ranges[0],
-                    "language": language,
-                    "location": location
-                },
-                "interest_over_time": {
-                    "timeline_data": combined_timeline_data
-                }
-            }
+                # Save the trends data for the current chunk (not displayed for download)
+                output_file_name = csv_filename.replace('.csv', f'_part{i + 1}.json')
+                output_file_path = os.path.join(TRENDS_OUTPUT_DIR, output_file_name)
+                with open(output_file_path, 'w') as output_file:
+                    json.dump(trends_data, output_file, indent=2)
 
-            # Save the combined trends data to a JSON file
-            output_file_name = csv_filename.replace('.csv', '_trends.json')
-            output_file_path = os.path.join(TRENDS_OUTPUT_DIR, output_file_name)
-            with open(output_file_path, 'w') as output_file:
-                json.dump(combined_response, output_file, indent=2)
+                st.success(f"Google Trends data for '{company}' (Part {i + 1}) saved to {output_file_path}")
 
-            st.success(f"Google Trends data for '{company}' saved to {output_file_path}")
-        else:
-            st.warning(f"No Google Trends data found for '{company}'.")
+        # Save the combined data for the company
+        if all_data:
+            combined_file_name = csv_filename.replace('.csv', '_trends_combined.json')
+            combined_file_path = os.path.join(TRENDS_OUTPUT_DIR, combined_file_name)
+            with open(combined_file_path, 'w') as combined_file:
+                json.dump(all_data, combined_file, indent=2)
+
+            st.success(f"Combined Google Trends data for '{company}' saved to {combined_file_path}")
 
 # Button to start fetching keywords
 if st.button("Fetch Keywords"):
@@ -272,12 +261,12 @@ st.write("### Get Google Trend Values")
 if st.button("Get Google Trend Values"):
     fetch_trends_for_all_files()
 
-# Display downloadable Google Trends files
-st.write("### Download Google Trends Files")
+# Display combined Google Trends files for download
 if os.path.exists(TRENDS_OUTPUT_DIR):
-    trends_files = [f for f in os.listdir(TRENDS_OUTPUT_DIR) if f.endswith('.json')]
-    if trends_files:
-        for file_name in trends_files:
+    st.write("### Combined Google Trends Files")
+    combined_files = [f for f in os.listdir(TRENDS_OUTPUT_DIR) if f.endswith('_trends_combined.json')]
+    if combined_files:
+        for file_name in combined_files:
             file_path = os.path.join(TRENDS_OUTPUT_DIR, file_name)
             with open(file_path, "r") as file:
                 st.download_button(
@@ -287,6 +276,6 @@ if os.path.exists(TRENDS_OUTPUT_DIR):
                     mime="application/json"
                 )
     else:
-        st.warning("No Google Trends files found in the output directory.")
+        st.warning("No combined Google Trends files found in the output directory.")
 else:
     st.warning("Google Trends output directory does not exist.")
