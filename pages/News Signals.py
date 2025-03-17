@@ -205,7 +205,7 @@ st.markdown(
 )
 
 # Database credentials
-DB_HOST = "13.203.191.72"
+DB_HOST = "13.234.110.203"
 DB_NAME = "stockstream_two"
 DB_USER = "stockstream_two"
 DB_PASSWORD = "stockstream_two"
