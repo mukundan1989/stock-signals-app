@@ -198,8 +198,10 @@ with col3:
 # Status Table
 if st.session_state["status_table"]:
     st.write("### Status Table")
+    # Create DataFrame without the index column
     status_df = pd.DataFrame(st.session_state["status_table"])
-    st.table(status_df)
+    # Display the table without the index
+    st.table(status_df.set_index(pd.Index([])))
 else:
     st.write("No actions performed yet. Fetch tweets to see the status.")
 
