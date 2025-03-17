@@ -12,9 +12,9 @@ from serpapi import GoogleSearch  # For fetching Google Trends data
 API_KEY = "1ce12aafcdmshdb6eea1ac608501p1ab501jsn4fc681388b27"  # Your RapidAPI key for Llama API
 SERPAPI_KEY = "85f1efaedeed8b213c459d6973f27ba731ec82ab6612bad27a6e37ebd1164df1"  # Your SerpAPI key
 API_HOST = "meta-llama-3-8b.p.rapidapi.com"  # API host for Llama API
-COMPANY_NAMES_FILE = "twitterdir/comp_names.txt"  # Path to the company names file
-KEYWORDS_OUTPUT_DIR = "/tmp/gtrendkeywords/output"  # Directory to save keyword CSV files
-TRENDS_OUTPUT_DIR = "/tmp/gtrendoutputz/json/output"  # Directory to save Google Trends JSON files
+COMPANY_NAMES_FILE = "data/comp_names.txt"  # Path to the company names file
+KEYWORDS_OUTPUT_DIR = "/tmp/datagdata/output"  # Directory to save keyword CSV files
+TRENDS_OUTPUT_DIR = "/tmp/datagtrendoutputz/json/output"  # Directory to save Google Trends JSON files
 
 # Ensure output directories exist
 os.makedirs(KEYWORDS_OUTPUT_DIR, exist_ok=True)
