@@ -56,7 +56,7 @@ def fetch_tweets():
 
     for keyword in keywords:
         try:
-            # Update the dynamic status line
+            # Update the dynamic status line for fetching
             status_placeholder.write(f"Fetching tweets for: {keyword}")
 
             result = fetch_tweets_for_keyword(keyword)
@@ -74,8 +74,8 @@ def fetch_tweets():
                 "CSV Output": "❌"
             })
 
-            # Optional: Show a quick success message (can be removed if not needed)
-            st.success(f"Saved tweets for '{keyword}' to: {output_file}")
+            # Update the dynamic status line for saving
+            status_placeholder.write(f"Saved tweets for: {keyword}")
 
         except Exception as e:
             st.error(f"Error fetching tweets for '{keyword}': {e}")
