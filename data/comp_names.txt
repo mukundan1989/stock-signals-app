@@ -1,0 +1,7 @@
+companies
+Apple
+NVIDIA
+Microsoft
+Alphabet
+Amazon
+Meta Platforms
