@@ -5,6 +5,20 @@ import http.client
 import pandas as pd
 import shutil  # For clearing directories
 
+# Custom CSS to change button hover color
+st.markdown(
+    """
+    <style>
+    /* Target the Fetch Tweets button */
+    .stButton > button:hover {
+        background-color: #4CAF50; /* Green color on hover */
+        color: white; /* Text color on hover */
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
 # Configuration
 API_KEY = "1ce12aafcdmshdb6eea1ac608501p1ab501jsn4a47cc5027ce"  # Your RapidAPI key
 API_HOST = "twitter154.p.rapidapi.com"  # API host
