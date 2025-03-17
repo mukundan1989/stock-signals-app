@@ -96,8 +96,14 @@ def convert_json_to_csv():
         st.warning("No JSON files found in the output directory.")
         return
 
+    # Create a placeholder for the dynamic status line
+    status_placeholder = st.empty()
+
     for json_file in json_files:
         try:
+            # Update the dynamic status line for conversion
+            status_placeholder.write(f"Converting {json_file} → {os.path.splitext(json_file)[0]}.csv")
+
             json_file_path = os.path.join(JSON_OUTPUT_DIR, json_file)
             csv_file_name = f"{os.path.splitext(json_file)[0]}.csv"
             csv_file_path = os.path.join(CSV_OUTPUT_DIR, csv_file_name)
@@ -137,10 +143,11 @@ def convert_json_to_csv():
                     entry["CSV Output"] = "✅"
                     break
 
-            st.success(f"Converted {json_file} -> {csv_file_name}")
-
         except Exception as e:
             st.error(f"Error converting {json_file} to CSV: {e}")
+
+    # Clear the dynamic status line after all files are processed
+    status_placeholder.empty()
 
 def clear_temp():
     """
