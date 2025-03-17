@@ -51,9 +51,14 @@ def fetch_tweets():
         st.warning("No keywords found in the file. Please add keywords to 'keywords.txt'.")
         return
 
+    # Create a placeholder for the dynamic status line
+    status_placeholder = st.empty()
+
     for keyword in keywords:
         try:
-            st.write(f"Fetching tweets for: {keyword}")
+            # Update the dynamic status line
+            status_placeholder.write(f"Fetching tweets for: {keyword}")
+
             result = fetch_tweets_for_keyword(keyword)
 
             # Save the result to a JSON file
@@ -69,10 +74,14 @@ def fetch_tweets():
                 "CSV Output": "❌"
             })
 
+            # Optional: Show a quick success message (can be removed if not needed)
             st.success(f"Saved tweets for '{keyword}' to: {output_file}")
 
         except Exception as e:
             st.error(f"Error fetching tweets for '{keyword}': {e}")
+
+    # Clear the dynamic status line after all keywords are processed
+    status_placeholder.empty()
 
 def convert_json_to_csv():
     """
