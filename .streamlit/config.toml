@@ -2,6 +2,7 @@
 base="dark"
 primaryColor="#000000"
 backgroundColor="#282828"
-secondaryBackgroundColor="#ffffff"
+secondaryBackgroundColor="#1e1e1e"
 textColor="#ffffff"
 celloneBackgroundColor="#7e7e7e"
+primaryBackgroundColor="#ffffff"
