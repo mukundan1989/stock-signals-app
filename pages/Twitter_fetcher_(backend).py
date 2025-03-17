@@ -32,9 +32,9 @@ st.markdown(
 # Configuration
 API_KEY = "1ce12aafcdmshdb6eea1ac608501p1ab501jsn4a47cc5027ce"  # Your RapidAPI key
 API_HOST = "twitter154.p.rapidapi.com"  # API host
-KEYWORDS_FILE = "twitterdir/keywords.txt"  # Path to the keywords file
-JSON_OUTPUT_DIR = "/tmp/twitterdir/output"  # Directory to save JSON files
-CSV_OUTPUT_DIR = "/tmp/twitterdir/csv_output"  # Directory to save CSV files
+KEYWORDS_FILE = "data/keywords.txt"  # Path to the keywords file
+JSON_OUTPUT_DIR = "/tmp/data/output"  # Directory to save JSON files
+CSV_OUTPUT_DIR = "/tmp/data/csv_output"  # Directory to save CSV files
 
 # Ensure output directories exist
 os.makedirs(JSON_OUTPUT_DIR, exist_ok=True)
