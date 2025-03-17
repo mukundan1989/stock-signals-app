@@ -11,7 +11,7 @@ st.markdown(
     <style>
     /* Target the Fetch Tweets button */
     .stButton > button:hover {
-        background-color: #4CAF50; /* Green color on hover */
+        background-color: #000000; /* Green color on hover */
         color: white; /* Text color on hover */
     }
     </style>
