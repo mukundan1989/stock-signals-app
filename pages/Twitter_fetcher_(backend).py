@@ -14,6 +14,10 @@ st.markdown(
         background-color: #000000; /* Green color on hover */
         color: white; /* Text color on hover */
     }
+    /* Style for the Clear Temp button when clicked */
+    .stButton > button[data-clicked="Clear Temp"] {
+        background-color: #FFC300; /* Yellow color when clicked */
+    }
     </style>
     """,
     unsafe_allow_html=True
