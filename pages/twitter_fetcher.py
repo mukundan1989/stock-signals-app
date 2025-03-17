@@ -201,7 +201,7 @@ if st.session_state["status_table"]:
     # Create DataFrame
     status_df = pd.DataFrame(st.session_state["status_table"])
     # Display the table without the index column
-    st.table(status_df.style.hide(axis="index"))
+    st.dataframe(status_df, hide_index=True)
 else:
     st.write("No actions performed yet. Fetch tweets to see the status.")
 
