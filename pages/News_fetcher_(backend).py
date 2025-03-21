@@ -12,7 +12,7 @@ import re
 # Configuration
 API_KEY = "fa106911d1msh3c9f067ace5be00p1071cfjsn4fc681388b27"  # Your RapidAPI key
 API_HOST = "seeking-alpha.p.rapidapi.com"  # API host
-SYMBOL_FILE = "twitterdir/symbollist.txt"  # Path to the symbols file (from GitHub repo)
+SYMBOL_FILE = "data/symbollist.txt"  # Path to the symbols file (from GitHub repo)
 OUTPUT_DIR = "/tmp/newsdir"  # Directory to save CSV files
 os.makedirs(OUTPUT_DIR, exist_ok=True)  # Ensure the output directory exists
 
