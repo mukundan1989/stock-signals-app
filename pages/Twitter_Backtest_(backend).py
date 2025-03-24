@@ -71,12 +71,7 @@ with col2:
 if st.button("Run Backtest", key="backtest_button"):
     st.write("Running backtest...")
     
-    # Simulate loading data (replace with actual CSV loading)
-    # csv_path = "/tmp/data/csv_output/The_Trade_Desk.csv"
-    # if os.path.exists(csv_path):
-    #     data = pd.read_csv(csv_path)
-    # else:
-    # Generate dummy data since we can't access actual files
+    # Generate dummy data
     num_trades = 50
     dates = pd.date_range(end=datetime.today(), periods=num_trades).date
     trade_types = np.random.choice(["Long", "Short"], num_trades, p=[0.6, 0.4])
@@ -102,7 +97,7 @@ if st.button("Run Backtest", key="backtest_button"):
     win_rate = len(winning_trades) / total_trades * 100
     
     long_trades = trades[trades["Trade Type"] == "Long"]
-    short_trades = trades[trades["Trade Type"] == "Short"
+    short_trades = trades[trades["Trade Type"] == "Short"]  # Fixed this line
     
     # Prepare summary data
     summary_data = {
