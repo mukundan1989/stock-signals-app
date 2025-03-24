@@ -63,22 +63,16 @@ with col2:
 if st.button("Run Backtest", key="backtest_button"):
     st.write("Running backtest...")
     
-    # Generate dummy data based on parameters
+    # Generate dummy data based on parameters (only long trades)
     num_trades = min(30, num_keywords * 3)  # Scale with number of keywords
     dates = pd.date_range(end=datetime.today(), periods=num_trades).date
-    
-    # Generate more positive trades when rising percentage is high
-    success_prob = rising_percentage / 100 * 0.8  # Scale probability
-    trade_types = np.random.choice(["Long", "Short"], num_trades, 
-                                 p=[success_prob, 1-success_prob])
     
     holding_periods = np.random.randint(1, holding_days+1, num_trades)
     pct_changes = np.random.uniform(-stop_loss, 20, num_trades)
     
-    # Create trades dataframe
+    # Create trades dataframe (only long trades)
     trades = pd.DataFrame({
         "Date": dates,
-        "Trade Type": trade_types,
         "Holding Period": holding_periods,
         "P/L %": pct_changes,
         "Trigger Keywords": np.random.randint(1, num_keywords+1, num_trades)
@@ -88,38 +82,28 @@ if st.button("Run Backtest", key="backtest_button"):
     st.subheader("Trade History")
     st.dataframe(trades.style.format({"P/L %": "{:.2f}%"}), hide_index=True)
     
-    # Calculate summary statistics
+    # Calculate summary statistics (only for long trades)
     total_trades = len(trades)
     winning_trades = trades[trades["P/L %"] > 0]
     losing_trades = trades[trades["P/L %"] <= 0]
     win_rate = len(winning_trades) / total_trades * 100
     
-    long_trades = trades[trades["Trade Type"] == "Long"]
-    short_trades = trades[trades["Trade Type"] == "Short"]
-    
-    # Prepare summary data
+    # Prepare summary data (removed short trade metrics)
     summary_data = {
         "Metric": [
-            "Total Trades", "Win Rate (%)", "Lose Rate (%)",
-            "Total Long Trades", "Long Win Rate (%)", "Long Lose Rate (%)",
-            "Total Short Trades", "Short Win Rate (%)", "Short Lose Rate (%)",
-            "Max Drawdown ($)", "Profit Factor",
-            "Average Trigger Keywords per Trade",
+            "Total Trades", 
+            "Win Rate (%)", 
+            "Lose Rate (%)",
+            "Max Drawdown ($)", 
+            "Profit Factor",
             "Parameters (Keywords/Weeks/Rising %)"
         ],
         "Value": [
             total_trades,
             f"{win_rate:.1f}",
             f"{100 - win_rate:.1f}",
-            len(long_trades),
-            f"{len(long_trades[long_trades['P/L %'] > 0]) / len(long_trades) * 100:.1f}" if len(long_trades) > 0 else "0.0",
-            f"{len(long_trades[long_trades['P/L %'] <= 0]) / len(long_trades) * 100:.1f}" if len(long_trades) > 0 else "0.0",
-            len(short_trades),
-            f"{len(short_trades[short_trades['P/L %'] > 0]) / len(short_trades) * 100:.1f}" if len(short_trades) > 0 else "0.0",
-            f"{len(short_trades[short_trades['P/L %'] <= 0]) / len(short_trades) * 100:.1f}" if len(short_trades) > 0 else "0.0",
             f"${np.random.randint(500, 2000)}",
             f"{np.random.uniform(0.8, 2.5):.2f}",
-            f"{trades['Trigger Keywords'].mean():.1f}",
             f"{num_keywords}/{weeks_rising}w/{rising_percentage}%"
         ]
     }
