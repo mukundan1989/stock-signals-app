@@ -29,6 +29,10 @@ st.markdown(
     .dataframe {
         width: 100%;
     }
+    /* Signal weightage boxes */
+    .weight-box {
+        margin-bottom: 10px;
+    }
     </style>
     """,
     unsafe_allow_html=True
@@ -60,7 +64,20 @@ with col1:
     user_age_options = [">1 month", ">6 months", ">1 year", ">3 years"]
     user_age = st.selectbox("Minimum User Age", user_age_options)
     
-    signal_weight = st.number_input("Signal Weightage", min_value=1, max_value=10, value=5)
+    # Signal Weightage section
+    st.subheader("Signal Weightage")
+    st.write("(Sum must be ≤ 1)")
+    
+    finbert = st.number_input("FinBERT Text", min_value=0.0, max_value=1.0, value=0.3, step=0.05, key="finbert")
+    ai_text = st.number_input("AI Text Analysis", min_value=0.0, max_value=1.0, value=0.3, step=0.05, key="ai_text")
+    verified = st.number_input("Verified", min_value=0.0, max_value=1.0, value=0.2, step=0.05, key="verified")
+    likes = st.number_input("Likes", min_value=0.0, max_value=1.0, value=0.2, step=0.05, key="likes")
+    
+    # Validate sum of weights
+    total_weight = finbert + ai_text + verified + likes
+    if total_weight > 1.0:
+        st.error(f"Total weight exceeds 1.0 (Current: {total_weight:.2f})")
+        st.stop()
 
 with col2:
     st.subheader("Exit Conditions")
@@ -76,7 +93,10 @@ if st.button("Run Backtest", key="backtest_button"):
     dates = pd.date_range(end=datetime.today(), periods=num_trades).date
     trade_types = np.random.choice(["Long", "Short"], num_trades, p=[0.6, 0.4])
     holding_periods = np.random.randint(1, holding_days+1, num_trades)
-    pct_changes = np.random.uniform(-stop_loss, 20, num_trades)
+    
+    # Apply signal weights to generate more realistic P/L
+    weighted_pl = np.random.uniform(-stop_loss, 20, num_trades) * (finbert + ai_text + verified + likes)
+    pct_changes = np.clip(weighted_pl, -stop_loss, 20)
     
     # Create trades dataframe
     trades = pd.DataFrame({
@@ -97,7 +117,7 @@ if st.button("Run Backtest", key="backtest_button"):
     win_rate = len(winning_trades) / total_trades * 100
     
     long_trades = trades[trades["Trade Type"] == "Long"]
-    short_trades = trades[trades["Trade Type"] == "Short"]  # Fixed this line
+    short_trades = trades[trades["Trade Type"] == "Short"]
     
     # Prepare summary data
     summary_data = {
@@ -105,7 +125,9 @@ if st.button("Run Backtest", key="backtest_button"):
             "Total Trades", "Win Rate (%)", "Lose Rate (%)",
             "Total Long Trades", "Long Win Rate (%)", "Long Lose Rate (%)",
             "Total Short Trades", "Short Win Rate (%)", "Short Lose Rate (%)",
-            "Max Drawdown ($)", "Profit Factor"
+            "Max Drawdown ($)", "Profit Factor",
+            "Signal Weights (FinBERT/AI/Verified/Likes)",
+            "Applied Weight Total"
         ],
         "Value": [
             total_trades,
@@ -118,22 +140,14 @@ if st.button("Run Backtest", key="backtest_button"):
             f"{len(short_trades[short_trades['P/L %'] > 0]) / len(short_trades) * 100:.1f}" if len(short_trades) > 0 else "0.0",
             f"{len(short_trades[short_trades['P/L %'] <= 0]) / len(short_trades) * 100:.1f}" if len(short_trades) > 0 else "0.0",
             f"${np.random.randint(500, 2000)}",
-            f"{np.random.uniform(0.8, 2.5):.2f}"
+            f"{np.random.uniform(0.8, 2.5):.2f}",
+            f"{finbert:.2f}/{ai_text:.2f}/{verified:.2f}/{likes:.2f}",
+            f"{total_weight:.2f}"
         ]
     }
     
     # Display summary
     st.subheader("Backtest Summary")
     st.table(pd.DataFrame(summary_data))
-    
-    # Add some visualizations
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        st.bar_chart(trades["P/L %"])
-    
-    with col2:
-        trade_type_counts = trades["Trade Type"].value_counts()
-        st.bar_chart(trade_type_counts)
     
     st.success("Backtest completed!")
