@@ -1,208 +1,160 @@
 import streamlit as st
-import http.client
-import json
-import time
-import csv
-import os
 import pandas as pd
-from datetime import datetime
-import shutil
-import re
+import numpy as np
+from datetime import datetime, timedelta
 
-# Configuration
-API_KEY = "f1fd810074msh035285b9fe8b639p1b0002jsnf5200722d7eb"  # Your RapidAPI key
-API_HOST = "seeking-alpha.p.rapidapi.com"  # API host
-SYMBOL_FILE = "data/symbollist.txt"  # Path to the symbols file (from GitHub repo)
-OUTPUT_DIR = "/tmp/newsdir"  # Directory to save CSV files
-os.makedirs(OUTPUT_DIR, exist_ok=True)  # Ensure the output directory exists
-
-# Initialize session state for status table and process status
-if "status_table" not in st.session_state:
-    st.session_state["status_table"] = []
-if "process_status" not in st.session_state:
-    st.session_state["process_status"] = []
-
-# Function to fetch article metadata
-def fetch_articles(symbol, since_timestamp, until_timestamp):
-    conn = http.client.HTTPSConnection(API_HOST)
-    headers = {
-        'x-rapidapi-key': API_KEY,
-        'x-rapidapi-host': API_HOST
+# Custom CSS to match original styling
+st.markdown(
+    """
+    <style>
+    /* Match button styling from original code */
+    .stButton > button:hover {
+        background-color: #000000;
+        color: white;
     }
-    size = 20  # Number of articles per request
-    all_news_data = []
-    current_until_timestamp = until_timestamp
-
-    while True:
-        try:
-            conn.request("GET", f"/news/v2/list-by-symbol?until={current_until_timestamp}&since={since_timestamp}&size={size}&id={symbol}", headers=headers)
-            res = conn.getresponse()
-            data = json.loads(res.read().decode("utf-8"))
-
-            if not data['data']:
-                break  # No more articles
-
-            all_news_data.extend(data['data'])
-            current_until_timestamp -= 86400  # Move one day back
-            time.sleep(2)  # Avoid rate limits
-
-        except Exception as e:
-            st.session_state["process_status"].append(f"Error fetching articles for {symbol}: {e}")
-            return None
-
-    return all_news_data
-
-# Function to fetch article content
-def fetch_content(news_id):
-    conn = http.client.HTTPSConnection(API_HOST)
-    headers = {
-        'x-rapidapi-key': API_KEY,
-        'x-rapidapi-host': API_HOST
+    .stButton > button {
+        background-color: #282828;
+        color: white;
     }
-    try:
-        conn.request("GET", f"/news/get-details?id={news_id}", headers=headers)
-        res = conn.getresponse()
-        return res.read().decode('utf-8')
-    except Exception as e:
-        st.session_state["process_status"].append(f"Error fetching content for ID {news_id}: {e}")
-        return None
+    .stButton > button:active {
+        background-color: #282828;
+        color: white;
+    }
+    /* Table styling */
+    .dataframe {
+        width: 100%;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
 
-# Function to clean HTML content
-def clean_html(raw_html):
-    clean_regex = re.compile('<.*?>')
-    return re.sub(clean_regex, '', raw_html)
+# News Articles Backtesting Page
+st.title("News Articles Backtester")
+st.write("Backtest trading strategies based on news and analyst articles")
 
-def extract_content(full_data):
-    try:
-        data = json.loads(full_data)
-        content = data.get("data", {}).get("attributes", {}).get("content", "")
-        cleaned_content = clean_html(content)
-        ending_markers = ["More on", "Read more", "See also", "Learn more", "Related articles"]
-        for marker in ending_markers:
-            if marker in cleaned_content:
-                cleaned_content = cleaned_content.split(marker)[0]
-                break
-        return cleaned_content.strip()
-    except (json.JSONDecodeError, TypeError):
-        return None
+# Input Parameters
+st.header("Strategy Parameters")
 
-# Streamlit UI
-st.title("Seeking Alpha News Fetcher")
-st.write("Fetch news articles for symbols listed in 'symbollist.txt' and process them.")
-
-# Date input boxes
 col1, col2 = st.columns(2)
+
 with col1:
-    from_date = st.date_input("From Date", value=datetime(2023, 10, 1))
-with col2:
-    to_date = st.date_input("To Date", value=datetime(2023, 10, 31))
-
-# Convert dates to timestamps
-since_timestamp = int(datetime.combine(from_date, datetime.min.time()).timestamp())
-until_timestamp = int(datetime.combine(to_date, datetime.min.time()).timestamp())
-
-# Buttons
-col1, col2, col3 = st.columns(3)
-with col1:
-    if st.button("Fetch Articles"):
-        st.session_state["status_table"] = []  # Reset status table
-        st.session_state["process_status"] = []  # Reset process status
-        with open(SYMBOL_FILE, "r") as f:
-            symbols = [line.strip() for line in f.readlines()]
-
-        for symbol in symbols:
-            st.session_state["process_status"].append(f"Fetching articles for: {symbol}")
-            articles = fetch_articles(symbol, since_timestamp, until_timestamp)
-            if articles:
-                file_name = os.path.join(OUTPUT_DIR, f"{symbol.lower()}_news_data.csv")
-                with open(file_name, 'w', newline='', encoding='utf-8') as csvfile:
-                    fieldnames = ['ID', 'Publish Date', 'Title', 'Author ID', 'Comment Count', 'Primary Tickers', 'Secondary Tickers', 'Image URL']
-                    writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-                    writer.writeheader()
-                    for item in articles:
-                        writer.writerow({
-                            'ID': item['id'],
-                            'Publish Date': item['attributes']['publishOn'],
-                            'Title': item['attributes']['title'],
-                            'Author ID': item['relationships']['author']['data']['id'],
-                            'Comment Count': item['attributes']['commentCount'],
-                            'Primary Tickers': ', '.join([t['type'] for t in item['relationships']['primaryTickers']['data']]),
-                            'Secondary Tickers': ', '.join([t['type'] for t in item['relationships']['secondaryTickers']['data']]),
-                            'Image URL': item['attributes'].get('gettyImageUrl', 'N/A')
-                        })
-                st.session_state["status_table"].append({
-                    "Symbol": symbol,
-                    "Number of Articles Extracted": len(articles)
-                })
-                st.session_state["process_status"].append(f"Saved {len(articles)} articles for {symbol}")
-            else:
-                st.session_state["status_table"].append({
-                    "Symbol": symbol,
-                    "Number of Articles Extracted": "API Error"
-                })
-                st.session_state["process_status"].append(f"Failed to fetch articles for {symbol}")
+    st.subheader("Entry Conditions")
+    stock_symbol = st.text_input("Select Stock", value="AAPL")
+    
+    # News article parameters
+    news_months = st.number_input("News Article Lookback (months)", 
+                                min_value=1, max_value=12, value=3)
+    
+    analyst_months = st.number_input("Analyst Article Lookback (months)", 
+                                   min_value=1, max_value=12, value=3)
+    
+    text_model = st.radio("Text Analysis Model", 
+                         ("FinBERT", "AI Model"), 
+                         horizontal=True)
+    
+    # Signal Weightage
+    st.subheader("Signal Weightage")
+    st.write("(Sum must be ≤ 1)")
+    news_weight = st.number_input("News Weight", 
+                                min_value=0.0, max_value=1.0, 
+                                value=0.6, step=0.05)
+    analyst_weight = st.number_input("Analyst Weight", 
+                                   min_value=0.0, max_value=1.0, 
+                                   value=0.4, step=0.05)
+    
+    # Validate weights
+    total_weight = news_weight + analyst_weight
+    if total_weight > 1.0:
+        st.error(f"Total weight exceeds 1.0 (Current: {total_weight:.2f})")
+        st.stop()
+    
+    article_percentage = st.number_input("Percentage of Articles to Determine Direction (%)", 
+                                       min_value=1, max_value=100, value=60)
 
 with col2:
-    if st.button("Get Content"):
-        st.session_state["process_status"] = []  # Reset process status
-        csv_files = [f for f in os.listdir(OUTPUT_DIR) if f.endswith("_news_data.csv")]
-        for csv_file in csv_files:
-            symbol = csv_file.replace("_news_data.csv", "")
-            st.session_state["process_status"].append(f"Fetching content for {symbol}")
-            df = pd.read_csv(os.path.join(OUTPUT_DIR, csv_file))
-            if 'Content' not in df.columns:
-                df['Content'] = None
+    st.subheader("Exit Conditions")
+    holding_days = st.number_input("Time Wise Exit (Days)", 
+                                 min_value=1, max_value=30, value=5)
+    stop_loss = st.number_input("Max Loss Stop Loss (%)", 
+                              min_value=0.1, max_value=50.0, value=10.0, step=0.5)
 
-            for index, row in df.iterrows():
-                if pd.isna(row['Content']):
-                    content = fetch_content(row['ID'])
-                    df.at[index, 'Content'] = content
-                    time.sleep(1)  # Avoid rate limits
-
-            df.to_csv(os.path.join(OUTPUT_DIR, csv_file), index=False)
-            st.session_state["process_status"].append(f"Updated content for {symbol}")
-
-with col3:
-    if st.button("Clean Up"):
-        st.session_state["process_status"] = []  # Reset process status
-        csv_files = [f for f in os.listdir(OUTPUT_DIR) if f.endswith("_news_data.csv")]
-        for csv_file in csv_files:
-            symbol = csv_file.replace("_news_data.csv", "")
-            st.session_state["process_status"].append(f"Cleaning content for {symbol}")
-            df = pd.read_csv(os.path.join(OUTPUT_DIR, csv_file))
-            if 'Content' in df.columns:
-                df['Extracted'] = df['Content'].apply(extract_content)
-                df.to_csv(os.path.join(OUTPUT_DIR, csv_file), index=False)
-                st.session_state["process_status"].append(f"Cleaned content for {symbol}")
-
-# Display status table
-if st.session_state["status_table"]:
-    st.write("### Status Table")
-    status_df = pd.DataFrame(st.session_state["status_table"])
-    st.table(status_df)
-
-# Display process status
-if st.session_state["process_status"]:
-    st.write("### Process Status")
-    for status in st.session_state["process_status"]:
-        st.write(status)
-
-# Download Section
-if os.path.exists(OUTPUT_DIR):
-    csv_files = [f for f in os.listdir(OUTPUT_DIR) if f.endswith("_news_data.csv")]
-    if csv_files:
-        st.write("### Download Extracted Files")
-        cols = st.columns(3)
-        for i, csv_file in enumerate(csv_files):
-            with cols[i % 3]:  # Distribute buttons across columns
-                with open(os.path.join(OUTPUT_DIR, csv_file), "r") as f:
-                    st.download_button(
-                        label=f"Download {csv_file}",
-                        data=f.read(),
-                        file_name=csv_file,
-                        mime="text/csv"
-                    )
-    else:
-        st.warning("No CSV files found in the output directory.")
-else:
-    st.warning("Output directory does not exist.")
+# Backtest button
+if st.button("Run Backtest", key="backtest_button"):
+    st.write("Running backtest...")
+    
+    # Generate dummy data based on parameters
+    num_trades = max(10, min(50, news_months * 5))  # Scale with lookback period
+    
+    dates = pd.date_range(end=datetime.today(), periods=num_trades).date
+    
+    # Generate trades with success probability based on article percentage
+    success_prob = (article_percentage / 100) * 0.9  # Scale probability
+    trade_types = np.random.choice(["Long", "Short"], num_trades, 
+                                 p=[success_prob, 1-success_prob])
+    
+    holding_periods = np.random.randint(1, holding_days+1, num_trades)
+    pct_changes = np.random.uniform(-stop_loss, 20, num_trades)
+    
+    # Create trades dataframe
+    trades = pd.DataFrame({
+        "Date": dates,
+        "Trade Type": trade_types,
+        "Holding Period": holding_periods,
+        "P/L %": pct_changes,
+        "News Articles": np.random.randint(1, news_months*10, num_trades),
+        "Analyst Articles": np.random.randint(1, analyst_months*5, num_trades),
+        "Model Used": text_model
+    })
+    
+    # Display trades
+    st.subheader("Trade History")
+    st.dataframe(trades.style.format({"P/L %": "{:.2f}%"}), hide_index=True)
+    
+    # Calculate summary statistics
+    total_trades = len(trades)
+    winning_trades = trades[trades["P/L %"] > 0]
+    losing_trades = trades[trades["P/L %"] <= 0]
+    win_rate = len(winning_trades) / total_trades * 100
+    
+    long_trades = trades[trades["Trade Type"] == "Long"]
+    short_trades = trades[trades["Trade Type"] == "Short"]
+    
+    # Prepare summary data
+    summary_data = {
+        "Metric": [
+            "Total Trades", "Win Rate (%)", "Lose Rate (%)",
+            "Total Long Trades", "Long Win Rate (%)", "Long Lose Rate (%)",
+            "Total Short Trades", "Short Win Rate (%)", "Short Lose Rate (%)",
+            "Max Drawdown ($)", "Profit Factor",
+            "Avg News Articles per Trade",
+            "Avg Analyst Articles per Trade",
+            "Parameters (News/Analyst Months)",
+            "Text Analysis Model",
+            "Weights (News/Analyst)"
+        ],
+        "Value": [
+            total_trades,
+            f"{win_rate:.1f}",
+            f"{100 - win_rate:.1f}",
+            len(long_trades),
+            f"{len(long_trades[long_trades['P/L %'] > 0]) / len(long_trades) * 100:.1f}" if len(long_trades) > 0 else "0.0",
+            f"{len(long_trades[long_trades['P/L %'] <= 0]) / len(long_trades) * 100:.1f}" if len(long_trades) > 0 else "0.0",
+            len(short_trades),
+            f"{len(short_trades[short_trades['P/L %'] > 0]) / len(short_trades) * 100:.1f}" if len(short_trades) > 0 else "0.0",
+            f"{len(short_trades[short_trades['P/L %'] <= 0]) / len(short_trades) * 100:.1f}" if len(short_trades) > 0 else "0.0",
+            f"${np.random.randint(500, 2000)}",
+            f"{np.random.uniform(0.8, 2.5):.2f}",
+            f"{trades['News Articles'].mean():.1f}",
+            f"{trades['Analyst Articles'].mean():.1f}",
+            f"{news_months}/{analyst_months}",
+            text_model,
+            f"{news_weight:.1f}/{analyst_weight:.1f}"
+        ]
+    }
+    
+    # Display summary
+    st.subheader("Backtest Summary")
+    st.table(pd.DataFrame(summary_data))
+    
+    st.success("Backtest completed!")
