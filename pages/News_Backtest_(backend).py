@@ -102,8 +102,6 @@ if st.button("Run Backtest", key="backtest_button"):
         "Trade Type": trade_types,
         "Holding Period": holding_periods,
         "P/L %": pct_changes,
-        "News Articles": np.random.randint(1, news_months*10, num_trades),
-        "Analyst Articles": np.random.randint(1, analyst_months*5, num_trades),
         "Model Used": text_model
     })
     
@@ -120,16 +118,13 @@ if st.button("Run Backtest", key="backtest_button"):
     long_trades = trades[trades["Trade Type"] == "Long"]
     short_trades = trades[trades["Trade Type"] == "Short"]
     
-    # Prepare summary data
+    # Prepare summary data (removed the requested metrics)
     summary_data = {
         "Metric": [
             "Total Trades", "Win Rate (%)", "Lose Rate (%)",
             "Total Long Trades", "Long Win Rate (%)", "Long Lose Rate (%)",
             "Total Short Trades", "Short Win Rate (%)", "Short Lose Rate (%)",
             "Max Drawdown ($)", "Profit Factor",
-            "Avg News Articles per Trade",
-            "Avg Analyst Articles per Trade",
-            "Parameters (News/Analyst Months)",
             "Text Analysis Model",
             "Weights (News/Analyst)"
         ],
@@ -145,9 +140,6 @@ if st.button("Run Backtest", key="backtest_button"):
             f"{len(short_trades[short_trades['P/L %'] <= 0]) / len(short_trades) * 100:.1f}" if len(short_trades) > 0 else "0.0",
             f"${np.random.randint(500, 2000)}",
             f"{np.random.uniform(0.8, 2.5):.2f}",
-            f"{trades['News Articles'].mean():.1f}",
-            f"{trades['Analyst Articles'].mean():.1f}",
-            f"{news_months}/{analyst_months}",
             text_model,
             f"{news_weight:.1f}/{analyst_weight:.1f}"
         ]
