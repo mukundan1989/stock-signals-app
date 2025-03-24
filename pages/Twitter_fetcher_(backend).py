@@ -30,7 +30,7 @@ st.markdown(
 )
 
 # Configuration
-API_KEY = "1ce12aafcdmshdb6eea1ac608501p1ab501jsn4a47cc5027ce"  # Your RapidAPI key
+API_KEY = "3cf0736f79mshe60115701a871c4p19c558jsncccfd9521243"  # Your RapidAPI key
 API_HOST = "twitter154.p.rapidapi.com"  # API host
 KEYWORDS_FILE = "data/keywords.txt"  # Path to the keywords file
 JSON_OUTPUT_DIR = "/tmp/data/output"  # Directory to save JSON files
