@@ -13,7 +13,7 @@ import re
 API_KEY = "1ce12aafcdmshdb6eea1ac608501p1ab501jsn4a47cc5027ce"  # Your RapidAPI key
 API_HOST = "seeking-alpha.p.rapidapi.com"  # API host
 SYMBOL_FILE = "data/symbollist.txt"  # Path to the symbols file (from GitHub repo)
-OUTPUT_DIR = "/tmp/newsdir"  # Directory to save CSV files
+OUTPUT_DIR = "/tmp/newsdire"  # Directory to save CSV files
 os.makedirs(OUTPUT_DIR, exist_ok=True)  # Ensure the output directory exists
 
 # Initialize session state for status table and process status
