@@ -47,16 +47,20 @@ if "selected_company" not in st.session_state:
     st.session_state["selected_company"] = None
 
 def generate_combined_keywords(base_keywords):
-    """Generate default combined keywords for each base keyword"""
+    """Generate default combined keywords for each base keyword with + instead of spaces"""
     combined = {}
     for keyword in base_keywords:
         combined[keyword] = [
-            f"{keyword} Portfolio",
-            f"{keyword} Stock",
-            f"{keyword} Earnings",
-            f"{keyword} Analysis"
+            f"{keyword}+Portfolio",
+            f"{keyword}+Stock",
+            f"{keyword}+Earnings",
+            f"{keyword}+Analysis"
         ]
     return combined
+
+def format_keyword_for_api(keyword):
+    """Replace spaces with + for API queries while preserving original for display"""
+    return keyword.replace(" ", "+")
 
 def fetch_tweets_for_keyword(keyword, start_date, end_date):
     """Fetch tweets for a specific keyword from the API"""
@@ -68,7 +72,10 @@ def fetch_tweets_for_keyword(keyword, start_date, end_date):
     start_date_str = start_date.strftime("%Y-%m-%d")
     end_date_str = end_date.strftime("%Y-%m-%d")
     
-    endpoint = f"/search/search?query={keyword}&section=latest&min_retweets=1&min_likes=1&limit=50&start_date={start_date_str}&language=en&end_date={end_date_str}"
+    # Format keyword for API (replace spaces with +)
+    api_query = format_keyword_for_api(keyword)
+    
+    endpoint = f"/search/search?query={api_query}&section=latest&min_retweets=1&min_likes=1&limit=50&start_date={start_date_str}&language=en&end_date={end_date_str}"
     conn.request("GET", endpoint, headers=headers)
     res = conn.getresponse()
     data = res.read()
@@ -85,10 +92,11 @@ def fetch_tweets(start_date, end_date, keywords_to_fetch):
 
     for keyword in keywords_to_fetch:
         try:
-            status_placeholder.write(f"Fetching tweets for: {keyword}")
+            display_keyword = keyword.replace("+", " ")  # Show with spaces in UI
+            status_placeholder.write(f"Fetching tweets for: {display_keyword}")
             result = fetch_tweets_for_keyword(keyword, start_date, end_date)
 
-            sanitized_keyword = keyword.replace(" ", "_").replace("/", "_")
+            sanitized_keyword = keyword.replace(" ", "_").replace("/", "_").replace("+", "_")
             output_file = os.path.join(JSON_OUTPUT_DIR, f"{sanitized_keyword}.json")
             with open(output_file, "w", encoding="utf-8") as outfile:
                 outfile.write(result)
@@ -96,17 +104,17 @@ def fetch_tweets(start_date, end_date, keywords_to_fetch):
             keyword_type = "Combined" if any(keyword in combos for combos in st.session_state["combined_keywords"].values()) else "Base"
             
             st.session_state["status_table"].append({
-                "Keyword": keyword,
+                "Keyword": display_keyword,  # Display with spaces
                 "Type": keyword_type,
                 "Tweet Extract JSON": "✅",
                 "CSV Output": "❌",
                 "Date Range": f"{start_date.strftime('%Y-%m-%d')} to {end_date.strftime('%Y-%m-%d')}"
             })
 
-            status_placeholder.write(f"Saved tweets for: {keyword}")
+            status_placeholder.write(f"Saved tweets for: {display_keyword}")
 
         except Exception as e:
-            st.error(f"Error fetching tweets for '{keyword}': {e}")
+            st.error(f"Error fetching tweets for '{keyword.replace('+', ' ')}': {e}")
 
     status_placeholder.empty()
 
@@ -218,16 +226,19 @@ if base_keywords:
             [st.session_state["selected_company"]]
         )[st.session_state["selected_company"]]
     
-    # Display editable combination fields
+    # Display editable combination fields (showing + as spaces for readability)
     cols = st.columns(4)
     for i in range(4):
         with cols[i]:
+            # Display with spaces but store with +
+            display_value = st.session_state["combined_keywords"][st.session_state["selected_company"]][i].replace("+", " ")
             new_value = st.text_input(
                 f"Combination {i+1}",
-                value=st.session_state["combined_keywords"][st.session_state["selected_company"]][i],
+                value=display_value,
                 key=f"combo_{st.session_state['selected_company']}_{i}"
             )
-            st.session_state["combined_keywords"][st.session_state["selected_company"]][i] = new_value
+            # Store with + for API queries
+            st.session_state["combined_keywords"][st.session_state["selected_company"]][i] = new_value.replace(" ", "+")
 else:
     st.warning("No companies found in keywords.txt")
 
@@ -284,7 +295,7 @@ if os.path.exists(CSV_OUTPUT_DIR):
                 with cols[i % 3]:
                     with open(os.path.join(CSV_OUTPUT_DIR, csv_file), "r") as f:
                         st.download_button(
-                            label=f"Download {csv_file}",
+                            label=f"Download {csv_file.replace('_', ' ').replace('.csv', '')}",
                             data=f.read(),
                             file_name=csv_file,
                             mime="text/csv"
