@@ -28,8 +28,8 @@ st.markdown(
 )
 
 # Configuration
-API_KEY = "3cf0736f79mshe60115701a871c4p19c558jsncccfd9521243"
 API_HOST = "twitter154.p.rapidapi.com"
+DEFAULT_API_KEY = "3cf0736f79mshe60115701a871c4p19c558jsncccfd9521243"  # Default placeholder
 KEYWORDS_FILE = "data/keywords.txt"
 JSON_OUTPUT_DIR = "/tmp/data/output"
 CSV_OUTPUT_DIR = "/tmp/data/csv_output"
@@ -45,6 +45,8 @@ if "combined_keywords" not in st.session_state:
     st.session_state["combined_keywords"] = {}
 if "selected_company" not in st.session_state:
     st.session_state["selected_company"] = None
+if "api_key" not in st.session_state:
+    st.session_state["api_key"] = DEFAULT_API_KEY
 
 def generate_combined_keywords(base_keywords):
     """Generate default combined keywords for each base keyword with + instead of spaces"""
@@ -64,37 +66,51 @@ def format_keyword_for_api(keyword):
 
 def fetch_tweets_for_keyword(keyword, start_date, end_date):
     """Fetch tweets for a specific keyword from the API"""
+    if not st.session_state["api_key"].strip():
+        st.error("API key is missing! Please enter a valid key.")
+        return None
+
     conn = http.client.HTTPSConnection(API_HOST)
     headers = {
-        'x-rapidapi-key': API_KEY,
+        'x-rapidapi-key': st.session_state["api_key"],
         'x-rapidapi-host': API_HOST
     }
     start_date_str = start_date.strftime("%Y-%m-%d")
     end_date_str = end_date.strftime("%Y-%m-%d")
     
-    # Format keyword for API (replace spaces with +)
     api_query = format_keyword_for_api(keyword)
-    
     endpoint = f"/search/search?query={api_query}&section=latest&min_retweets=1&min_likes=1&limit=50&start_date={start_date_str}&language=en&end_date={end_date_str}"
-    conn.request("GET", endpoint, headers=headers)
-    res = conn.getresponse()
-    data = res.read()
-    conn.close()
-    return data.decode("utf-8")
+    
+    try:
+        conn.request("GET", endpoint, headers=headers)
+        res = conn.getresponse()
+        data = res.read()
+        return data.decode("utf-8")
+    except Exception as e:
+        st.error(f"API request failed: {e}")
+        return None
+    finally:
+        conn.close()
 
 def fetch_tweets(start_date, end_date, keywords_to_fetch):
     """Fetch tweets for specified keywords"""
     if not keywords_to_fetch:
         st.warning("No keywords selected to fetch")
         return
+    if not st.session_state["api_key"].strip():
+        st.error("API key is missing!")
+        return
 
     status_placeholder = st.empty()
 
     for keyword in keywords_to_fetch:
         try:
-            display_keyword = keyword.replace("+", " ")  # Show with spaces in UI
+            display_keyword = keyword.replace("+", " ")
             status_placeholder.write(f"Fetching tweets for: {display_keyword}")
             result = fetch_tweets_for_keyword(keyword, start_date, end_date)
+
+            if not result:
+                continue
 
             sanitized_keyword = keyword.replace(" ", "_").replace("/", "_").replace("+", "_")
             output_file = os.path.join(JSON_OUTPUT_DIR, f"{sanitized_keyword}.json")
@@ -104,7 +120,7 @@ def fetch_tweets(start_date, end_date, keywords_to_fetch):
             keyword_type = "Combined" if any(keyword in combos for combos in st.session_state["combined_keywords"].values()) else "Base"
             
             st.session_state["status_table"].append({
-                "Keyword": display_keyword,  # Display with spaces
+                "Keyword": display_keyword,
                 "Type": keyword_type,
                 "Tweet Extract JSON": "✅",
                 "CSV Output": "❌",
@@ -192,6 +208,14 @@ def clear_temp():
 # Streamlit UI
 st.title("Twitter Data Fetcher")
 
+# API Key Input (New Section)
+st.session_state["api_key"] = st.text_input(
+    "Twitter API Key",
+    value=st.session_state["api_key"],
+    type="password",
+    help="Default key is rate-limited. Replace with your own RapidAPI key."
+)
+
 # Date input section
 col1, col2 = st.columns(2)
 with col1:
@@ -217,27 +241,22 @@ if base_keywords:
         index=0
     )
     
-    # Combination Keywords Section for selected company
     st.subheader(f"Combination Keywords for: {st.session_state['selected_company']}")
     
-    # Ensure selected company exists in combined_keywords
     if st.session_state["selected_company"] not in st.session_state["combined_keywords"]:
         st.session_state["combined_keywords"][st.session_state["selected_company"]] = generate_combined_keywords(
             [st.session_state["selected_company"]]
         )[st.session_state["selected_company"]]
     
-    # Display editable combination fields (showing + as spaces for readability)
     cols = st.columns(4)
     for i in range(4):
         with cols[i]:
-            # Display with spaces but store with +
             display_value = st.session_state["combined_keywords"][st.session_state["selected_company"]][i].replace("+", " ")
             new_value = st.text_input(
                 f"Combination {i+1}",
                 value=display_value,
                 key=f"combo_{st.session_state['selected_company']}_{i}"
             )
-            # Store with + for API queries
             st.session_state["combined_keywords"][st.session_state["selected_company"]][i] = new_value.replace(" ", "+")
 else:
     st.warning("No companies found in keywords.txt")
@@ -247,11 +266,9 @@ col1, col2, col3, col4 = st.columns(4)
 with col1:
     if st.button("Fetch Base Keywords"):
         if start_date <= end_date and base_keywords:
-            st.write("Fetching tweets for base keywords...")
             fetch_tweets(start_date, end_date, base_keywords)
-            st.write("Process completed!")
         else:
-            st.warning("Please fix the date range or add base keywords")
+            st.warning("Invalid date range or no base keywords!")
 
 with col2:
     if st.button("Fetch All Combined Keywords"):
@@ -259,23 +276,17 @@ with col2:
             all_combined = []
             for combos in st.session_state["combined_keywords"].values():
                 all_combined.extend(combos)
-            st.write("Fetching tweets for all combined keywords...")
             fetch_tweets(start_date, end_date, all_combined)
-            st.write("Process completed!")
         else:
-            st.warning("Please fix the date range or add combination keywords")
+            st.warning("Invalid date range or no combined keywords!")
 
 with col3:
     if st.button("Convert JSON to CSV"):
-        st.write("Converting JSON files to CSV...")
         convert_json_to_csv()
-        st.write("Conversion completed!")
 
 with col4:
     if st.button("Clear Temp"):
-        st.write("Clearing temporary files...")
         clear_temp()
-        st.write("Process completed!")
 
 # Status Table
 if st.session_state["status_table"]:
@@ -285,7 +296,7 @@ if st.session_state["status_table"]:
 else:
     st.write("No actions performed yet. Fetch tweets to see the status.")
 
-# Display CSV files
+# CSV Download Section
 if os.path.exists(CSV_OUTPUT_DIR):
     csv_files = [f for f in os.listdir(CSV_OUTPUT_DIR) if f.endswith(".csv")]
     if csv_files:
