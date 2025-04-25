@@ -29,7 +29,7 @@ st.markdown(
 
 # Configuration
 API_HOST = "twitter154.p.rapidapi.com"
-DEFAULT_API_KEY = "3cf0736f79mshe60115701a871c4p19c558jsncccfd9521243"  # Default placeholder
+DEFAULT_API_KEY = "3cf0736f79mshe60115701a871c4p19c558jsncccfd9521243"
 KEYWORDS_FILE = "data/keywords.txt"
 JSON_OUTPUT_DIR = "/tmp/data/output"
 CSV_OUTPUT_DIR = "/tmp/data/csv_output"
@@ -189,6 +189,26 @@ def convert_json_to_csv():
 
     status_placeholder.empty()
 
+def combine_company_csvs(company_name):
+    """Merge all CSV files for a company's combined keywords into one DataFrame"""
+    if not os.path.exists(CSV_OUTPUT_DIR):
+        return None
+    
+    company_prefix = company_name.replace(" ", "_")
+    csv_files = [
+        f for f in os.listdir(CSV_OUTPUT_DIR) 
+        if f.startswith(company_prefix) and f.endswith(".csv")
+    ]
+    
+    if not csv_files:
+        return None
+    
+    combined_df = pd.concat(
+        [pd.read_csv(os.path.join(CSV_OUTPUT_DIR, f)) for f in csv_files],
+        ignore_index=True
+    )
+    return combined_df
+
 def clear_temp():
     """Clear temporary files"""
     try:
@@ -208,7 +228,7 @@ def clear_temp():
 # Streamlit UI
 st.title("Twitter Data Fetcher")
 
-# API Key Input (New Section)
+# API Key Input
 st.session_state["api_key"] = st.text_input(
     "Twitter API Key",
     value=st.session_state["api_key"],
@@ -240,6 +260,18 @@ if base_keywords:
         base_keywords,
         index=0
     )
+    
+    # Combined CSV download button
+    combined_csv = combine_company_csvs(st.session_state["selected_company"])
+    if combined_csv is not None:
+        csv_data = combined_csv.to_csv(index=False)
+        st.download_button(
+            label=f"Download ALL {st.session_state['selected_company']} Data (Combined)",
+            data=csv_data,
+            file_name=f"{st.session_state['selected_company'].replace(' ', '_')}_ALL.csv",
+            mime="text/csv",
+            key=f"combined_{st.session_state['selected_company']}"
+        )
     
     st.subheader(f"Combination Keywords for: {st.session_state['selected_company']}")
     
@@ -300,7 +332,7 @@ else:
 if os.path.exists(CSV_OUTPUT_DIR):
     csv_files = [f for f in os.listdir(CSV_OUTPUT_DIR) if f.endswith(".csv")]
     if csv_files:
-        with st.expander("Download Converted CSV Files"):
+        with st.expander("Download Individual CSV Files"):
             cols = st.columns(3)
             for i, csv_file in enumerate(csv_files):
                 with cols[i % 3]:
