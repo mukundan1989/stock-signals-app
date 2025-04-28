@@ -35,16 +35,35 @@ def fetch_articles(symbol, since_timestamp, until_timestamp):
 
     while True:
         try:
-            conn.request("GET", f"/news/v2/list-by-symbol?until={current_until_timestamp}&since={since_timestamp}&size={size}&id={symbol}", headers=headers)
+            # Make the API request
+            conn.request(
+                "GET",
+                f"/news/v2/list-by-symbol?until={current_until_timestamp}&since={since_timestamp}&size={size}&id={symbol}",
+                headers=headers
+            )
             res = conn.getresponse()
             data = json.loads(res.read().decode("utf-8"))
 
-            if not data['data']:
-                break  # No more articles
+            # If no articles returned, stop
+            if not data.get('data'):
+                break
 
-            all_news_data.extend(data['data'])
-            current_until_timestamp -= 86400  # Move one day back
-            time.sleep(2)  # Avoid rate limits
+            articles = data['data']
+            all_news_data.extend(articles)
+
+            # Move 'until' to just before the last article's publish time
+            last_publish_time = articles[-1]['attributes']['publishOn']
+            last_publish_timestamp = int(datetime.strptime(
+                last_publish_time, "%Y-%m-%dT%H:%M:%S%z"
+            ).timestamp())
+
+            current_until_timestamp = last_publish_timestamp - 1  # Move back by 1 second
+
+            # Stop if we already crossed the since_timestamp
+            if current_until_timestamp <= since_timestamp:
+                break
+
+            time.sleep(2)  # To avoid hitting API rate limits
 
         except Exception as e:
             st.session_state["process_status"].append(f"Error fetching articles for {symbol}: {e}")
