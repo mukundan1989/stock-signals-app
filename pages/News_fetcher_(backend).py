@@ -29,41 +29,32 @@ def fetch_articles(symbol, since_timestamp, until_timestamp):
         'x-rapidapi-key': API_KEY,
         'x-rapidapi-host': API_HOST
     }
-    size = 20  # Number of articles per request
+    size = 20  # Articles per page
+    page = 1   # Start with page 1
     all_news_data = []
-    current_until_timestamp = until_timestamp
+    seen_ids = set()
 
     while True:
         try:
-            # Make the API request
             conn.request(
                 "GET",
-                f"/news/v2/list-by-symbol?until={current_until_timestamp}&since={since_timestamp}&size={size}&id={symbol}",
+                f"/news/v2/list-by-symbol?size={size}&number={page}&id={symbol}&since={since_timestamp}&until={until_timestamp}",
                 headers=headers
             )
             res = conn.getresponse()
             data = json.loads(res.read().decode("utf-8"))
 
-            # If no articles returned, stop
-            if not data.get('data'):
-                break
+            if not data['data']:
+                break  # No more articles
 
-            articles = data['data']
-            all_news_data.extend(articles)
+            # Filter duplicates
+            for item in data['data']:
+                if item['id'] not in seen_ids:
+                    seen_ids.add(item['id'])
+                    all_news_data.append(item)
 
-            # Move 'until' to just before the last article's publish time
-            last_publish_time = articles[-1]['attributes']['publishOn']
-            last_publish_timestamp = int(datetime.strptime(
-                last_publish_time, "%Y-%m-%dT%H:%M:%S%z"
-            ).timestamp())
-
-            current_until_timestamp = last_publish_timestamp - 1  # Move back by 1 second
-
-            # Stop if we already crossed the since_timestamp
-            if current_until_timestamp <= since_timestamp:
-                break
-
-            time.sleep(2)  # To avoid hitting API rate limits
+            page += 1  # Go to next page
+            time.sleep(1)  # Avoid rate limits
 
         except Exception as e:
             st.session_state["process_status"].append(f"Error fetching articles for {symbol}: {e}")
