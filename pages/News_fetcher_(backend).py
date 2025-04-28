@@ -230,14 +230,14 @@ with proc_col:
             st.balloons()  # Celebration animation
             
             # Force refresh of the display
-            st.experimental_rerun()
+            st.rerun()  # Changed from st.experimental_rerun()
 
 with util_col:
     if st.button("Clear Temporary Storage", help="Delete all downloaded files and reset status"):
         if clear_temp_storage():
             st.success("Temporary files and status cleared!")
             st.balloons()
-            st.experimental_rerun()
+            st.rerun()  # Changed from st.experimental_rerun()
 
 # Display status table
 if st.session_state["status_table"]:
@@ -251,7 +251,7 @@ if st.session_state["process_status"]:
     for status in st.session_state["process_status"]:
         st.write(status)
 
-# Download Section
+# Download Section - This remains exactly as before to ensure files are displayed for download
 if os.path.exists(OUTPUT_DIR):
     csv_files = [f for f in os.listdir(OUTPUT_DIR) if f.endswith("_news_data.csv")]
     if csv_files:
