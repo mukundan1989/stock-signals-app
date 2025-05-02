@@ -10,7 +10,7 @@ import shutil
 import re
 
 # Configuration
-DEFAULT_API_KEY = "3cf0736f79mshe60115701a871c4p19c558jsncccfd9521243"  # Replace with your key
+DEFAULT_API_KEY = "1ce12aafcdmshdb6eea1ac608501p1ab501jsn4a47cc5027ce"  # Replace with your key
 SA_API_HOST = "seeking-alpha.p.rapidapi.com"
 PPLX_API_HOST = "perplexity2.p.rapidapi.com"
 SYMBOL_FILE = "data/symbollist.txt"
