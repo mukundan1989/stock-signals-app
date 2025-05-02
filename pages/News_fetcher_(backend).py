@@ -10,7 +10,7 @@ import shutil
 import re
 
 # Configuration
-DEFAULT_API_KEY = "1ce12aafcdmshdb6eea1ac608501p1ab501jsn4a47cc5027ce"
+DEFAULT_API_KEY = "3cf0736f79mshe60115701a871c4p19c558jsncccfd9521243"
 API_HOST = "seeking-alpha.p.rapidapi.com"
 SYMBOL_FILE = "data/symbollist.txt"
 OUTPUT_DIR = "/tmp/newsdire"
@@ -66,22 +66,31 @@ def fetch_articles(symbol, since_timestamp, until_timestamp):
 
     return all_news_data
 
-def fetch_content(news_id):
+def fetch_content_from_perplexity(title, publish_date):
     if not st.session_state["api_key"].strip():
         st.error("API key is missing! Please enter a valid key.")
         return None
 
-    conn = http.client.HTTPSConnection(API_HOST)
+    conn = http.client.HTTPSConnection("perplexity2.p.rapidapi.com")
     headers = {
         'x-rapidapi-key': st.session_state["api_key"],
-        'x-rapidapi-host': API_HOST
+        'x-rapidapi-host': "perplexity2.p.rapidapi.com",
+        'Content-Type': "application/json"
     }
+
+    prompt = {
+        "content": f"Give full details about the news article titled '{title}' published on {publish_date}."
+    }
+
     try:
-        conn.request("GET", f"/news/get-details?id={news_id}", headers=headers)
+        conn.request("POST", "/", json.dumps(prompt), headers)
         res = conn.getresponse()
-        return res.read().decode('utf-8')
+        result = res.read().decode("utf-8")
+        data = json.loads(result)
+        return data.get("text", result)  # fallback to raw if 'text' key doesn't exist
+
     except Exception as e:
-        st.session_state["process_status"].append(f"Error fetching content for ID {news_id}: {e}")
+        st.session_state["process_status"].append(f"Error fetching content from Perplexity for '{title}': {e}")
         return None
 
 def clean_html(raw_html):
@@ -92,42 +101,30 @@ def extract_content(full_data):
     try:
         if not full_data or pd.isna(full_data):
             return None
-            
-        data = json.loads(full_data)
-        content = data.get("data", {}).get("attributes", {}).get("content", "")
-        
-        if not content:
-            return None
-            
-        # Clean HTML and special characters
-        cleaned_content = clean_html(content)
-        
-        # Remove extra whitespace
+
+        cleaned_content = clean_html(full_data)
         cleaned_content = ' '.join(cleaned_content.split())
-        
-        # Define ending markers with improved matching
+
         ending_markers = [
-            r"\bMore on\b", r"\bRead more\b", r"\bSee also\b", 
+            r"\bMore on\b", r"\bRead more\b", r"\bSee also\b",
             r"\bLearn more\b", r"\bRelated articles\b",
             r"\bThis article was\b", r"\bOriginal post\b"
         ]
-        
-        # Find the earliest ending marker
+
         earliest_pos = len(cleaned_content)
         for marker in ending_markers:
             match = re.search(marker, cleaned_content, re.IGNORECASE)
             if match and match.start() < earliest_pos:
                 earliest_pos = match.start()
-        
+
         if earliest_pos < len(cleaned_content):
             cleaned_content = cleaned_content[:earliest_pos]
-        
-        # Remove any remaining boilerplate
-        cleaned_content = re.sub(r'Editor\'s Note:.*$', '', cleaned_content, flags=re.DOTALL)
-        cleaned_content = re.sub(r'SA Transcripts.*$', '', cleaned_content, flags=re.DOTALL)
-        
+
+        cleaned_content = re.sub(r"Editor's Note:.*$", '', cleaned_content, flags=re.DOTALL)
+        cleaned_content = re.sub(r"SA Transcripts.*$", '', cleaned_content, flags=re.DOTALL)
+
         return cleaned_content.strip()
-    except (json.JSONDecodeError, TypeError, AttributeError) as e:
+    except Exception as e:
         st.session_state["process_status"].append(f"Content extraction error: {e}")
         return None
 
@@ -144,31 +141,25 @@ def clear_temp_storage():
         return False
 
 # Streamlit UI
-st.title("Seeking Alpha News Fetcher")
+st.title("Seeking Alpha News Fetcher (with Perplexity Content)")
 
-# API Key Input
 st.session_state["api_key"] = st.text_input(
-    "Seeking Alpha API Key",
+    "RapidAPI Key",
     value=st.session_state["api_key"],
     type="password",
-    help="Default key is rate-limited. Replace with your own RapidAPI key."
+    help="Required for both Seeking Alpha and Perplexity APIs."
 )
 
-# Date input boxes
 col1, col2 = st.columns(2)
 with col1:
     from_date = st.date_input("From Date", value=datetime(2023, 10, 1))
 with col2:
     to_date = st.date_input("To Date", value=datetime(2023, 10, 31))
 
-# Convert dates to timestamps
 since_timestamp = int(datetime.combine(from_date, datetime.min.time()).timestamp())
 until_timestamp = int(datetime.combine(to_date, datetime.min.time()).timestamp())
 
-# Status placeholder
 status_placeholder = st.empty()
-
-# Button layout
 proc_col, util_col = st.columns([3, 1])
 
 with proc_col:
@@ -176,25 +167,23 @@ with proc_col:
         if not st.session_state["api_key"].strip():
             st.error("Please enter a valid API key!")
         else:
-            # Reset states
             st.session_state["status_table"] = []
             st.session_state["process_status"] = []
-            
-            # 1. Fetch Articles
+
             with open(SYMBOL_FILE, "r") as f:
                 symbols = [line.strip() for line in f.readlines()]
-            
-            status_placeholder.write("🚀 Starting article fetching process...")
-            
+
+            status_placeholder.write("\U0001F680 Starting article fetching process...")
+
             for symbol in symbols:
                 status_placeholder.write(f"⏳ Fetching articles for: {symbol}")
                 articles = fetch_articles(symbol, since_timestamp, until_timestamp)
-                
+
                 if articles:
                     file_name = os.path.join(OUTPUT_DIR, f"{symbol.lower()}_news_data.csv")
                     with open(file_name, 'w', newline='', encoding='utf-8') as csvfile:
-                        fieldnames = ['ID', 'Publish Date', 'Title', 'Author ID', 'Comment Count', 
-                                    'Primary Tickers', 'Secondary Tickers', 'Image URL']
+                        fieldnames = ['ID', 'Publish Date', 'Title', 'Author ID', 'Comment Count',
+                                      'Primary Tickers', 'Secondary Tickers', 'Image URL']
                         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
                         writer.writeheader()
                         for item in articles:
@@ -219,41 +208,39 @@ with proc_col:
                         "Number of Articles Extracted": "API Error"
                     })
                     st.session_state["process_status"].append(f"❌ Failed to fetch articles for {symbol}")
-            
+
             status_placeholder.write("✔️ Article fetching complete! Starting content fetching...")
-            
-            # 2. Fetch Content
+
             csv_files = [f for f in os.listdir(OUTPUT_DIR) if f.endswith("_news_data.csv")]
             for csv_file in csv_files:
                 symbol = csv_file.replace("_news_data.csv", "")
                 status_placeholder.write(f"⏳ Fetching content for: {symbol}")
                 df = pd.read_csv(os.path.join(OUTPUT_DIR, csv_file))
-                
+
                 if 'Content' not in df.columns:
                     df['Content'] = None
-                
+
                 for index, row in df.iterrows():
                     if pd.isna(row['Content']):
-                        content = fetch_content(row['ID'])
+                        content = fetch_content_from_perplexity(row['Title'], row['Publish Date'])
                         df.at[index, 'Content'] = content
-                        time.sleep(1)  # Rate limiting
-                
+                        time.sleep(1)
+
                 df.to_csv(os.path.join(OUTPUT_DIR, csv_file), index=False)
                 st.session_state["process_status"].append(f"✔️ Updated content for {symbol}")
-            
+
             status_placeholder.write("✔️ Content fetching complete! Starting content cleaning...")
-            
-            # 3. Clean Content
+
             for csv_file in csv_files:
                 symbol = csv_file.replace("_news_data.csv", "")
                 status_placeholder.write(f"⏳ Cleaning content for: {symbol}")
                 df = pd.read_csv(os.path.join(OUTPUT_DIR, csv_file))
-                
+
                 if 'Content' in df.columns:
                     df['Extracted'] = df['Content'].apply(extract_content)
                     df.to_csv(os.path.join(OUTPUT_DIR, csv_file), index=False)
                     st.session_state["process_status"].append(f"✔️ Cleaned content for {symbol}")
-            
+
             status_placeholder.write("🎉 All operations completed successfully!")
             st.balloons()
             st.rerun()
@@ -265,19 +252,16 @@ with util_col:
             st.balloons()
             st.rerun()
 
-# Display status table
 if st.session_state["status_table"]:
     st.write("### Status Table")
     status_df = pd.DataFrame(st.session_state["status_table"])
     st.table(status_df)
 
-# Display process status
 if st.session_state["process_status"]:
     st.write("### Process Log")
     for status in st.session_state["process_status"]:
         st.write(status)
 
-# Download Section
 if os.path.exists(OUTPUT_DIR):
     csv_files = [f for f in os.listdir(OUTPUT_DIR) if f.endswith("_news_data.csv")]
     if csv_files:
