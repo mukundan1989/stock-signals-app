@@ -9,7 +9,7 @@ from datetime import datetime
 import shutil
 
 # Configuration
-DEFAULT_API_KEY = "1ce12aafcdmshdb6eea1ac608501p1ab501jsn4a47cc5027ce"  # Replace with your key
+DEFAULT_API_KEY = "your-api-key-here"  # Replace with your actual key
 API_HOST = "seeking-alpha.p.rapidapi.com"
 PERPLEXITY_HOST = "perplexity2.p.rapidapi.com"
 SYMBOL_FILE = "data/symbollist.txt"
@@ -18,70 +18,72 @@ os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 # Initialize session state
 if "status_table" not in st.session_state:
-    st.session_state["status_table"] = []
+    st.session_state.status_table = []
 if "process_status" not in st.session_state:
-    st.session_state["process_status"] = []
+    st.session_state.process_status = ["Application initialized"]
 if "api_key" not in st.session_state:
-    st.session_state["api_key"] = DEFAULT_API_KEY
+    st.session_state.api_key = DEFAULT_API_KEY
+if "processing" not in st.session_state:
+    st.session_state.processing = False
+
+def log_status(message):
+    st.session_state.process_status.append(message)
+    st.rerun()
 
 def fetch_articles(symbol, since_timestamp, until_timestamp):
-    conn = http.client.HTTPSConnection(API_HOST)
-    headers = {
-        'x-rapidapi-key': st.session_state["api_key"],
-        'x-rapidapi-host': API_HOST
-    }
-    size = 20
-    page = 1
-    all_news_data = []
-    seen_ids = set()
-
-    while True:
-        try:
-            conn.request(
-                "GET",
-                f"/news/v2/list-by-symbol?size={size}&number={page}&id={symbol}&since={since_timestamp}&until={until_timestamp}",
-                headers=headers
-            )
-            res = conn.getresponse()
-            data = json.loads(res.read().decode("utf-8"))
-
-            if not data['data']:
-                break
-
-            for item in data['data']:
-                if item['id'] not in seen_ids:
-                    seen_ids.add(item['id'])
-                    # Add article URL to the item data
-                    item['url'] = f"https://seekingalpha.com/article/{item['id']}"
-                    all_news_data.append(item)
-
-            page += 1
-            time.sleep(1)
-
-        except Exception as e:
-            st.session_state["process_status"].append(f"Error fetching articles for {symbol}: {e}")
+    try:
+        conn = http.client.HTTPSConnection(API_HOST)
+        headers = {
+            'x-rapidapi-key': st.session_state.api_key,
+            'x-rapidapi-host': API_HOST
+        }
+        
+        url = f"/news/v2/list-by-symbol?size=20&number=1&id={symbol}&since={since_timestamp}&until={until_timestamp}"
+        conn.request("GET", url, headers=headers)
+        
+        res = conn.getresponse()
+        if res.status != 200:
+            log_status(f"❌ API Error for {symbol}: HTTP {res.status}")
             return None
-
-    return all_news_data
+            
+        data = json.loads(res.read().decode("utf-8"))
+        return [{
+            'id': item['id'],
+            'url': f"https://seekingalpha.com/article/{item['id']}",
+            'publish_date': item['attributes']['publishOn'],
+            'title': item['attributes']['title'],
+            'author_id': item['relationships']['author']['data']['id'],
+            'comment_count': item['attributes']['commentCount'],
+            'primary_tickers': ', '.join([t['type'] for t in item['relationships']['primaryTickers']['data']]),
+            'secondary_tickers': ', '.join([t['type'] for t in item['relationships']['secondaryTickers']['data']])
+        } for item in data.get('data', [])]
+        
+    except Exception as e:
+        log_status(f"❌ Failed to fetch articles for {symbol}: {str(e)}")
+        return None
 
 def fetch_content(url):
-    conn = http.client.HTTPSConnection(PERPLEXITY_HOST)
-    payload = json.dumps({
-        "content": f"What is the content of this news article? URL: {url}"
-    })
-    headers = {
-        'x-rapidapi-key': st.session_state["api_key"],
-        'x-rapidapi-host': PERPLEXITY_HOST,
-        'Content-Type': "application/json"
-    }
-
     try:
+        conn = http.client.HTTPSConnection(PERPLEXITY_HOST)
+        payload = json.dumps({"content": f"Extract the full text content from: {url}"})
+        
+        headers = {
+            'x-rapidapi-key': st.session_state.api_key,
+            'x-rapidapi-host': PERPLEXITY_HOST,
+            'Content-Type': "application/json"
+        }
+        
         conn.request("POST", "/", payload, headers)
         res = conn.getresponse()
-        data = res.read().decode('utf-8')
-        return data
+        
+        if res.status != 200:
+            log_status(f"⚠️ Perplexity API Error for {url}: HTTP {res.status}")
+            return None
+            
+        return res.read().decode('utf-8')
+        
     except Exception as e:
-        st.session_state["process_status"].append(f"Error fetching content for URL {url}: {e}")
+        log_status(f"⚠️ Failed to fetch content for {url}: {str(e)}")
         return None
 
 def clear_temp_storage():
@@ -89,26 +91,26 @@ def clear_temp_storage():
         if os.path.exists(OUTPUT_DIR):
             shutil.rmtree(OUTPUT_DIR)
             os.makedirs(OUTPUT_DIR, exist_ok=True)
-        st.session_state["status_table"] = []
-        st.session_state["process_status"] = []
+        st.session_state.status_table = []
+        st.session_state.process_status = ["Reset complete"]
         return True
     except Exception as e:
-        st.error(f"Error clearing temp storage: {e}")
+        log_status(f"❌ Failed to clear storage: {str(e)}")
         return False
 
 # Streamlit UI
-st.title("Seeking Alpha News Fetcher")
-st.write("Fetch news articles for symbols listed in 'symbollist.txt' and extract content via Perplexity")
+st.title("📰 Seeking Alpha News Fetcher")
+st.caption("Fetches articles and extracts content via Perplexity API")
 
 # API Key Input
-st.session_state["api_key"] = st.text_input(
+st.session_state.api_key = st.text_input(
     "RapidAPI Key",
-    value=st.session_state["api_key"],
+    value=st.session_state.api_key,
     type="password",
-    help="Enter your RapidAPI key for both Seeking Alpha and Perplexity APIs"
+    help="Enter your RapidAPI key for both APIs"
 )
 
-# Date input
+# Date range selector
 col1, col2 = st.columns(2)
 with col1:
     from_date = st.date_input("From Date", value=datetime(2023, 10, 1))
@@ -118,113 +120,94 @@ with col2:
 since_timestamp = int(datetime.combine(from_date, datetime.min.time()).timestamp())
 until_timestamp = int(datetime.combine(to_date, datetime.min.time()).timestamp())
 
-status_placeholder = st.empty()
-
-# Processing buttons
-proc_col, util_col = st.columns([3, 1])
-
-with proc_col:
-    if st.button("Start Full Processing"):
-        if not st.session_state["api_key"].strip():
-            st.error("Please enter a valid API key!")
-        else:
-            st.session_state["status_table"] = []
-            st.session_state["process_status"] = []
+# Processing controls
+if st.button("Start Full Processing") and not st.session_state.processing:
+    st.session_state.processing = True
+    st.session_state.status_table = []
+    st.session_state.process_status = ["Starting processing..."]
+    
+    try:
+        # Check if symbol file exists
+        if not os.path.exists(SYMBOL_FILE):
+            log_status(f"❌ Error: Symbol file not found at {SYMBOL_FILE}")
+            st.session_state.processing = False
+            st.stop()
             
-            # 1. Fetch Articles
-            with open(SYMBOL_FILE, "r") as f:
-                symbols = [line.strip() for line in f.readlines()]
+        # Read symbols
+        with open(SYMBOL_FILE, "r") as f:
+            symbols = [line.strip() for line in f.readlines() if line.strip()]
             
-            status_placeholder.write("🚀 Starting article fetching process...")
+        if not symbols:
+            log_status("❌ Error: No symbols found in the symbol file")
+            st.session_state.processing = False
+            st.stop()
             
-            for symbol in symbols:
-                status_placeholder.write(f"⏳ Fetching articles for: {symbol}")
-                articles = fetch_articles(symbol, since_timestamp, until_timestamp)
+        # Process each symbol
+        for symbol in symbols:
+            log_status(f"🔍 Processing symbol: {symbol}")
+            
+            articles = fetch_articles(symbol, since_timestamp, until_timestamp)
+            if not articles:
+                st.session_state.status_table.append({
+                    "Symbol": symbol,
+                    "Articles": 0,
+                    "Status": "Failed"
+                })
+                continue
                 
-                if articles:
-                    file_name = os.path.join(OUTPUT_DIR, f"{symbol.lower()}_news_data.csv")
-                    with open(file_name, 'w', newline='', encoding='utf-8') as csvfile:
-                        fieldnames = ['ID', 'URL', 'Publish Date', 'Title', 'Author ID', 
-                                    'Comment Count', 'Primary Tickers', 'Secondary Tickers']
-                        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-                        writer.writeheader()
-                        for item in articles:
-                            writer.writerow({
-                                'ID': item['id'],
-                                'URL': item['url'],
-                                'Publish Date': item['attributes']['publishOn'],
-                                'Title': item['attributes']['title'],
-                                'Author ID': item['relationships']['author']['data']['id'],
-                                'Comment Count': item['attributes']['commentCount'],
-                                'Primary Tickers': ', '.join([t['type'] for t in item['relationships']['primaryTickers']['data']]),
-                                'Secondary Tickers': ', '.join([t['type'] for t in item['relationships']['secondaryTickers']['data']])
-                            })
-                    st.session_state["status_table"].append({
-                        "Symbol": symbol,
-                        "Articles Found": len(articles)
-                    })
-                    st.session_state["process_status"].append(f"✅ Saved {len(articles)} articles for {symbol}")
-                else:
-                    st.session_state["status_table"].append({
-                        "Symbol": symbol,
-                        "Articles Found": 0
-                    })
-                    st.session_state["process_status"].append(f"❌ No articles found for {symbol}")
+            # Save articles to CSV
+            filename = os.path.join(OUTPUT_DIR, f"{symbol}_news.csv")
+            pd.DataFrame(articles).to_csv(filename, index=False)
             
-            status_placeholder.write("✔️ Article fetching complete! Starting content extraction...")
+            # Fetch content for each article
+            df = pd.DataFrame(articles)
+            df['content'] = None
             
-            # 2. Fetch Content via Perplexity
-            csv_files = [f for f in os.listdir(OUTPUT_DIR) if f.endswith("_news_data.csv")]
-            for csv_file in csv_files:
-                symbol = csv_file.replace("_news_data.csv", "")
-                status_placeholder.write(f"⏳ Extracting content for: {symbol}")
-                df = pd.read_csv(os.path.join(OUTPUT_DIR, csv_file))
-                
-                if 'Content' not in df.columns:
-                    df['Content'] = None
-                
-                for index, row in df.iterrows():
-                    if pd.isna(row['Content']):
-                        content = fetch_content(row['URL'])
-                        df.at[index, 'Content'] = content if content else "Content unavailable"
-                        time.sleep(1.5)  # Respect rate limits
-                
-                df.to_csv(os.path.join(OUTPUT_DIR, csv_file), index=False)
-                st.session_state["process_status"].append(f"✔️ Content extracted for {symbol}")
+            for idx, row in df.iterrows():
+                if pd.isna(row['content']):
+                    content = fetch_content(row['url'])
+                    df.at[idx, 'content'] = content if content else "Content unavailable"
+                    time.sleep(1.5)  # Rate limiting
+                    
+            # Save updated CSV
+            df.to_csv(filename, index=False)
             
-            status_placeholder.write("🎉 All operations completed successfully!")
-            st.balloons()
-            st.rerun()
+            st.session_state.status_table.append({
+                "Symbol": symbol,
+                "Articles": len(articles),
+                "Status": "Completed"
+            })
+            log_status(f"✅ Completed processing for {symbol}")
+            
+        log_status("🎉 All processing completed successfully!")
+        
+    except Exception as e:
+        log_status(f"❌ Critical error: {str(e)}")
+    finally:
+        st.session_state.processing = False
 
-with util_col:
-    if st.button("Clear Temporary Storage"):
-        if clear_temp_storage():
-            st.success("Temporary files and status cleared!")
-            st.balloons()
-            st.rerun()
+if st.button("Clear Temporary Storage"):
+    clear_temp_storage()
 
-# Display status
-if st.session_state["status_table"]:
-    st.write("### Status Table")
-    st.table(pd.DataFrame(st.session_state["status_table"]))
+# Status displays
+st.subheader("Processing Status")
+if st.session_state.process_status:
+    st.text_area("Log", value="\n".join(st.session_state.process_status), height=200)
 
-if st.session_state["process_status"]:
-    st.write("### Process Log")
-    for status in st.session_state["process_status"]:
-        st.write(status)
+if st.session_state.status_table:
+    st.subheader("Results Summary")
+    st.table(pd.DataFrame(st.session_state.status_table))
 
-# Download Section
+# Download section
 if os.path.exists(OUTPUT_DIR):
-    csv_files = [f for f in os.listdir(OUTPUT_DIR) if f.endswith("_news_data.csv")]
+    csv_files = [f for f in os.listdir(OUTPUT_DIR) if f.endswith(".csv")]
     if csv_files:
-        st.write("### Download Processed Files")
-        cols = st.columns(3)
-        for i, csv_file in enumerate(csv_files):
-            with cols[i % 3]:
-                with open(os.path.join(OUTPUT_DIR, csv_file), "r") as f:
-                    st.download_button(
-                        label=f"Download {csv_file}",
-                        data=f.read(),
-                        file_name=csv_file,
-                        mime="text/csv"
-                    )
+        st.subheader("Download Processed Files")
+        for csv_file in csv_files:
+            with open(os.path.join(OUTPUT_DIR, csv_file), "rb") as f:
+                st.download_button(
+                    label=f"Download {csv_file}",
+                    data=f,
+                    file_name=csv_file,
+                    mime="text/csv"
+                )
