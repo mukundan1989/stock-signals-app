@@ -87,7 +87,9 @@ def fetch_content_from_perplexity(title, publish_date):
         res = conn.getresponse()
         result = res.read().decode("utf-8")
         data = json.loads(result)
-        return data.get("text", result)  # fallback to raw if 'text' key doesn't exist
+
+        # Extract only the final response text
+        return data["choices"]["content"]["parts"][-1]["text"]
 
     except Exception as e:
         st.session_state["process_status"].append(f"Error fetching content from Perplexity for '{title}': {e}")
