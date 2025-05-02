@@ -74,7 +74,7 @@ def fetch_content_from_perplexity(title, publish_date):
     conn = http.client.HTTPSConnection("perplexity2.p.rapidapi.com")
     headers = {
         'x-rapidapi-key': st.session_state["api_key"],
-        'x-rapidapi-host': "perplexity2.p.rapidapi.com",
+        'x-rapidapi-host": "perplexity2.p.rapidapi.com",
         'Content-Type': "application/json"
     }
 
@@ -88,8 +88,18 @@ def fetch_content_from_perplexity(title, publish_date):
         result = res.read().decode("utf-8")
         data = json.loads(result)
 
-        # Extract only the final response text
-        return data["choices"]["content"]["parts"][-1]["text"]
+        # Safely extract final answer
+        if (
+            "choices" in data and
+            "content" in data["choices"] and
+            "parts" in data["choices"]["content"]
+        ):
+            parts = data["choices"]["content"]["parts"]
+            if isinstance(parts, list) and parts:
+                return parts[-1].get("text", "").strip()
+
+        # fallback if structure fails
+        return None
 
     except Exception as e:
         st.session_state["process_status"].append(f"Error fetching content from Perplexity for '{title}': {e}")
