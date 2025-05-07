@@ -10,7 +10,7 @@ import shutil
 import re
 
 # Configuration
-API_KEY = "1ce12aafcdmshdb6eea1ac608501p1ab501jsn4a47cc5027ce"  # Your RapidAPI key
+API_KEY = "5c2c0598d3msh355b42273eddd0fp1ade7djsn4212d1ef6c8f"  # Your RapidAPI key
 API_HOST = "seeking-alpha.p.rapidapi.com"  # API host
 SYMBOL_FILE = "data/symbollist.txt"  # Path to the symbols file (from GitHub repo)
 OUTPUT_DIR = "/tmp/newsdire"  # Directory to save CSV files
