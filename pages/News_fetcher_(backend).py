@@ -74,7 +74,7 @@ def fetch_content_from_perplexity(title, publish_date):
     conn = http.client.HTTPSConnection("perplexity2.p.rapidapi.com")
     headers = {
         'x-rapidapi-key': st.session_state["api_key"],
-        'x-rapidapi-host": "perplexity2.p.rapidapi.com",
+        'x-rapidapi-host': "perplexity2.p.rapidapi.com",
         'Content-Type': "application/json"
     }
 
