@@ -10,7 +10,7 @@ import shutil
 import re
 
 # Configuration
-DEFAULT_API_KEY = "3cf0736f79mshe60115701a871c4p19c558jsncccfd9521243"
+DEFAULT_API_KEY = "5c2c0598d3msh355b42273eddd0fp1ade7djsn4212d1ef6c8f"
 API_HOST = "seeking-alpha.p.rapidapi.com"
 SYMBOL_FILE = "data/symbollist.txt"
 OUTPUT_DIR = "/tmp/newsdire"
