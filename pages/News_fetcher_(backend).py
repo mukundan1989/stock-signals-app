@@ -108,7 +108,7 @@ with col1:
                 if articles:
                     file_name = os.path.join(OUTPUT_DIR, f"{symbol.lower()}_news_data.csv")
                     with open(file_name, 'w', newline='', encoding='utf-8') as csvfile:
-                        fieldnames = ['ID', 'Publish Date', 'Title', 'Author ID', 'Comment Count', 'Primary Tickers', 'Secondary Tickers', 'Image URL']
+                        fieldnames = ['ID', 'Publish Date', 'Title', 'Author ID', 'Comment Count']
                         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
                         writer.writeheader()
                         for item in articles:
@@ -117,10 +117,7 @@ with col1:
                                 'Publish Date': item['attributes']['publishOn'],
                                 'Title': item['attributes']['title'],
                                 'Author ID': item['relationships']['author']['data']['id'],
-                                'Comment Count': item['attributes']['commentCount'],
-                                'Primary Tickers': ', '.join([t['type'] for t in item['relationships']['primaryTickers']['data']]),
-                                'Secondary Tickers': ', '.join([t['type'] for t in item['relationships']['secondaryTickers']['data']]),
-                                'Image URL': item['attributes'].get('gettyImageUrl', 'N/A')
+                                'Comment Count': item['attributes']['commentCount']
                             })
                     st.session_state["status_table"].append({
                         "Symbol": symbol,
