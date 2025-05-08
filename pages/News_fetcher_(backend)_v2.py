@@ -89,7 +89,7 @@ def rotate_to_next_key():
 with st.expander("Advanced Settings"):
     summary_prompt_template = st.text_area(
         "Summary Prompt Template",
-        value="Do you know about '{title}' news published on {date}? Please provide a detailed summary of this news, including key details, implications, and context.",
+        value="Do you know about '{title}' news published on {date}? Sumarize it within 150 words. Do not judge, or have bias. Report as it is.",
         help="Template for the prompt sent to Perplexity API. Use {title} and {date} as placeholders."
     )
     
