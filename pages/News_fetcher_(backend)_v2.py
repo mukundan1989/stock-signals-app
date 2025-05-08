@@ -281,9 +281,9 @@ def fetch_articles(symbol, since_timestamp, until_timestamp):
     return all_news_data
 
 # New function to fetch content summary from Perplexity API - now using Perplexity specific key rotation
-def fetch_content_summary(symbol, title, publish_date):
+def fetch_content_summary(title, publish_date, symbol=None):
     # Check if we need to rotate the Perplexity key
-    if symbol not in st.session_state["processed_symbols_perplexity"] and st.session_state["stocks_processed_with_current_key_perplexity"] >= st.session_state["stocks_per_key_perplexity"]:
+    if symbol and symbol not in st.session_state["processed_symbols_perplexity"] and st.session_state["stocks_processed_with_current_key_perplexity"] >= st.session_state["stocks_per_key_perplexity"]:
         rotate_to_next_perplexity_key()
     
     api_key = get_current_perplexity_key()
@@ -474,7 +474,7 @@ with col2:
                     formatted_date = publish_date
                 
                 st.session_state["process_status"].append(f"Fetching summary for: {title}")
-                summary = fetch_content_summary(symbol, title, formatted_date)
+                summary = fetch_content_summary(title, formatted_date, symbol)
                 df.at[index, 'Summary'] = summary
                 total_summaries += 1
                 
@@ -576,7 +576,6 @@ with st.expander("API Key Usage"):
     
     st.write("### Perplexity API")
     st.write(f"Current key index: {st.session_state['current_key_index_perplexity'] + 1} of {len(st.session_state['api_keys'])}")
-    st.write(f"Stocks processe  + 1} of {len(st.session_state['api_keys'])}")
     st.write(f"Stocks processed with current key: {st.session_state['stocks_processed_with_current_key_perplexity']} of {st.session_state['stocks_per_key_perplexity']}")
     st.write(f"Total stocks processed: {len(st.session_state['processed_symbols_perplexity'])}")
 
