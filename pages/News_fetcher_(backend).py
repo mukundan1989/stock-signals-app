@@ -82,9 +82,9 @@ def fetch_articles(symbol, since_timestamp, until_timestamp):
 # Date input boxes
 col1, col2 = st.columns(2)
 with col1:
-    from_date = st.date_input("From Date", value=datetime(2025, 01, 1))
+    from_date = st.date_input("From Date", value=datetime(2023, 10, 1))
 with col2:
-    to_date = st.date_input("To Date", value=datetime(2025, 04, 31))
+    to_date = st.date_input("To Date", value=datetime(2023, 10, 31))
 
 # Convert dates to timestamps
 since_timestamp = int(datetime.combine(from_date, datetime.min.time()).timestamp())
