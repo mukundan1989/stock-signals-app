@@ -28,6 +28,8 @@ if "articles_fetched" not in st.session_state:
     st.session_state["articles_fetched"] = False
 if "content_fetched" not in st.session_state:
     st.session_state["content_fetched"] = False
+if "delay_between_calls" not in st.session_state:
+    st.session_state["delay_between_calls"] = 0.5  # Default to a shorter delay
 
 # Streamlit UI
 st.title("Seeking Alpha News Fetcher")
@@ -49,21 +51,13 @@ with st.expander("Advanced Settings"):
         help="Template for the prompt sent to Perplexity API. Use {title} and {date} as placeholders."
     )
     
-    retry_count = st.slider(
-        "API Retry Count", 
-        min_value=0, 
-        max_value=5, 
-        value=2,
-        help="Number of times to retry API calls if they fail"
-    )
-    
-    delay_between_calls = st.slider(
+    st.session_state["delay_between_calls"] = st.slider(
         "Delay Between API Calls (seconds)", 
-        min_value=0.5, 
-        max_value=5.0, 
-        value=1.5,
-        step=0.5,
-        help="Time to wait between API calls to avoid rate limiting"
+        min_value=0.1, 
+        max_value=2.0, 
+        value=st.session_state["delay_between_calls"],
+        step=0.1,
+        help="Time to wait between API calls. Lower values make the process faster but might hit rate limits."
     )
 
 # Fetch articles function
@@ -101,7 +95,7 @@ def fetch_articles(symbol, since_timestamp, until_timestamp):
                     all_news_data.append(item)
 
             page += 1
-            time.sleep(1)
+            time.sleep(0.5)  # Reduced delay for Seeking Alpha API
 
         except Exception as e:
             st.session_state["process_status"].append(f"Error fetching articles for {symbol}: {e}")
@@ -109,75 +103,57 @@ def fetch_articles(symbol, since_timestamp, until_timestamp):
 
     return all_news_data
 
-# New function to fetch content summary from Perplexity API
+# New function to fetch content summary from Perplexity API - simplified with no retries
 def fetch_content_summary(title, publish_date):
     if not st.session_state["api_key"].strip():
         st.error("API key is missing! Please enter a valid key.")
         return "API key missing"
 
+    conn = http.client.HTTPSConnection(API_HOST_PERPLEXITY)
+    
+    headers = {
+        'x-rapidapi-key': st.session_state["api_key"],
+        'x-rapidapi-host': API_HOST_PERPLEXITY,
+        'Content-Type': "application/json"
+    }
+    
     # Format the query to ask about the news article using the template
     query = summary_prompt_template.replace("{title}", title).replace("{date}", str(publish_date))
     
-    # Payload with just the content parameter (no max_tokens)
+    # Payload with just the content parameter
     payload = json.dumps({
         "content": query
     })
     
-    # Try multiple times if needed
-    for attempt in range(retry_count + 1):
+    try:
+        conn.request("POST", "/", payload, headers)
+        res = conn.getresponse()
+        data = res.read().decode("utf-8")
+        
+        # Parse the response
         try:
-            conn = http.client.HTTPSConnection(API_HOST_PERPLEXITY)
-            headers = {
-                'x-rapidapi-key': st.session_state["api_key"],
-                'x-rapidapi-host': API_HOST_PERPLEXITY,
-                'Content-Type': "application/json"
-            }
+            json_data = json.loads(data)
             
-            conn.request("POST", "/", payload, headers)
-            res = conn.getresponse()
-            data = res.read().decode("utf-8")
+            # Extract the summary from the nested JSON structure
+            if "choices" in json_data and "content" in json_data["choices"] and "parts" in json_data["choices"]["content"]:
+                parts = json_data["choices"]["content"]["parts"]
+                if parts and len(parts) > 0 and "text" in parts[0]:
+                    return parts[0]["text"]
             
-            # Parse the response
-            try:
-                json_data = json.loads(data)
+            # Fallback to other possible response formats
+            if "answer" in json_data:
+                return json_data["answer"]
                 
-                # Extract the summary from the nested JSON structure
-                if "choices" in json_data and "content" in json_data["choices"] and "parts" in json_data["choices"]["content"]:
-                    parts = json_data["choices"]["content"]["parts"]
-                    if parts and len(parts) > 0 and "text" in parts[0]:
-                        return parts[0]["text"]
-                
-                # Fallback to other possible response formats
-                if "answer" in json_data:
-                    return json_data["answer"]
-                    
-                # If we can't find the expected structure, return a diagnostic message
-                if attempt < retry_count:
-                    st.session_state["process_status"].append(f"Unexpected API response structure. Retrying ({attempt+1}/{retry_count})...")
-                    time.sleep(delay_between_calls)
-                    continue
-                else:
-                    return f"API response structure unexpected. Raw response (truncated): {str(json_data)[:500]}"
-                
-            except json.JSONDecodeError:
-                # If response is not JSON, return the raw text (truncated)
-                if attempt < retry_count:
-                    st.session_state["process_status"].append(f"Non-JSON response. Retrying ({attempt+1}/{retry_count})...")
-                    time.sleep(delay_between_calls)
-                    continue
-                else:
-                    return f"Non-JSON response: {data[:500]}"
-                
-        except Exception as e:
-            if attempt < retry_count:
-                st.session_state["process_status"].append(f"Error: {str(e)}. Retrying ({attempt+1}/{retry_count})...")
-                time.sleep(delay_between_calls)
-                continue
-            else:
-                st.session_state["process_status"].append(f"Error fetching summary for '{title}': {e}")
-                return f"Error: {str(e)}"
-    
-    return "Failed to get summary after multiple attempts"
+            # If we can't find the expected structure, return a diagnostic message
+            return f"API response structure unexpected. Raw response (truncated): {str(json_data)[:500]}"
+            
+        except json.JSONDecodeError:
+            # If response is not JSON, return the raw text (truncated)
+            return f"Non-JSON response: {data[:500]}"
+            
+    except Exception as e:
+        st.session_state["process_status"].append(f"Error fetching summary for '{title}': {e}")
+        return f"Error: {str(e)}"
 
 # Date input boxes
 col1, col2 = st.columns(2)
@@ -258,6 +234,9 @@ with col2:
         total_articles = sum([len(pd.read_csv(os.path.join(OUTPUT_DIR, f))) for f in csv_files])
         processed_articles = 0
         
+        start_time = time.time()
+        eta_display = st.empty()
+        
         for csv_file in csv_files:
             symbol = csv_file.replace("_news_data.csv", "")
             st.session_state["process_status"].append(f"Fetching summaries for {symbol}")
@@ -289,17 +268,36 @@ with col2:
                 
                 # Update progress
                 processed_articles += 1
-                progress_bar.progress(processed_articles / total_articles)
+                progress_percentage = processed_articles / total_articles
+                progress_bar.progress(progress_percentage)
                 
-                # Add a delay to avoid rate limiting
-                time.sleep(delay_between_calls)
+                # Calculate and display ETA
+                if processed_articles > 0:
+                    elapsed_time = time.time() - start_time
+                    articles_per_second = processed_articles / elapsed_time
+                    remaining_articles = total_articles - processed_articles
+                    eta_seconds = remaining_articles / articles_per_second if articles_per_second > 0 else 0
+                    
+                    # Format ETA nicely
+                    if eta_seconds < 60:
+                        eta_text = f"{eta_seconds:.0f} seconds"
+                    elif eta_seconds < 3600:
+                        eta_text = f"{eta_seconds/60:.1f} minutes"
+                    else:
+                        eta_text = f"{eta_seconds/3600:.1f} hours"
+                    
+                    eta_display.text(f"Progress: {processed_articles}/{total_articles} articles | ETA: {eta_text}")
+                
+                # Add a delay to avoid rate limiting - using the user-configurable delay
+                time.sleep(st.session_state["delay_between_calls"])
             
             # Save the updated DataFrame back to CSV
             df.to_csv(file_path, index=False)
             st.session_state["process_status"].append(f"Saved {len(df)} summaries for {symbol}")
         
+        elapsed_time = time.time() - start_time
         st.session_state["content_fetched"] = True
-        st.success(f"Content summaries fetched successfully! Added {total_summaries} summaries.")
+        st.success(f"Content summaries fetched successfully! Added {total_summaries} summaries in {elapsed_time:.1f} seconds.")
 
 with col3:
     if st.button("Clean Up"):
