@@ -43,6 +43,8 @@ if "output_dir" not in st.session_state:
     st.session_state["output_dir"] = get_default_output_dir()
 if "failed_symbols" not in st.session_state:
     st.session_state["failed_symbols"] = {}  # Dictionary to store failed symbols and reasons
+if "directories" not in st.session_state:
+    st.session_state["directories"] = {}  # Initialize directories dictionary
     
 # API key rotation state - separate for each API
 if "api_keys" not in st.session_state:
@@ -82,50 +84,81 @@ st.session_state["output_dir"] = st.text_input(
 
 # Create directory structure
 def ensure_directories():
-    # Main output directory
-    os.makedirs(st.session_state["output_dir"], exist_ok=True)
-    
-    # Articles directory
-    articles_dir = os.path.join(st.session_state["output_dir"], "articles")
-    os.makedirs(articles_dir, exist_ok=True)
-    
-    # Logs directory
-    logs_dir = os.path.join(st.session_state["output_dir"], "logs")
-    os.makedirs(logs_dir, exist_ok=True)
-    
-    return {
-        "main": st.session_state["output_dir"],
-        "articles": articles_dir,
-        "logs": logs_dir
-    }
+    try:
+        # Main output directory
+        os.makedirs(st.session_state["output_dir"], exist_ok=True)
+        
+        # Articles directory
+        articles_dir = os.path.join(st.session_state["output_dir"], "articles")
+        os.makedirs(articles_dir, exist_ok=True)
+        
+        # Logs directory
+        logs_dir = os.path.join(st.session_state["output_dir"], "logs")
+        os.makedirs(logs_dir, exist_ok=True)
+        
+        return {
+            "main": st.session_state["output_dir"],
+            "articles": articles_dir,
+            "logs": logs_dir
+        }
+    except Exception as e:
+        st.error(f"Error creating directories: {e}")
+        # Return a default dictionary to prevent errors
+        return {
+            "main": st.session_state["output_dir"],
+            "articles": os.path.join(st.session_state["output_dir"], "articles"),
+            "logs": os.path.join(st.session_state["output_dir"], "logs")
+        }
 
-# Ensure directories exist
-dirs = ensure_directories()
+# Ensure directories exist and store in session state
+try:
+    st.session_state["directories"] = ensure_directories()
+    dirs = st.session_state["directories"]
+except Exception as e:
+    st.error(f"Error initializing directories: {e}")
+    # Provide a fallback
+    dirs = {
+        "main": st.session_state["output_dir"],
+        "articles": os.path.join(st.session_state["output_dir"], "articles"),
+        "logs": os.path.join(st.session_state["output_dir"], "logs")
+    }
+    st.session_state["directories"] = dirs
 
 # Function to save failed symbols to file
 def save_failed_symbols():
-    failed_file = os.path.join(dirs["logs"], "failed_symbols.txt")
-    with open(failed_file, "w", encoding="utf-8") as f:
-        for symbol, details in st.session_state["failed_symbols"].items():
-            f.write(f"{symbol},{details['timestamp']},{details['reason']}\n")
-    return failed_file
+    try:
+        failed_file = os.path.join(dirs["logs"], "failed_symbols.txt")
+        os.makedirs(os.path.dirname(failed_file), exist_ok=True)  # Ensure directory exists
+        with open(failed_file, "w", encoding="utf-8") as f:
+            for symbol, details in st.session_state["failed_symbols"].items():
+                f.write(f"{symbol},{details['timestamp']},{details['reason']}\n")
+        return failed_file
+    except Exception as e:
+        st.error(f"Error saving failed symbols: {e}")
+        return None
 
 # Function to load failed symbols from file
 def load_failed_symbols():
-    failed_file = os.path.join(dirs["logs"], "failed_symbols.txt")
-    if os.path.exists(failed_file):
-        with open(failed_file, "r", encoding="utf-8") as f:
-            for line in f:
-                parts = line.strip().split(",", 2)
-                if len(parts) >= 3:
-                    symbol, timestamp, reason = parts
-                    st.session_state["failed_symbols"][symbol] = {
-                        "timestamp": timestamp,
-                        "reason": reason
-                    }
+    try:
+        failed_file = os.path.join(dirs["logs"], "failed_symbols.txt")
+        if os.path.exists(failed_file):
+            with open(failed_file, "r", encoding="utf-8") as f:
+                for line in f:
+                    parts = line.strip().split(",", 2)
+                    if len(parts) >= 3:
+                        symbol, timestamp, reason = parts
+                        st.session_state["failed_symbols"][symbol] = {
+                            "timestamp": timestamp,
+                            "reason": reason
+                        }
+    except Exception as e:
+        st.error(f"Error loading failed symbols: {e}")
 
 # Load failed symbols on startup
-load_failed_symbols()
+try:
+    load_failed_symbols()
+except Exception as e:
+    st.error(f"Error during startup: {e}")
 
 # API Key Input
 api_keys_input = st.text_area(
@@ -389,30 +422,40 @@ with col1:
                                f"Processed {st.session_state['stocks_processed_with_current_key_seeking_alpha']} of {st.session_state['stocks_per_key_seeking_alpha']} stocks with current key")
                 
                 if articles:
-                    file_name = os.path.join(dirs["articles"], f"{symbol.lower()}_news_data.csv")
-                    with open(file_name, 'w', newline='', encoding='utf-8') as csvfile:
-                        fieldnames = ['ID', 'Publish Date', 'Title', 'Author ID', 'Comment Count', 'Summary']
-                        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-                        writer.writeheader()
-                        for item in articles:
-                            writer.writerow({
-                                'ID': item['id'],
-                                'Publish Date': item['attributes']['publishOn'],
-                                'Title': item['attributes']['title'],
-                                'Author ID': item['relationships']['author']['data']['id'],
-                                'Comment Count': item['attributes']['commentCount'],
-                                'Summary': ""  # Empty summary column to be filled later
-                            })
-                    st.session_state["status_table"].append({
-                        "Symbol": symbol,
-                        "Number of Articles Extracted": len(articles)
-                    })
-                    st.session_state["process_status"].append(f"Saved {len(articles)} articles for {symbol}")
-                    
-                    # Remove from failed symbols if it was there
-                    if symbol in st.session_state["failed_symbols"]:
-                        del st.session_state["failed_symbols"][symbol]
-                        save_failed_symbols()
+                    try:
+                        # Ensure the articles directory exists
+                        os.makedirs(dirs["articles"], exist_ok=True)
+                        
+                        file_name = os.path.join(dirs["articles"], f"{symbol.lower()}_news_data.csv")
+                        with open(file_name, 'w', newline='', encoding='utf-8') as csvfile:
+                            fieldnames = ['ID', 'Publish Date', 'Title', 'Author ID', 'Comment Count', 'Summary']
+                            writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+                            writer.writeheader()
+                            for item in articles:
+                                writer.writerow({
+                                    'ID': item['id'],
+                                    'Publish Date': item['attributes']['publishOn'],
+                                    'Title': item['attributes']['title'],
+                                    'Author ID': item['relationships']['author']['data']['id'],
+                                    'Comment Count': item['attributes']['commentCount'],
+                                    'Summary': ""  # Empty summary column to be filled later
+                                })
+                        st.session_state["status_table"].append({
+                            "Symbol": symbol,
+                            "Number of Articles Extracted": len(articles)
+                        })
+                        st.session_state["process_status"].append(f"Saved {len(articles)} articles for {symbol}")
+                        
+                        # Remove from failed symbols if it was there
+                        if symbol in st.session_state["failed_symbols"]:
+                            del st.session_state["failed_symbols"][symbol]
+                            save_failed_symbols()
+                    except Exception as e:
+                        st.error(f"Error saving articles for {symbol}: {e}")
+                        st.session_state["status_table"].append({
+                            "Symbol": symbol,
+                            "Number of Articles Extracted": f"Error: {e}"
+                        })
                 else:
                     st.session_state["status_table"].append({
                         "Symbol": symbol,
@@ -433,91 +476,97 @@ with col2:
         st.session_state["stocks_processed_with_current_key_perplexity"] = 0
         st.session_state["processed_symbols_perplexity"] = set()
         
-        csv_files = [f for f in os.listdir(dirs["articles"]) if f.endswith("_news_data.csv")]
-        total_summaries = 0
-        
-        progress_bar = st.progress(0)
-        total_articles = sum([len(pd.read_csv(os.path.join(dirs["articles"], f))) for f in csv_files])
-        processed_articles = 0
-        
-        start_time = time.time()
-        eta_display = st.empty()
-        key_status = st.empty()
-        
-        # Update key status display
-        key_status.text(f"Using API key {st.session_state['current_key_index_perplexity'] + 1} of {len(st.session_state['api_keys'])} for Perplexity | " +
-                        f"Processed {st.session_state['stocks_processed_with_current_key_perplexity']} of {st.session_state['stocks_per_key_perplexity']} stocks with current key")
-        
-        for csv_file in csv_files:
-            symbol = csv_file.replace("_news_data.csv", "")
+        try:
+            # Ensure the articles directory exists
+            os.makedirs(dirs["articles"], exist_ok=True)
             
-            st.session_state["process_status"].append(f"Fetching summaries for {symbol} (Using API key {st.session_state['current_key_index_perplexity'] + 1} of {len(st.session_state['api_keys'])} for Perplexity)")
+            csv_files = [f for f in os.listdir(dirs["articles"]) if f.endswith("_news_data.csv")]
+            total_summaries = 0
             
-            # Read the CSV file
-            file_path = os.path.join(dirs["articles"], csv_file)
-            df = pd.read_csv(file_path)
+            progress_bar = st.progress(0)
+            total_articles = sum([len(pd.read_csv(os.path.join(dirs["articles"], f))) for f in csv_files])
+            processed_articles = 0
             
-            # Add summaries for each article
-            for index, row in df.iterrows():
-                title = row['Title']
-                publish_date = row['Publish Date']
+            start_time = time.time()
+            eta_display = st.empty()
+            key_status = st.empty()
+            
+            # Update key status display
+            key_status.text(f"Using API key {st.session_state['current_key_index_perplexity'] + 1} of {len(st.session_state['api_keys'])} for Perplexity | " +
+                            f"Processed {st.session_state['stocks_processed_with_current_key_perplexity']} of {st.session_state['stocks_per_key_perplexity']} stocks with current key")
+            
+            for csv_file in csv_files:
+                symbol = csv_file.replace("_news_data.csv", "")
                 
-                # Format the date if needed
-                try:
-                    if isinstance(publish_date, str):
-                        # Try to parse the date string
-                        date_obj = datetime.fromisoformat(publish_date.replace('Z', '+00:00'))
-                        formatted_date = date_obj.strftime('%Y-%m-%d')
-                    else:
+                st.session_state["process_status"].append(f"Fetching summaries for {symbol} (Using API key {st.session_state['current_key_index_perplexity'] + 1} of {len(st.session_state['api_keys'])} for Perplexity)")
+                
+                # Read the CSV file
+                file_path = os.path.join(dirs["articles"], csv_file)
+                df = pd.read_csv(file_path)
+                
+                # Add summaries for each article
+                for index, row in df.iterrows():
+                    title = row['Title']
+                    publish_date = row['Publish Date']
+                    
+                    # Format the date if needed
+                    try:
+                        if isinstance(publish_date, str):
+                            # Try to parse the date string
+                            date_obj = datetime.fromisoformat(publish_date.replace('Z', '+00:00'))
+                            formatted_date = date_obj.strftime('%Y-%m-%d')
+                        else:
+                            formatted_date = publish_date
+                    except:
                         formatted_date = publish_date
-                except:
-                    formatted_date = publish_date
-                
-                st.session_state["process_status"].append(f"Fetching summary for: {title}")
-                summary = fetch_content_summary(title, formatted_date, symbol)
-                df.at[index, 'Summary'] = summary
-                total_summaries += 1
-                
-                # Update progress
-                processed_articles += 1
-                progress_percentage = processed_articles / total_articles
-                progress_bar.progress(progress_percentage)
-                
-                # Calculate and display ETA
-                if processed_articles > 0:
-                    elapsed_time = time.time() - start_time
-                    articles_per_second = processed_articles / elapsed_time
-                    remaining_articles = total_articles - processed_articles
-                    eta_seconds = remaining_articles / articles_per_second if articles_per_second > 0 else 0
                     
-                    # Format ETA nicely
-                    if eta_seconds < 60:
-                        eta_text = f"{eta_seconds:.0f} seconds"
-                    elif eta_seconds < 3600:
-                        eta_text = f"{eta_seconds/60:.1f} minutes"
-                    else:
-                        eta_text = f"{eta_seconds/3600:.1f} hours"
+                    st.session_state["process_status"].append(f"Fetching summary for: {title}")
+                    summary = fetch_content_summary(title, formatted_date, symbol)
+                    df.at[index, 'Summary'] = summary
+                    total_summaries += 1
                     
-                    eta_display.text(f"Progress: {processed_articles}/{total_articles} articles | ETA: {eta_text}")
+                    # Update progress
+                    processed_articles += 1
+                    progress_percentage = processed_articles / total_articles
+                    progress_bar.progress(progress_percentage)
+                    
+                    # Calculate and display ETA
+                    if processed_articles > 0:
+                        elapsed_time = time.time() - start_time
+                        articles_per_second = processed_articles / elapsed_time
+                        remaining_articles = total_articles - processed_articles
+                        eta_seconds = remaining_articles / articles_per_second if articles_per_second > 0 else 0
+                        
+                        # Format ETA nicely
+                        if eta_seconds < 60:
+                            eta_text = f"{eta_seconds:.0f} seconds"
+                        elif eta_seconds < 3600:
+                            eta_text = f"{eta_seconds/60:.1f} minutes"
+                        else:
+                            eta_text = f"{eta_seconds/3600:.1f} hours"
+                        
+                        eta_display.text(f"Progress: {processed_articles}/{total_articles} articles | ETA: {eta_text}")
+                    
+                    # Add a delay to avoid rate limiting - using the user-configurable delay
+                    time.sleep(st.session_state["delay_between_calls"])
                 
-                # Add a delay to avoid rate limiting - using the user-configurable delay
-                time.sleep(st.session_state["delay_between_calls"])
+                # Save the updated DataFrame back to CSV
+                df.to_csv(file_path, index=False)
+                st.session_state["process_status"].append(f"Saved {len(df)} summaries for {symbol}")
+                
+                # Mark this symbol as processed for Perplexity
+                if symbol not in st.session_state["processed_symbols_perplexity"]:
+                    st.session_state["processed_symbols_perplexity"].add(symbol)
+                    st.session_state["stocks_processed_with_current_key_perplexity"] += 1
+                    # Update key status display
+                    key_status.text(f"Using API key {st.session_state['current_key_index_perplexity'] + 1} of {len(st.session_state['api_keys'])} for Perplexity | " +
+                                   f"Processed {st.session_state['stocks_processed_with_current_key_perplexity']} of {st.session_state['stocks_per_key_perplexity']} stocks with current key")
             
-            # Save the updated DataFrame back to CSV
-            df.to_csv(file_path, index=False)
-            st.session_state["process_status"].append(f"Saved {len(df)} summaries for {symbol}")
-            
-            # Mark this symbol as processed for Perplexity
-            if symbol not in st.session_state["processed_symbols_perplexity"]:
-                st.session_state["processed_symbols_perplexity"].add(symbol)
-                st.session_state["stocks_processed_with_current_key_perplexity"] += 1
-                # Update key status display
-                key_status.text(f"Using API key {st.session_state['current_key_index_perplexity'] + 1} of {len(st.session_state['api_keys'])} for Perplexity | " +
-                               f"Processed {st.session_state['stocks_processed_with_current_key_perplexity']} of {st.session_state['stocks_per_key_perplexity']} stocks with current key")
-        
-        elapsed_time = time.time() - start_time
-        st.session_state["content_fetched"] = True
-        st.success(f"Content summaries fetched successfully! Added {total_summaries} summaries in {elapsed_time:.1f} seconds.")
+            elapsed_time = time.time() - start_time
+            st.session_state["content_fetched"] = True
+            st.success(f"Content summaries fetched successfully! Added {total_summaries} summaries in {elapsed_time:.1f} seconds.")
+        except Exception as e:
+            st.error(f"Error fetching content: {e}")
 
 with col3:
     if st.button("Clean Up"):
@@ -526,21 +575,28 @@ with col3:
             st.session_state["process_status"] = []
             st.session_state["process_status"].append("Starting cleanup...")
             
-            # Count files before deletion
-            csv_files = [f for f in os.listdir(dirs["articles"]) if f.endswith("_news_data.csv")]
-            file_count = len(csv_files)
-            
-            # Delete all files in the articles directory
-            for file in csv_files:
-                file_path = os.path.join(dirs["articles"], file)
-                try:
-                    os.remove(file_path)
-                    st.session_state["process_status"].append(f"Deleted: {file}")
-                except Exception as e:
-                    st.session_state["process_status"].append(f"Error deleting {file}: {e}")
-            
-            st.session_state["process_status"].append(f"Cleanup complete. Deleted {file_count} files.")
-            st.success(f"Cleanup complete. Deleted {file_count} files.")
+            try:
+                # Ensure the articles directory exists
+                if os.path.exists(dirs["articles"]):
+                    # Count files before deletion
+                    csv_files = [f for f in os.listdir(dirs["articles"]) if f.endswith("_news_data.csv")]
+                    file_count = len(csv_files)
+                    
+                    # Delete all files in the articles directory
+                    for file in csv_files:
+                        file_path = os.path.join(dirs["articles"], file)
+                        try:
+                            os.remove(file_path)
+                            st.session_state["process_status"].append(f"Deleted: {file}")
+                        except Exception as e:
+                            st.session_state["process_status"].append(f"Error deleting {file}: {e}")
+                    
+                    st.session_state["process_status"].append(f"Cleanup complete. Deleted {file_count} files.")
+                    st.success(f"Cleanup complete. Deleted {file_count} files.")
+                else:
+                    st.warning("Articles directory does not exist. Nothing to clean up.")
+            except Exception as e:
+                st.error(f"Error during cleanup: {e}")
         else:
             st.warning("Cleanup cancelled. Please check the confirmation box to proceed.")
 
@@ -596,77 +652,101 @@ if st.session_state["process_status"]:
 # Preview section for summaries
 if st.session_state["content_fetched"]:
     st.write("### Content Summaries Preview")
-    csv_files = [f for f in os.listdir(dirs["articles"]) if f.endswith("_news_data.csv")]
-    
-    # Create tabs for each symbol
-    if csv_files:
-        tabs = st.tabs([f.replace("_news_data.csv", "").upper() for f in csv_files])
-        
-        for i, tab in enumerate(tabs):
-            with tab:
-                file_path = os.path.join(dirs["articles"], csv_files[i])
-                df = pd.read_csv(file_path)
+    try:
+        # Ensure the articles directory exists
+        if os.path.exists(dirs["articles"]):
+            csv_files = [f for f in os.listdir(dirs["articles"]) if f.endswith("_news_data.csv")]
+            
+            # Create tabs for each symbol
+            if csv_files:
+                tabs = st.tabs([f.replace("_news_data.csv", "").upper() for f in csv_files])
                 
-                # Display a preview of the summaries
-                if 'Summary' in df.columns and not df['Summary'].isna().all():
-                    for _, row in df.iterrows():
-                        with st.expander(f"{row['Title']} ({row['Publish Date']})"):
-                            st.write(row['Summary'])
-                else:
-                    st.write("No summaries available for this symbol.")
+                for i, tab in enumerate(tabs):
+                    with tab:
+                        file_path = os.path.join(dirs["articles"], csv_files[i])
+                        df = pd.read_csv(file_path)
+                        
+                        # Display a preview of the summaries
+                        if 'Summary' in df.columns and not df['Summary'].isna().all():
+                            for _, row in df.iterrows():
+                                with st.expander(f"{row['Title']} ({row['Publish Date']})"):
+                                    st.write(row['Summary'])
+                        else:
+                            st.write("No summaries available for this symbol.")
+            else:
+                st.warning("No CSV files found in the articles directory.")
+        else:
+            st.warning("Articles directory does not exist.")
+    except Exception as e:
+        st.error(f"Error displaying summaries: {e}")
 
 # Download Section
-if os.path.exists(dirs["articles"]):
-    csv_files = [f for f in os.listdir(dirs["articles"]) if f.endswith("_news_data.csv")]
-    if csv_files:
-        st.write("### Download Extracted Files")
-        cols = st.columns(3)
-        for i, csv_file in enumerate(csv_files):
-            with cols[i % 3]:
-                with open(os.path.join(dirs["articles"], csv_file), "r") as f:
-                    st.download_button(
-                        label=f"Download {csv_file}",
-                        data=f.read(),
-                        file_name=csv_file,
-                        mime="text/csv"
-                    )
+try:
+    if os.path.exists(dirs["articles"]):
+        csv_files = [f for f in os.listdir(dirs["articles"]) if f.endswith("_news_data.csv")]
+        if csv_files:
+            st.write("### Download Extracted Files")
+            cols = st.columns(3)
+            for i, csv_file in enumerate(csv_files):
+                with cols[i % 3]:
+                    try:
+                        with open(os.path.join(dirs["articles"], csv_file), "r") as f:
+                            st.download_button(
+                                label=f"Download {csv_file}",
+                                data=f.read(),
+                                file_name=csv_file,
+                                mime="text/csv"
+                            )
+                    except Exception as e:
+                        st.error(f"Error creating download button for {csv_file}: {e}")
+        else:
+            st.warning("No CSV files found in the output directory.")
     else:
-        st.warning("No CSV files found in the output directory.")
-else:
-    st.warning("Output directory does not exist.")
+        st.warning("Output directory does not exist.")
+except Exception as e:
+    st.error(f"Error in download section: {e}")
 
 # Display storage information
 with st.expander("Storage Information"):
-    # Calculate storage usage
-    total_size = 0
-    file_count = 0
-    
-    for root, dirs, files in os.walk(st.session_state["output_dir"]):
-        for file in files:
-            file_path = os.path.join(root, file)
-            total_size += os.path.getsize(file_path)
-            file_count += 1
-    
-    # Format size nicely
-    if total_size < 1024:
-        size_str = f"{total_size} bytes"
-    elif total_size < 1024 * 1024:
-        size_str = f"{total_size/1024:.2f} KB"
-    else:
-        size_str = f"{total_size/(1024*1024):.2f} MB"
-    
-    st.write(f"Total storage used: {size_str}")
-    st.write(f"Total files: {file_count}")
-    
-    # Show directory structure
-    st.write("### Directory Structure:")
-    for dir_name, dir_path in dirs.items():
-        st.write(f"- {dir_name}: {dir_path}")
-        if os.path.exists(dir_path):
-            files = os.listdir(dir_path)
-            if files:
-                st.write(f"  Contains {len(files)} files")
+    try:
+        # Calculate storage usage
+        total_size = 0
+        file_count = 0
+        
+        if os.path.exists(st.session_state["output_dir"]):
+            for root, dirs, files in os.walk(st.session_state["output_dir"]):
+                for file in files:
+                    file_path = os.path.join(root, file)
+                    total_size += os.path.getsize(file_path)
+                    file_count += 1
+            
+            # Format size nicely
+            if total_size < 1024:
+                size_str = f"{total_size} bytes"
+            elif total_size < 1024 * 1024:
+                size_str = f"{total_size/1024:.2f} KB"
             else:
-                st.write("  Empty directory")
+                size_str = f"{total_size/(1024*1024):.2f} MB"
+            
+            st.write(f"Total storage used: {size_str}")
+            st.write(f"Total files: {file_count}")
         else:
-            st.write("  Directory does not exist")
+            st.warning("Output directory does not exist.")
+        
+        # Show directory structure
+        st.write("### Directory Structure:")
+        if isinstance(dirs, dict):  # Check if dirs is a dictionary
+            for dir_name, dir_path in dirs.items():
+                st.write(f"- {dir_name}: {dir_path}")
+                if os.path.exists(dir_path):
+                    files = os.listdir(dir_path)
+                    if files:
+                        st.write(f"  Contains {len(files)} files")
+                    else:
+                        st.write("  Empty directory")
+                else:
+                    st.write("  Directory does not exist")
+        else:
+            st.error("Directory structure information is not available.")
+    except Exception as e:
+        st.error(f"Error displaying storage information: {e}")
