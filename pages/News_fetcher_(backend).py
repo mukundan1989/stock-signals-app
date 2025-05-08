@@ -10,7 +10,7 @@ import shutil
 import re
 
 # Configuration
-DEFAULT_API_KEY = "1ce12aafcdmshdb6eea1ac608501p1ab501jsn4a47cc5027ce"  # Default placeholder
+DEFAULT_API_KEY = "4eab47a1bfmsh51c8a20cf14a71fp13947bjsnbff888983296"  # Default placeholder
 API_HOST_SEEKING_ALPHA = "seeking-alpha.p.rapidapi.com"
 API_HOST_PERPLEXITY = "perplexity-api.p.rapidapi.com"
 SYMBOL_FILE = "data/symbollist.txt"
