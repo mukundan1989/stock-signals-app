@@ -28,7 +28,7 @@ if "api_key" not in st.session_state:
 st.title("Seeking Alpha News Fetcher")
 st.write("Fetch news articles for symbols listed in 'symbollist.txt' and process them.")
 
-# API Key Input (New Section)
+# API Key Input
 st.session_state["api_key"] = st.text_input(
     "Seeking Alpha API Key",
     value=st.session_state["api_key"],
@@ -36,9 +36,7 @@ st.session_state["api_key"] = st.text_input(
     help="Default key is rate-limited. Replace with your own RapidAPI key."
 )
 
-# Rest of the code remains the same until the fetch_articles function
-# Then update all functions that use API_KEY to use st.session_state["api_key"] instead:
-
+# Fetch articles function
 def fetch_articles(symbol, since_timestamp, until_timestamp):
     if not st.session_state["api_key"].strip():
         st.error("API key is missing! Please enter a valid key.")
@@ -81,24 +79,6 @@ def fetch_articles(symbol, since_timestamp, until_timestamp):
 
     return all_news_data
 
-def fetch_content(news_id):
-    if not st.session_state["api_key"].strip():
-        st.error("API key is missing! Please enter a valid key.")
-        return None
-
-    conn = http.client.HTTPSConnection(API_HOST)
-    headers = {
-        'x-rapidapi-key': st.session_state["api_key"],
-        'x-rapidapi-host': API_HOST
-    }
-    try:
-        conn.request("GET", f"/news/get-details?id={news_id}", headers=headers)
-        res = conn.getresponse()
-        return res.read().decode('utf-8')
-    except Exception as e:
-        st.session_state["process_status"].append(f"Error fetching content for ID {news_id}: {e}")
-        return None
-
 # Date input boxes
 col1, col2 = st.columns(2)
 with col1:
@@ -111,7 +91,7 @@ since_timestamp = int(datetime.combine(from_date, datetime.min.time()).timestamp
 until_timestamp = int(datetime.combine(to_date, datetime.min.time()).timestamp())
 
 # Buttons
-col1, col2, col3 = st.columns(3)
+col1, col2 = st.columns(2)
 with col1:
     if st.button("Fetch Articles"):
         if not st.session_state["api_key"].strip():
@@ -155,29 +135,6 @@ with col1:
                     st.session_state["process_status"].append(f"Failed to fetch articles for {symbol}")
 
 with col2:
-    if st.button("Get Content"):
-        if not st.session_state["api_key"].strip():
-            st.error("Please enter a valid API key!")
-        else:
-            st.session_state["process_status"] = []
-            csv_files = [f for f in os.listdir(OUTPUT_DIR) if f.endswith("_news_data.csv")]
-            for csv_file in csv_files:
-                symbol = csv_file.replace("_news_data.csv", "")
-                st.session_state["process_status"].append(f"Fetching content for {symbol}")
-                df = pd.read_csv(os.path.join(OUTPUT_DIR, csv_file))
-                if 'Content' not in df.columns:
-                    df['Content'] = None
-
-                for index, row in df.iterrows():
-                    if pd.isna(row['Content']):
-                        content = fetch_content(row['ID'])
-                        df.at[index, 'Content'] = content
-                        time.sleep(1)
-
-                df.to_csv(os.path.join(OUTPUT_DIR, csv_file), index=False)
-                st.session_state["process_status"].append(f"Updated content for {symbol}")
-
-with col3:
     if st.button("Clean Up"):
         st.session_state["process_status"] = []
         csv_files = [f for f in os.listdir(OUTPUT_DIR) if f.endswith("_news_data.csv")]
@@ -185,10 +142,8 @@ with col3:
             symbol = csv_file.replace("_news_data.csv", "")
             st.session_state["process_status"].append(f"Cleaning content for {symbol}")
             df = pd.read_csv(os.path.join(OUTPUT_DIR, csv_file))
-            if 'Content' in df.columns:
-                df['Extracted'] = df['Content'].apply(extract_content)
-                df.to_csv(os.path.join(OUTPUT_DIR, csv_file), index=False)
-                st.session_state["process_status"].append(f"Cleaned content for {symbol}")
+            # No 'Content' column to clean now — placeholder logic removed
+            st.session_state["process_status"].append(f"Cleanup skipped: no content to clean for {symbol}")
 
 # Display status table
 if st.session_state["status_table"]:
