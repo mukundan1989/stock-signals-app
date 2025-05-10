@@ -570,35 +570,31 @@ with col2:
 
 with col3:
     if st.button("Clean Up"):
-        # Ask for confirmation
-        if st.checkbox("I understand this will delete all downloaded files. Proceed?", value=False):
-            st.session_state["process_status"] = []
-            st.session_state["process_status"].append("Starting cleanup...")
-            
-            try:
-                # Ensure the articles directory exists
-                if os.path.exists(dirs["articles"]):
-                    # Count files before deletion
-                    csv_files = [f for f in os.listdir(dirs["articles"]) if f.endswith("_news_data.csv")]
-                    file_count = len(csv_files)
-                    
-                    # Delete all files in the articles directory
-                    for file in csv_files:
-                        file_path = os.path.join(dirs["articles"], file)
-                        try:
-                            os.remove(file_path)
-                            st.session_state["process_status"].append(f"Deleted: {file}")
-                        except Exception as e:
-                            st.session_state["process_status"].append(f"Error deleting {file}: {e}")
-                    
-                    st.session_state["process_status"].append(f"Cleanup complete. Deleted {file_count} files.")
-                    st.success(f"Cleanup complete. Deleted {file_count} files.")
-                else:
-                    st.warning("Articles directory does not exist. Nothing to clean up.")
-            except Exception as e:
-                st.error(f"Error during cleanup: {e}")
-        else:
-            st.warning("Cleanup cancelled. Please check the confirmation box to proceed.")
+        st.session_state["process_status"] = []
+        st.session_state["process_status"].append("Starting cleanup...")
+        
+        try:
+            # Ensure the articles directory exists
+            if os.path.exists(dirs["articles"]):
+                # Count files before deletion
+                csv_files = [f for f in os.listdir(dirs["articles"]) if f.endswith("_news_data.csv")]
+                file_count = len(csv_files)
+                
+                # Delete all files in the articles directory
+                for file in csv_files:
+                    file_path = os.path.join(dirs["articles"], file)
+                    try:
+                        os.remove(file_path)
+                        st.session_state["process_status"].append(f"Deleted: {file}")
+                    except Exception as e:
+                        st.session_state["process_status"].append(f"Error deleting {file}: {e}")
+                
+                st.session_state["process_status"].append(f"Cleanup complete. Deleted {file_count} files.")
+                st.success(f"Cleanup complete. Deleted {file_count} files.")
+            else:
+                st.warning("Articles directory does not exist. Nothing to clean up.")
+        except Exception as e:
+            st.error(f"Error during cleanup: {e}")
 
 # Display failed symbols
 if st.session_state["failed_symbols"]:
