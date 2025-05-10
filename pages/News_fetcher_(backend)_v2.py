@@ -27,7 +27,7 @@ def get_default_output_dir():
 # Configuration
 DEFAULT_API_KEY = "1ce12aafcdmshdb6eea1ac608501p1ab501jsn4a47cc5027ce"  # Default placeholder
 API_HOST_SEEKING_ALPHA = "seeking-alpha.p.rapidapi.com"
-API_HOST_PERPLEXITY = "perplexity-api.p.rapidapi.com"
+API_HOST_PERPLEXITY = "perplexity2.p.rapidapi.com"
 SYMBOL_FILE = "data/symbollist.txt"
 MAX_WORKERS = 4  # Maximum number of parallel workers
 
