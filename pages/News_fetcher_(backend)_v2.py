@@ -752,4 +752,121 @@ with st.expander("API Key Usage"):
     
     st.write("### Perplexity API")
     st.write(f"Current key index: {st.session_state['current_key_index_perplexity'] + 1} of {len(st.session_state['api_keys'])}")
-    st.write(f"Stocks processed with current key: {st.session_state['stocks_processed_with_current_key_perplexity']} of {st.session_sta
+    st.write(f"Stocks processed with current key: {st.session_state['stocks_processed_with_current_key_perplexity']} of {st.session_state['stocks_per_key_perplexity']}")
+    st.write(f"Total stocks processed: {len(st.session_state['processed_symbols_perplexity'])}")
+
+# Display status table
+if st.session_state["status_table"]:
+    st.write("### Status Table")
+    status_df = pd.DataFrame(st.session_state["status_table"])
+    st.table(status_df)
+
+# Display process status
+if st.session_state["process_status"]:
+    st.write("### Process Status")
+    status_container = st.container()
+    with status_container:
+        for status in st.session_state["process_status"]:
+            st.write(status)
+
+# Preview section for summaries
+if st.session_state["content_fetched"]:
+    st.write("### Content Summaries Preview")
+    try:
+        # Ensure the articles directory exists
+        if os.path.exists(dirs["articles"]):
+            csv_files = [f for f in os.listdir(dirs["articles"]) if f.endswith("_news_data.csv")]
+            
+            # Create tabs for each symbol
+            if csv_files:
+                tabs = st.tabs([f.replace("_news_data.csv", "").upper() for f in csv_files])
+                
+                for i, tab in enumerate(tabs):
+                    with tab:
+                        file_path = os.path.join(dirs["articles"], csv_files[i])
+                        df = pd.read_csv(file_path)
+                        
+                        # Display a preview of the summaries
+                        if 'Summary' in df.columns and not df['Summary'].isna().all():
+                            for _, row in df.iterrows():
+                                with st.expander(f"{row['Title']} ({row['Publish Date']})"):
+                                    st.write(row['Summary'])
+                        else:
+                            st.write("No summaries available for this symbol.")
+            else:
+                st.warning("No CSV files found in the articles directory.")
+        else:
+            st.warning("Articles directory does not exist.")
+    except Exception as e:
+        st.error(f"Error displaying summaries: {e}")
+
+# Download Section
+try:
+    if os.path.exists(dirs["articles"]):
+        csv_files = [f for f in os.listdir(dirs["articles"]) if f.endswith("_news_data.csv")]
+        if csv_files:
+            st.write("### Download Extracted Files")
+            cols = st.columns(3)
+            for i, csv_file in enumerate(csv_files):
+                with cols[i % 3]:
+                    try:
+                        with open(os.path.join(dirs["articles"], csv_file), "r") as f:
+                            st.download_button(
+                                label=f"Download {csv_file}",
+                                data=f.read(),
+                                file_name=csv_file,
+                                mime="text/csv"
+                            )
+                    except Exception as e:
+                        st.error(f"Error creating download button for {csv_file}: {e}")
+        else:
+            st.warning("No CSV files found in the output directory.")
+    else:
+        st.warning("Output directory does not exist.")
+except Exception as e:
+    st.error(f"Error in download section: {e}")
+
+# Display storage information
+with st.expander("Storage Information"):
+    try:
+        # Calculate storage usage
+        total_size = 0
+        file_count = 0
+        
+        if os.path.exists(st.session_state["output_dir"]):
+            for root, dirs, files in os.walk(st.session_state["output_dir"]):
+                for file in files:
+                    file_path = os.path.join(root, file)
+                    total_size += os.path.getsize(file_path)
+                    file_count += 1
+            
+            # Format size nicely
+            if total_size < 1024:
+                size_str = f"{total_size} bytes"
+            elif total_size < 1024 * 1024:
+                size_str = f"{total_size/1024:.2f} KB"
+            else:
+                size_str = f"{total_size/(1024*1024):.2f} MB"
+            
+            st.write(f"Total storage used: {size_str}")
+            st.write(f"Total files: {file_count}")
+        else:
+            st.warning("Output directory does not exist.")
+        
+        # Show directory structure
+        st.write("### Directory Structure:")
+        if isinstance(dirs, dict):  # Check if dirs is a dictionary
+            for dir_name, dir_path in dirs.items():
+                st.write(f"- {dir_name}: {dir_path}")
+                if os.path.exists(dir_path):
+                    files = os.listdir(dir_path)
+                    if files:
+                        st.write(f"  Contains {len(files)} files")
+                    else:
+                        st.write("  Empty directory")
+                else:
+                    st.write("  Directory does not exist")
+        else:
+            st.error("Directory structure information is not available.")
+    except Exception as e:
+        st.error(f"Error displaying storage information: {e}")
