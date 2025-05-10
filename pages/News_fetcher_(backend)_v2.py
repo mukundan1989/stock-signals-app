@@ -12,7 +12,7 @@ import platform
 import threading
 import concurrent.futures
 from queue import Queue
-from typing import List, Dict, Any, Tuple
+from typing import List, Dict, Any, Tuple, Set
 
 # Default paths based on OS
 def get_default_output_dir():
@@ -265,7 +265,8 @@ with st.expander("Advanced Settings"):
     )
 
 # Fetch articles function for a single symbol - used by worker threads
-def fetch_articles_for_symbol(symbol: str, since_timestamp: int, until_timestamp: int, api_key: str, status_queue: Queue, result_queue: Queue):
+def fetch_articles_for_symbol(symbol: str, since_timestamp: int, until_timestamp: int, api_key: str, 
+                             status_queue: Queue, result_queue: Queue, processed_symbols: Set[str]):
     try:
         status_queue.put(f"Fetching articles for: {symbol} (Using API key)")
         
@@ -314,8 +315,7 @@ def fetch_articles_for_symbol(symbol: str, since_timestamp: int, until_timestamp
                 
         # Mark this symbol as processed for Seeking Alpha
         with processed_symbols_lock:
-            if symbol not in st.session_state["processed_symbols_seeking_alpha"]:
-                st.session_state["processed_symbols_seeking_alpha"].add(symbol)
+            processed_symbols.add(symbol)
         
         status_queue.put(f"Found {len(all_news_data)} articles for {symbol}")
         result_queue.put((symbol, all_news_data))
@@ -332,7 +332,8 @@ def fetch_articles_for_symbol(symbol: str, since_timestamp: int, until_timestamp
         result_queue.put((symbol, None))
 
 # Function to fetch content summary for a single article - used by worker threads
-def fetch_content_for_article(symbol: str, article_data: Dict, api_key: str, status_queue: Queue, result_queue: Queue):
+def fetch_content_for_article(symbol: str, article_data: Dict, api_key: str, status_queue: Queue, 
+                             result_queue: Queue, processed_symbols: Set[str]):
     try:
         title = article_data['Title']
         publish_date = article_data['Publish Date']
@@ -436,7 +437,9 @@ with col1:
             st.session_state["process_status"] = []
             st.session_state["articles_fetched"] = False
             st.session_state["content_fetched"] = False
-            st.session_state["processed_symbols_seeking_alpha"] = set()
+            
+            # Create a thread-safe set to track processed symbols
+            processed_symbols_seeking_alpha = set()
             
             try:
                 with open(SYMBOL_FILE, "r") as f:
@@ -468,7 +471,8 @@ with col1:
                     for symbol in symbol_batches[i]:
                         thread = threading.Thread(
                             target=fetch_articles_for_symbol,
-                            args=(symbol, since_timestamp, until_timestamp, api_key, status_queue, result_queue)
+                            args=(symbol, since_timestamp, until_timestamp, api_key, 
+                                 status_queue, result_queue, processed_symbols_seeking_alpha)
                         )
                         thread.start()
                         threads.append(thread)
@@ -511,6 +515,10 @@ with col1:
             # Wait for all threads to complete
             for thread in threads:
                 thread.join()
+            
+            # Update the session state with processed symbols
+            with processed_symbols_lock:
+                st.session_state["processed_symbols_seeking_alpha"] = processed_symbols_seeking_alpha
             
             # Save results to files
             for symbol, articles in results.items():
@@ -562,7 +570,9 @@ with col2:
     if st.button("Fetch Content", disabled=not st.session_state["articles_fetched"]):
         with status_lock:
             st.session_state["process_status"].append("Starting to fetch content summaries...")
-        st.session_state["processed_symbols_perplexity"] = set()
+        
+        # Create a thread-safe set to track processed symbols
+        processed_symbols_perplexity = set()
         
         try:
             # Ensure the articles directory exists
@@ -607,7 +617,7 @@ with col2:
                     for symbol, article_data in article_batches[i]:
                         thread = threading.Thread(
                             target=fetch_content_for_article,
-                            args=(symbol, article_data, api_key, status_queue, result_queue)
+                            args=(symbol, article_data, api_key, status_queue, result_queue, processed_symbols_perplexity)
                         )
                         thread.start()
                         threads.append(thread)
@@ -677,6 +687,10 @@ with col2:
             # Wait for all threads to complete
             for thread in threads:
                 thread.join()
+            
+            # Update the session state with processed symbols
+            with processed_symbols_lock:
+                st.session_state["processed_symbols_perplexity"] = processed_symbols_perplexity
             
             # Save all updated DataFrames back to CSV files
             for symbol, df in results.items():
