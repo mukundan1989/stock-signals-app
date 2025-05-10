@@ -78,8 +78,6 @@ if "processed_symbols_perplexity" not in st.session_state:
 
 # Thread-safe locks for shared resources
 status_lock = threading.Lock()
-failed_symbols_lock = threading.Lock()
-processed_symbols_lock = threading.Lock()
 
 # Streamlit UI
 st.title("Seeking Alpha News Fetcher")
@@ -139,10 +137,9 @@ def save_failed_symbols():
     try:
         failed_file = os.path.join(dirs["logs"], "failed_symbols.txt")
         os.makedirs(os.path.dirname(failed_file), exist_ok=True)  # Ensure directory exists
-        with failed_symbols_lock:
-            with open(failed_file, "w", encoding="utf-8") as f:
-                for symbol, details in st.session_state["failed_symbols"].items():
-                    f.write(f"{symbol},{details['timestamp']},{details['reason']}\n")
+        with open(failed_file, "w", encoding="utf-8") as f:
+            for symbol, details in st.session_state["failed_symbols"].items():
+                f.write(f"{symbol},{details['timestamp']},{details['reason']}\n")
         return failed_file
     except Exception as e:
         st.error(f"Error saving failed symbols: {e}")
@@ -158,11 +155,10 @@ def load_failed_symbols():
                     parts = line.strip().split(",", 2)
                     if len(parts) >= 3:
                         symbol, timestamp, reason = parts
-                        with failed_symbols_lock:
-                            st.session_state["failed_symbols"][symbol] = {
-                                "timestamp": timestamp,
-                                "reason": reason
-                            }
+                        st.session_state["failed_symbols"][symbol] = {
+                            "timestamp": timestamp,
+                            "reason": reason
+                        }
     except Exception as e:
         st.error(f"Error loading failed symbols: {e}")
 
@@ -235,10 +231,10 @@ with st.expander("Advanced Settings"):
     )
 
 # Fetch articles function for a single symbol - used by worker threads
-def fetch_articles_for_symbol(symbol: str, since_timestamp: int, until_timestamp: int, api_key: str, 
-                             status_queue: Queue, result_queue: Queue):
+def fetch_articles_for_symbol(worker_id: int, symbol: str, since_timestamp: int, until_timestamp: int, api_key: str, 
+                             status_queue: Queue, result_queue: Queue, error_queue: Queue):
     try:
-        status_queue.put(f"Worker: Fetching articles for: {symbol}")
+        status_queue.put(f"Worker {worker_id}: Fetching articles for: {symbol}")
         
         conn = http.client.HTTPSConnection(API_HOST_SEEKING_ALPHA)
         headers = {
@@ -258,9 +254,23 @@ def fetch_articles_for_symbol(symbol: str, since_timestamp: int, until_timestamp
                     headers=headers
                 )
                 res = conn.getresponse()
-                data = json.loads(res.read().decode("utf-8"))
+                data_bytes = res.read()
+                
+                if not data_bytes:
+                    error_msg = f"Empty response for {symbol} on page {page}"
+                    status_queue.put(error_msg)
+                    error_queue.put((symbol, datetime.now().strftime("%Y-%m-%d %H:%M:%S"), error_msg))
+                    break
+                
+                try:
+                    data = json.loads(data_bytes.decode("utf-8"))
+                except json.JSONDecodeError as e:
+                    error_msg = f"Error parsing JSON for {symbol} on page {page}: {e}"
+                    status_queue.put(error_msg)
+                    error_queue.put((symbol, datetime.now().strftime("%Y-%m-%d %H:%M:%S"), error_msg))
+                    break
 
-                if not data['data']:
+                if not data.get('data'):
                     break
 
                 for item in data['data']:
@@ -274,32 +284,21 @@ def fetch_articles_for_symbol(symbol: str, since_timestamp: int, until_timestamp
             except Exception as e:
                 error_msg = f"Error fetching articles for {symbol} on page {page}: {e}"
                 status_queue.put(error_msg)
-                # Record the failure
-                with failed_symbols_lock:
-                    st.session_state["failed_symbols"][symbol] = {
-                        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                        "reason": f"API error on page {page}: {str(e)}"
-                    }
-                result_queue.put((symbol, None))
-                return
+                error_queue.put((symbol, datetime.now().strftime("%Y-%m-%d %H:%M:%S"), error_msg))
+                break
                 
-        status_queue.put(f"Worker: Found {len(all_news_data)} articles for {symbol}")
+        status_queue.put(f"Worker {worker_id}: Found {len(all_news_data)} articles for {symbol}")
         result_queue.put((symbol, all_news_data))
         
     except Exception as e:
         error_msg = f"Fatal error fetching articles for {symbol}: {e}"
         status_queue.put(error_msg)
-        # Record the failure
-        with failed_symbols_lock:
-            st.session_state["failed_symbols"][symbol] = {
-                "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                "reason": f"Fatal error: {str(e)}"
-            }
+        error_queue.put((symbol, datetime.now().strftime("%Y-%m-%d %H:%M:%S"), error_msg))
         result_queue.put((symbol, None))
 
 # Function to fetch content summary for a single article - used by worker threads
-def fetch_content_for_article(article_id: int, symbol: str, title: str, publish_date: str, api_key: str, 
-                             status_queue: Queue, result_queue: Queue):
+def fetch_content_for_article(worker_id: int, article_id: int, symbol: str, title: str, publish_date: str, api_key: str, 
+                             status_queue: Queue, result_queue: Queue, error_queue: Queue):
     try:
         # Format the date if needed
         try:
@@ -312,7 +311,7 @@ def fetch_content_for_article(article_id: int, symbol: str, title: str, publish_
         except:
             formatted_date = publish_date
         
-        status_queue.put(f"Worker: Fetching summary for: {title}")
+        status_queue.put(f"Worker {worker_id}: Fetching summary for: {title}")
         
         conn = http.client.HTTPSConnection(API_HOST_PERPLEXITY)
         
@@ -332,10 +331,17 @@ def fetch_content_for_article(article_id: int, symbol: str, title: str, publish_
         
         conn.request("POST", "/", payload, headers)
         res = conn.getresponse()
-        data = res.read().decode("utf-8")
+        data_bytes = res.read()
+        
+        if not data_bytes:
+            error_msg = f"Empty response for article '{title}'"
+            status_queue.put(error_msg)
+            result_queue.put((article_id, symbol, f"Error: {error_msg}"))
+            return
         
         # Parse the response
         try:
+            data = data_bytes.decode("utf-8")
             json_data = json.loads(data)
             
             # Extract the summary from the nested JSON structure
@@ -362,7 +368,8 @@ def fetch_content_for_article(article_id: int, symbol: str, title: str, publish_
             result_queue.put((article_id, symbol, summary))
             
     except Exception as e:
-        status_queue.put(f"Error fetching summary for '{title}': {e}")
+        error_msg = f"Error fetching summary for '{title}': {e}"
+        status_queue.put(error_msg)
         result_queue.put((article_id, symbol, f"Error: {str(e)}"))
 
 # Date input boxes
@@ -420,9 +427,10 @@ with col1:
             num_workers = min(max_workers, len(st.session_state["api_keys"]))
             st.write(f"Using {num_workers} parallel workers for fetching articles")
             
-            # Create status and result queues for thread communication
+            # Create queues for thread communication
             status_queue = Queue()
             result_queue = Queue()
+            error_queue = Queue()  # New queue for error reporting
             
             # Divide symbols among workers
             symbol_batches = divide_into_chunks(symbols, num_workers)
@@ -441,8 +449,8 @@ with col1:
                         for symbol in symbol_batches[i]:
                             future = executor.submit(
                                 fetch_articles_for_symbol,
-                                symbol, since_timestamp, until_timestamp, api_key, 
-                                status_queue, result_queue
+                                i+1, symbol, since_timestamp, until_timestamp, api_key, 
+                                status_queue, result_queue, error_queue
                             )
                             futures.append((future, symbol))
                 
@@ -457,8 +465,7 @@ with col1:
                     status_messages = []
                     while not status_queue.empty():
                         status = status_queue.get()
-                        with status_lock:
-                            st.session_state["process_status"].append(status)
+                        st.session_state["process_status"].append(status)
                         status_messages.append(status)
                     
                     if status_messages:
@@ -472,11 +479,18 @@ with col1:
                         if articles:
                             results[symbol] = articles
                             # Mark as processed
-                            with processed_symbols_lock:
-                                st.session_state["processed_symbols_seeking_alpha"].add(symbol)
+                            st.session_state["processed_symbols_seeking_alpha"].add(symbol)
                         
                         # Update progress
                         progress_bar.progress(processed_count / total_count)
+                    
+                    # Process errors
+                    while not error_queue.empty():
+                        symbol, timestamp, reason = error_queue.get()
+                        st.session_state["failed_symbols"][symbol] = {
+                            "timestamp": timestamp,
+                            "reason": reason
+                        }
                     
                     # Check if any futures are done
                     for future, symbol in list(futures):
@@ -487,6 +501,9 @@ with col1:
                                 future.result()
                             except Exception as e:
                                 st.error(f"Error in worker thread for {symbol}: {e}")
+                                # Make sure we count this as processed
+                                if symbol not in results:
+                                    processed_count += 1
                     
                     # If all futures are done but we haven't processed all symbols, something went wrong
                     if not futures and processed_count < total_count:
@@ -515,24 +532,21 @@ with col1:
                                 'Comment Count': item['attributes']['commentCount'],
                                 'Summary': ""  # Empty summary column to be filled later
                             })
-                    with status_lock:
-                        st.session_state["status_table"].append({
-                            "Symbol": symbol,
-                            "Number of Articles Extracted": len(articles)
-                        })
-                        st.session_state["process_status"].append(f"Saved {len(articles)} articles for {symbol}")
+                    st.session_state["status_table"].append({
+                        "Symbol": symbol,
+                        "Number of Articles Extracted": len(articles)
+                    })
+                    st.session_state["process_status"].append(f"Saved {len(articles)} articles for {symbol}")
                     
                     # Remove from failed symbols if it was there
-                    with failed_symbols_lock:
-                        if symbol in st.session_state["failed_symbols"]:
-                            del st.session_state["failed_symbols"][symbol]
+                    if symbol in st.session_state["failed_symbols"]:
+                        del st.session_state["failed_symbols"][symbol]
                 except Exception as e:
                     st.error(f"Error saving articles for {symbol}: {e}")
-                    with status_lock:
-                        st.session_state["status_table"].append({
-                            "Symbol": symbol,
-                            "Number of Articles Extracted": f"Error: {e}"
-                        })
+                    st.session_state["status_table"].append({
+                        "Symbol": symbol,
+                        "Number of Articles Extracted": f"Error: {e}"
+                    })
             
             # Save failed symbols
             save_failed_symbols()
@@ -543,8 +557,7 @@ with col1:
 with col2:
     # New button to fetch content summaries with parallel processing
     if st.button("Fetch Content", disabled=not st.session_state["articles_fetched"]):
-        with status_lock:
-            st.session_state["process_status"].append("Starting to fetch content summaries...")
+        st.session_state["process_status"].append("Starting to fetch content summaries...")
         st.session_state["processed_symbols_perplexity"] = set()
         
         try:
@@ -557,9 +570,10 @@ with col2:
             num_workers = min(max_workers, len(st.session_state["api_keys"]))
             st.write(f"Using {num_workers} parallel workers for fetching content")
             
-            # Create status and result queues for thread communication
+            # Create queues for thread communication
             status_queue = Queue()
             result_queue = Queue()
+            error_queue = Queue()  # New queue for error reporting
             
             # Collect all articles that need summaries
             all_articles = []
@@ -603,8 +617,8 @@ with col2:
                         for article_id, symbol, title, publish_date in article_batches[i]:
                             future = executor.submit(
                                 fetch_content_for_article,
-                                article_id, symbol, title, publish_date, api_key,
-                                status_queue, result_queue
+                                i+1, article_id, symbol, title, publish_date, api_key,
+                                status_queue, result_queue, error_queue
                             )
                             futures.append((future, article_id, symbol))
                             # Add a small delay to prevent overwhelming the API
@@ -621,8 +635,7 @@ with col2:
                     status_messages = []
                     while not status_queue.empty():
                         status = status_queue.get()
-                        with status_lock:
-                            st.session_state["process_status"].append(status)
+                        st.session_state["process_status"].append(status)
                         status_messages.append(status)
                     
                     if status_messages:
@@ -659,6 +672,14 @@ with col2:
                             
                             eta_display.text(f"Progress: {processed_count}/{total_count} articles | ETA: {eta_text}")
                     
+                    # Process errors
+                    while not error_queue.empty():
+                        symbol, timestamp, reason = error_queue.get()
+                        st.session_state["failed_symbols"][symbol] = {
+                            "timestamp": timestamp,
+                            "reason": reason
+                        }
+                    
                     # Check if any futures are done
                     for future, article_id, symbol in list(futures):
                         if future.done():
@@ -668,6 +689,8 @@ with col2:
                                 future.result()
                             except Exception as e:
                                 st.error(f"Error in worker thread for article {article_id}: {e}")
+                                # Make sure we count this as processed
+                                processed_count += 1
                     
                     # If all futures are done but we haven't processed all articles, something went wrong
                     if not futures and processed_count < total_count:
@@ -680,11 +703,9 @@ with col2:
             for symbol, df in dataframes.items():
                 file_path = symbol_to_file[symbol]
                 df.to_csv(file_path, index=False)
-                with status_lock:
-                    st.session_state["process_status"].append(f"Saved {len(df)} summaries for {symbol}")
+                st.session_state["process_status"].append(f"Saved {len(df)} summaries for {symbol}")
                 # Mark symbol as processed
-                with processed_symbols_lock:
-                    st.session_state["processed_symbols_perplexity"].add(symbol)
+                st.session_state["processed_symbols_perplexity"].add(symbol)
             
             elapsed_time = time.time() - start_time
             st.session_state["content_fetched"] = True
@@ -739,8 +760,7 @@ if st.session_state["failed_symbols"]:
         
         # Option to clear failed symbols
         if st.button("Clear Failed Symbols List"):
-            with failed_symbols_lock:
-                st.session_state["failed_symbols"] = {}
+            st.session_state["failed_symbols"] = {}
             save_failed_symbols()
             st.success("Failed symbols list cleared.")
 
