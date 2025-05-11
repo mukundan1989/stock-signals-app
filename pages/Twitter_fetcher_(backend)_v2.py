@@ -55,20 +55,20 @@ if "selected_company" not in st.session_state:
     st.session_state["selected_company"] = None
 if "api_key" not in st.session_state:
     st.session_state["api_key"] = DEFAULT_API_KEY
-if "failed_keywords" not in st.session_state:
-    st.session_state["failed_keywords"] = {}  # Dictionary to store failed keywords and reasons
-if "processed_keywords" not in st.session_state:
-    st.session_state["processed_keywords"] = set()
+if "failed_companies" not in st.session_state:
+    st.session_state["failed_companies"] = {}  # Dictionary to store failed companies and reasons
+if "processed_companies" not in st.session_state:
+    st.session_state["processed_companies"] = set()
 
 # API key rotation state
 if "api_keys" not in st.session_state:
     st.session_state["api_keys"] = []
 if "current_key_index" not in st.session_state:
     st.session_state["current_key_index"] = 0
-if "keywords_processed_with_current_key" not in st.session_state:
-    st.session_state["keywords_processed_with_current_key"] = 0
-if "keywords_per_key" not in st.session_state:
-    st.session_state["keywords_per_key"] = 10  # Default limit
+if "companies_processed_with_current_key" not in st.session_state:
+    st.session_state["companies_processed_with_current_key"] = 0
+if "companies_per_key" not in st.session_state:
+    st.session_state["companies_per_key"] = 5  # Default limit
 
 # Thread-safe locks for shared resources
 status_lock = threading.Lock()
@@ -97,46 +97,46 @@ def get_current_api_key():
 
 def rotate_to_next_api_key():
     """Rotate to the next API key and reset the counter"""
-    st.session_state["keywords_processed_with_current_key"] = 0
+    st.session_state["companies_processed_with_current_key"] = 0
     if len(st.session_state["api_keys"]) > 1:
         st.session_state["current_key_index"] = (st.session_state["current_key_index"] + 1) % len(st.session_state["api_keys"])
         with status_lock:
             st.session_state["process_status"].append(f"Switched to API key {st.session_state['current_key_index'] + 1} of {len(st.session_state['api_keys'])}")
     return get_current_api_key()
 
-def save_failed_keywords():
-    """Save failed keywords to a file"""
+def save_failed_companies():
+    """Save failed companies to a file"""
     try:
         os.makedirs(os.path.join(JSON_OUTPUT_DIR, "logs"), exist_ok=True)
-        failed_file = os.path.join(JSON_OUTPUT_DIR, "logs", "failed_keywords.txt")
+        failed_file = os.path.join(JSON_OUTPUT_DIR, "logs", "failed_companies.txt")
         with open(failed_file, "w", encoding="utf-8") as f:
-            for keyword, details in st.session_state["failed_keywords"].items():
-                f.write(f"{keyword},{details['timestamp']},{details['reason']}\n")
+            for company, details in st.session_state["failed_companies"].items():
+                f.write(f"{company},{details['timestamp']},{details['reason']}\n")
         return failed_file
     except Exception as e:
-        st.error(f"Error saving failed keywords: {e}")
+        st.error(f"Error saving failed companies: {e}")
         return None
 
-def load_failed_keywords():
-    """Load failed keywords from a file"""
+def load_failed_companies():
+    """Load failed companies from a file"""
     try:
-        failed_file = os.path.join(JSON_OUTPUT_DIR, "logs", "failed_keywords.txt")
+        failed_file = os.path.join(JSON_OUTPUT_DIR, "logs", "failed_companies.txt")
         if os.path.exists(failed_file):
             with open(failed_file, "r", encoding="utf-8") as f:
                 for line in f:
                     parts = line.strip().split(",", 2)
                     if len(parts) >= 3:
-                        keyword, timestamp, reason = parts
-                        st.session_state["failed_keywords"][keyword] = {
+                        company, timestamp, reason = parts
+                        st.session_state["failed_companies"][company] = {
                             "timestamp": timestamp,
                             "reason": reason
                         }
     except Exception as e:
-        st.error(f"Error loading failed keywords: {e}")
+        st.error(f"Error loading failed companies: {e}")
 
-# Load failed keywords on startup
+# Load failed companies on startup
 try:
-    load_failed_keywords()
+    load_failed_companies()
 except Exception as e:
     st.error(f"Error during startup: {e}")
 
@@ -194,10 +194,81 @@ def fetch_tweets_for_keyword_worker(worker_id: int, keyword: str, start_date, en
         error_queue.put((keyword, datetime.now().strftime("%Y-%m-%d %H:%M:%S"), error_msg))
         result_queue.put((keyword, None))
 
-def fetch_tweets_parallel(start_date, end_date, keywords_to_fetch, max_workers=MAX_WORKERS):
-    """Fetch tweets for specified keywords using parallel workers"""
-    if not keywords_to_fetch:
-        st.warning("No keywords selected to fetch")
+def fetch_company_data_worker(worker_id: int, company: str, combined_keywords: List[str], 
+                             start_date, end_date, api_key: str, 
+                             status_queue: Queue, result_queue: Queue, error_queue: Queue):
+    """Worker function to fetch data for a company and all its combinations"""
+    try:
+        status_queue.put(f"Worker {worker_id}: Processing company: {company}")
+        
+        # First, fetch the base company keyword
+        all_keywords = [company] + combined_keywords
+        company_results = {}
+        success_count = 0
+        
+        for keyword in all_keywords:
+            try:
+                display_keyword = keyword.replace("+", " ")
+                status_queue.put(f"Worker {worker_id}: Fetching tweets for: {display_keyword}")
+                
+                conn = http.client.HTTPSConnection(API_HOST)
+                headers = {
+                    'x-rapidapi-key': api_key,
+                    'x-rapidapi-host': API_HOST
+                }
+                
+                start_date_str = start_date.strftime("%Y-%m-%d")
+                end_date_str = end_date.strftime("%Y-%m-%d")
+                
+                api_query = format_keyword_for_api(keyword)
+                endpoint = f"/search/search?query={api_query}&section=latest&min_retweets=1&min_likes=1&limit=50&start_date={start_date_str}&language=en&end_date={end_date_str}"
+                
+                conn.request("GET", endpoint, headers=headers)
+                res = conn.getresponse()
+                data_bytes = res.read()
+                
+                if not data_bytes:
+                    error_msg = f"Empty response for {display_keyword}"
+                    status_queue.put(error_msg)
+                    continue
+                
+                data = json.loads(data_bytes.decode("utf-8"))
+                tweet_count = len(data.get('results', []))
+                status_queue.put(f"Worker {worker_id}: Found {tweet_count} tweets for {display_keyword}")
+                
+                company_results[keyword] = data
+                success_count += 1
+                
+                # Add a small delay between requests to avoid rate limiting
+                time.sleep(0.5)
+                
+            except Exception as e:
+                error_msg = f"Error fetching tweets for {keyword.replace('+', ' ')}: {e}"
+                status_queue.put(error_msg)
+                continue
+            finally:
+                conn.close()
+        
+        # Report overall company success/failure
+        if success_count > 0:
+            status_queue.put(f"Worker {worker_id}: Successfully processed {success_count}/{len(all_keywords)} keywords for company {company}")
+            result_queue.put((company, company_results))
+        else:
+            error_msg = f"Failed to fetch any data for company {company}"
+            status_queue.put(error_msg)
+            error_queue.put((company, datetime.now().strftime("%Y-%m-%d %H:%M:%S"), error_msg))
+            result_queue.put((company, None))
+            
+    except Exception as e:
+        error_msg = f"Fatal error processing company {company}: {e}"
+        status_queue.put(error_msg)
+        error_queue.put((company, datetime.now().strftime("%Y-%m-%d %H:%M:%S"), error_msg))
+        result_queue.put((company, None))
+
+def fetch_data_parallel(companies, start_date, end_date, max_workers=MAX_WORKERS):
+    """Fetch data for companies and their combinations using parallel workers"""
+    if not companies:
+        st.warning("No companies selected to fetch")
         return
     
     if not st.session_state["api_keys"] and not st.session_state["api_key"].strip():
@@ -210,15 +281,15 @@ def fetch_tweets_parallel(start_date, end_date, keywords_to_fetch, max_workers=M
     
     # Determine number of workers (limited by MAX_WORKERS and available keys)
     num_workers = min(max_workers, len(st.session_state["api_keys"]))
-    st.write(f"Using {num_workers} parallel workers for fetching tweets")
+    st.write(f"Using {num_workers} parallel workers for fetching data")
     
     # Create queues for thread communication
     status_queue = Queue()
     result_queue = Queue()
     error_queue = Queue()
     
-    # Divide keywords among workers
-    keyword_batches = divide_into_chunks(keywords_to_fetch, num_workers)
+    # Divide companies among workers
+    company_batches = divide_into_chunks(companies, num_workers)
     
     # Create progress indicators
     progress_bar = st.progress(0)
@@ -229,23 +300,26 @@ def fetch_tweets_parallel(start_date, end_date, keywords_to_fetch, max_workers=M
     with concurrent.futures.ThreadPoolExecutor(max_workers=num_workers) as executor:
         # Submit tasks to the executor
         futures = []
-        for i in range(min(num_workers, len(keyword_batches))):
-            if i < len(keyword_batches) and keyword_batches[i]:  # Check if this batch has keywords
+        for i in range(min(num_workers, len(company_batches))):
+            if i < len(company_batches) and company_batches[i]:  # Check if this batch has companies
                 api_key = st.session_state["api_keys"][i % len(st.session_state["api_keys"])]
-                for keyword in keyword_batches[i]:
+                for company in company_batches[i]:
+                    # Get combined keywords for this company
+                    combined_keywords = st.session_state["combined_keywords"].get(company, [])
+                    
                     future = executor.submit(
-                        fetch_tweets_for_keyword_worker,
-                        i+1, keyword, start_date, end_date, api_key,
+                        fetch_company_data_worker,
+                        i+1, company, combined_keywords, start_date, end_date, api_key,
                         status_queue, result_queue, error_queue
                     )
-                    futures.append((future, keyword))
+                    futures.append((future, company))
                     # Add a small delay to prevent overwhelming the API
-                    time.sleep(0.1)
+                    time.sleep(0.2)
         
         # Process results as they come in
         results = {}
         processed_count = 0
-        total_count = len(keywords_to_fetch)
+        total_count = len(companies)
         start_time = time.time()
         
         # Monitor status queue and update UI
@@ -263,13 +337,40 @@ def fetch_tweets_parallel(start_date, end_date, keywords_to_fetch, max_workers=M
             
             # Process results
             while not result_queue.empty():
-                keyword, data = result_queue.get()
+                company, company_results = result_queue.get()
                 processed_count += 1
                 
-                if data:
-                    results[keyword] = data
+                # Update API key rotation counter
+                st.session_state["companies_processed_with_current_key"] += 1
+                if st.session_state["companies_processed_with_current_key"] >= st.session_state["companies_per_key"]:
+                    rotate_to_next_api_key()
+                
+                if company_results:
+                    results[company] = company_results
                     # Mark as processed
-                    st.session_state["processed_keywords"].add(keyword)
+                    st.session_state["processed_companies"].add(company)
+                    
+                    # Save results to files
+                    for keyword, data in company_results.items():
+                        try:
+                            sanitized_keyword = keyword.replace(" ", "_").replace("/", "_").replace("+", "_")
+                            output_file = os.path.join(JSON_OUTPUT_DIR, f"{sanitized_keyword}.json")
+                            with open(output_file, "w", encoding="utf-8") as outfile:
+                                json.dump(data, outfile)
+                            
+                            display_keyword = keyword.replace("+", " ")
+                            keyword_type = "Base" if keyword == company else "Combined"
+                            
+                            st.session_state["status_table"].append({
+                                "Company": company,
+                                "Keyword": display_keyword,
+                                "Type": keyword_type,
+                                "Tweet Extract JSON": "✅",
+                                "CSV Output": "❌",
+                                "Date Range": f"{start_date.strftime('%Y-%m-%d')} to {end_date.strftime('%Y-%m-%d')}"
+                            })
+                        except Exception as e:
+                            st.error(f"Error saving tweets for {keyword.replace('+', ' ')}: {e}")
                 
                 # Update progress
                 progress_bar.progress(processed_count / total_count)
@@ -277,9 +378,9 @@ def fetch_tweets_parallel(start_date, end_date, keywords_to_fetch, max_workers=M
                 # Calculate and display ETA
                 if processed_count > 0:
                     elapsed_time = time.time() - start_time
-                    keywords_per_second = processed_count / elapsed_time
-                    remaining_keywords = total_count - processed_count
-                    eta_seconds = remaining_keywords / keywords_per_second if keywords_per_second > 0 else 0
+                    companies_per_second = processed_count / elapsed_time
+                    remaining_companies = total_count - processed_count
+                    eta_seconds = remaining_companies / companies_per_second if companies_per_second > 0 else 0
                     
                     # Format ETA nicely
                     if eta_seconds < 60:
@@ -289,63 +390,38 @@ def fetch_tweets_parallel(start_date, end_date, keywords_to_fetch, max_workers=M
                     else:
                         eta_text = f"{eta_seconds/3600:.1f} hours"
                     
-                    eta_display.text(f"Progress: {processed_count}/{total_count} keywords | ETA: {eta_text}")
+                    eta_display.text(f"Progress: {processed_count}/{total_count} companies | ETA: {eta_text}")
             
             # Process errors
             while not error_queue.empty():
-                keyword, timestamp, reason = error_queue.get()
-                st.session_state["failed_keywords"][keyword] = {
+                company, timestamp, reason = error_queue.get()
+                st.session_state["failed_companies"][company] = {
                     "timestamp": timestamp,
                     "reason": reason
                 }
             
             # Check if any futures are done
-            for future, keyword in list(futures):
+            for future, company in list(futures):
                 if future.done():
-                    futures.remove((future, keyword))
+                    futures.remove((future, company))
                     try:
                         # This will raise an exception if the future raised one
                         future.result()
                     except Exception as e:
-                        st.error(f"Error in worker thread for {keyword}: {e}")
+                        st.error(f"Error in worker thread for {company}: {e}")
                         # Make sure we count this as processed
-                        if keyword not in results:
+                        if company not in results:
                             processed_count += 1
             
-            # If all futures are done but we haven't processed all keywords, something went wrong
+            # If all futures are done but we haven't processed all companies, something went wrong
             if not futures and processed_count < total_count:
-                st.error(f"All workers finished but only processed {processed_count}/{total_count} keywords")
+                st.error(f"All workers finished but only processed {processed_count}/{total_count} companies")
                 break
             
             time.sleep(0.1)  # Prevent busy waiting
     
-    # Save results to files
-    for keyword, data in results.items():
-        try:
-            sanitized_keyword = keyword.replace(" ", "_").replace("/", "_").replace("+", "_")
-            output_file = os.path.join(JSON_OUTPUT_DIR, f"{sanitized_keyword}.json")
-            with open(output_file, "w", encoding="utf-8") as outfile:
-                json.dump(data, outfile)
-            
-            display_keyword = keyword.replace("+", " ")
-            keyword_type = "Combined" if any(keyword in combos for combos in st.session_state["combined_keywords"].values()) else "Base"
-            
-            st.session_state["status_table"].append({
-                "Keyword": display_keyword,
-                "Type": keyword_type,
-                "Tweet Extract JSON": "✅",
-                "CSV Output": "❌",
-                "Date Range": f"{start_date.strftime('%Y-%m-%d')} to {end_date.strftime('%Y-%m-%d')}"
-            })
-            
-            # Remove from failed keywords if it was there
-            if keyword in st.session_state["failed_keywords"]:
-                del st.session_state["failed_keywords"][keyword]
-        except Exception as e:
-            st.error(f"Error saving tweets for {keyword.replace('+', ' ')}: {e}")
-    
-    # Save failed keywords
-    save_failed_keywords()
+    # Save failed companies
+    save_failed_companies()
     
     eta_display.empty()
     status_area.empty()
@@ -524,8 +600,8 @@ def clear_temp():
 
         st.session_state["status_table"] = []
         st.session_state["process_status"] = []
-        st.session_state["failed_keywords"] = {}
-        st.session_state["processed_keywords"] = set()
+        st.session_state["failed_companies"] = {}
+        st.session_state["processed_companies"] = set()
         st.success("Temporary files cleared successfully!")
     except Exception as e:
         st.error(f"Error clearing temporary files: {e}")
@@ -557,19 +633,19 @@ api_keys_input = st.text_area(
 # Parse the keys
 if api_keys_input:
     st.session_state["api_keys"] = [key.strip() for key in api_keys_input.split('\n') if key.strip()]
-    total_capacity = len(st.session_state["api_keys"]) * st.session_state["keywords_per_key"]
+    total_capacity = len(st.session_state["api_keys"]) * st.session_state["companies_per_key"]
     st.write(f"Found {len(st.session_state['api_keys'])} API keys.")
-    st.write(f"Can process approximately {total_capacity} keywords.")
+    st.write(f"Can process approximately {total_capacity} companies.")
 elif not st.session_state["api_keys"]:
     st.session_state["api_keys"] = [DEFAULT_API_KEY]
     st.warning("No API keys provided. Using default key which is rate-limited.")
 
 # API rotation settings
-st.session_state["keywords_per_key"] = st.number_input(
-    "Keywords per key",
+st.session_state["companies_per_key"] = st.number_input(
+    "Companies per API key",
     min_value=1,
-    value=st.session_state["keywords_per_key"],
-    help="Number of keywords to process with each key before rotating"
+    value=st.session_state["companies_per_key"],
+    help="Number of companies to process with each key before rotating. Each company includes its base keyword and all combinations."
 )
 
 # Advanced settings in expander
@@ -648,42 +724,32 @@ else:
     st.warning("No companies found in keywords.txt")
 
 # Buttons
-col1, col2, col3, col4 = st.columns(4)
+col1, col2, col3 = st.columns(3)
 with col1:
-    if st.button("Fetch Base Keywords"):
+    if st.button("Fetch Data"):
         if start_date <= end_date and base_keywords:
-            fetch_tweets_parallel(start_date, end_date, base_keywords, max_workers)
+            fetch_data_parallel(base_keywords, start_date, end_date, max_workers)
         else:
-            st.warning("Invalid date range or no base keywords!")
+            st.warning("Invalid date range or no companies found!")
 
 with col2:
-    if st.button("Fetch All Combined Keywords"):
-        if start_date <= end_date and st.session_state["combined_keywords"]:
-            all_combined = []
-            for combos in st.session_state["combined_keywords"].values():
-                all_combined.extend(combos)
-            fetch_tweets_parallel(start_date, end_date, all_combined, max_workers)
-        else:
-            st.warning("Invalid date range or no combined keywords!")
-
-with col3:
     if st.button("Convert JSON to CSV"):
         convert_json_to_csv_parallel(max_workers)
 
-with col4:
+with col3:
     if st.button("Clear Temp"):
         clear_temp()
 
-# Display failed keywords
-if st.session_state["failed_keywords"]:
-    with st.expander("Failed Keywords", expanded=True):
-        st.write(f"There are {len(st.session_state['failed_keywords'])} keywords that failed processing:")
+# Display failed companies
+if st.session_state["failed_companies"]:
+    with st.expander("Failed Companies", expanded=True):
+        st.write(f"There are {len(st.session_state['failed_companies'])} companies that failed processing:")
         
         # Create a DataFrame for better display
         failed_data = []
-        for keyword, details in st.session_state["failed_keywords"].items():
+        for company, details in st.session_state["failed_companies"].items():
             failed_data.append({
-                "Keyword": keyword.replace("+", " "),
+                "Company": company,
                 "Timestamp": details["timestamp"],
                 "Reason": details["reason"]
             })
@@ -691,17 +757,17 @@ if st.session_state["failed_keywords"]:
         failed_df = pd.DataFrame(failed_data)
         st.dataframe(failed_df)
         
-        # Option to clear failed keywords
-        if st.button("Clear Failed Keywords List"):
-            st.session_state["failed_keywords"] = {}
-            save_failed_keywords()
-            st.success("Failed keywords list cleared.")
+        # Option to clear failed companies
+        if st.button("Clear Failed Companies List"):
+            st.session_state["failed_companies"] = {}
+            save_failed_companies()
+            st.success("Failed companies list cleared.")
 
 # Display API key usage
 with st.expander("API Key Usage"):
     st.write(f"Current key index: {st.session_state['current_key_index'] + 1} of {len(st.session_state['api_keys'])}")
-    st.write(f"Keywords processed with current key: {st.session_state['keywords_processed_with_current_key']} of {st.session_state['keywords_per_key']}")
-    st.write(f"Total keywords processed: {len(st.session_state['processed_keywords'])}")
+    st.write(f"Companies processed with current key: {st.session_state['companies_processed_with_current_key']} of {st.session_state['companies_per_key']}")
+    st.write(f"Total companies processed: {len(st.session_state['processed_companies'])}")
 
 # Display process status
 if st.session_state["process_status"]:
@@ -717,7 +783,7 @@ if st.session_state["status_table"]:
     status_df = pd.DataFrame(st.session_state["status_table"])
     st.dataframe(status_df, hide_index=True)
 else:
-    st.write("No actions performed yet. Fetch tweets to see the status.")
+    st.write("No actions performed yet. Fetch data to see the status.")
 
 # CSV Download Section
 if os.path.exists(CSV_OUTPUT_DIR):
