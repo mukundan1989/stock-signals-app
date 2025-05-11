@@ -785,6 +785,75 @@ if st.session_state["status_table"]:
 else:
     st.write("No actions performed yet. Fetch data to see the status.")
 
+# Add this code at the end of the file, just before the last CSV Download Section
+
+# Display storage information
+with st.expander("Storage Information"):
+    try:
+        # Calculate storage usage
+        total_size = 0
+        file_count = 0
+        
+        # Define directories to check
+        directories = {
+            "JSON Output": JSON_OUTPUT_DIR,
+            "CSV Output": CSV_OUTPUT_DIR
+        }
+        
+        # Check each directory
+        for dir_name, dir_path in directories.items():
+            if os.path.exists(dir_path):
+                files = os.listdir(dir_path)
+                dir_size = sum(os.path.getsize(os.path.join(dir_path, f)) for f in files if os.path.isfile(os.path.join(dir_path, f)))
+                total_size += dir_size
+                dir_file_count = len([f for f in files if os.path.isfile(os.path.join(dir_path, f))])
+                file_count += dir_file_count
+                
+                # Format size nicely
+                if dir_size < 1024:
+                    dir_size_str = f"{dir_size} bytes"
+                elif dir_size < 1024 * 1024:
+                    dir_size_str = f"{dir_size/1024:.2f} KB"
+                else:
+                    dir_size_str = f"{dir_size/(1024*1024):.2f} MB"
+                
+                st.write(f"### {dir_name}: {dir_path}")
+                st.write(f"- Contains {dir_file_count} files")
+                st.write(f"- Size: {dir_size_str}")
+                
+                # Show some files as examples if there are any
+                if files:
+                    st.write("- Example files:")
+                    for f in files[:5]:  # Show up to 5 files
+                        st.write(f"  - {f}")
+                    if len(files) > 5:
+                        st.write(f"  - ... and {len(files) - 5} more")
+            else:
+                st.write(f"### {dir_name}: {dir_path}")
+                st.write("- Directory does not exist")
+        
+        # Format total size nicely
+        if total_size < 1024:
+            size_str = f"{total_size} bytes"
+        elif total_size < 1024 * 1024:
+            size_str = f"{total_size/1024:.2f} KB"
+        else:
+            size_str = f"{total_size/(1024*1024):.2f} MB"
+        
+        st.write(f"### Total Storage Used: {size_str}")
+        st.write(f"### Total Files: {file_count}")
+        
+        # Add information about accessing these files
+        st.write("### Accessing These Files")
+        st.write("These files are stored in temporary directories on the server. To access them from another website, you would need to:")
+        st.write("1. Use the download buttons provided in the app")
+        st.write("2. Or modify the code to store files in a cloud storage service like AWS S3")
+        st.write("3. Or set up an API endpoint to serve these files")
+        st.write("4. Or change the storage location to a web-accessible directory")
+        
+    except Exception as e:
+        st.error(f"Error displaying storage information: {e}")
+
 # CSV Download Section
 if os.path.exists(CSV_OUTPUT_DIR):
     csv_files = [f for f in os.listdir(CSV_OUTPUT_DIR) if f.endswith(".csv")]
