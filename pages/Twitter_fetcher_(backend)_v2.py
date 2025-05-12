@@ -879,7 +879,17 @@ with st.expander("Storage Information"):
                 else:
                     dir_size_str = f"{dir_size/(1024*1024):.2f} MB"
                 
-                st.write(f"### {dir_name.capitalize()}: {dir_path}")
+                # Display directory information with Twitter-specific context
+                if dir_name == "json":
+                    dir_display_name = "Twitter JSON Output"
+                elif dir_name == "csv":
+                    dir_display_name = "Twitter CSV Output"
+                elif dir_name == "logs":
+                    dir_display_name = "Twitter Logs"
+                else:
+                    dir_display_name = f"Twitter {dir_name.capitalize()}"
+                
+                st.write(f"### {dir_display_name}: {dir_path}")
                 st.write(f"- Contains {dir_file_count} files")
                 st.write(f"- Size: {dir_size_str}")
                 
@@ -891,7 +901,17 @@ with st.expander("Storage Information"):
                     if len(files) > 5:
                         st.write(f"  - ... and {len(files) - 5} more")
             else:
-                st.write(f"### {dir_name.capitalize()}: {dir_path}")
+                # Display empty directory with Twitter-specific context
+                if dir_name == "json":
+                    dir_display_name = "Twitter JSON Output"
+                elif dir_name == "csv":
+                    dir_display_name = "Twitter CSV Output"
+                elif dir_name == "logs":
+                    dir_display_name = "Twitter Logs"
+                else:
+                    dir_display_name = f"Twitter {dir_name.capitalize()}"
+                
+                st.write(f"### {dir_display_name}: {dir_path}")
                 st.write("- Directory does not exist")
         
         # Format total size nicely
@@ -902,8 +922,16 @@ with st.expander("Storage Information"):
         else:
             size_str = f"{total_size/(1024*1024):.2f} MB"
         
-        st.write(f"### Total Storage Used: {size_str}")
-        st.write(f"### Total Files: {file_count}")
+        st.write(f"### Total Twitter Storage Used: {size_str}")
+        st.write(f"### Total Twitter Files: {file_count}")
+        
+        # Add Twitter-specific information about accessing these files
+        st.write("### Accessing Twitter Data Files")
+        st.write("These files are stored in temporary directories on the server. To access them from another website, you would need to:")
+        st.write("1. Use the download buttons provided in the app")
+        st.write("2. Or modify the code to store files in a cloud storage service like AWS S3")
+        st.write("3. Or set up an API endpoint to serve these files")
+        st.write("4. Or change the storage location to a web-accessible directory")
         
     except Exception as e:
         st.error(f"Error displaying storage information: {e}")
