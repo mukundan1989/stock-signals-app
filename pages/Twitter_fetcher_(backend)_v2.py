@@ -8,7 +8,7 @@ import time
 import threading
 import concurrent.futures
 from queue import Queue
-from datetime import datetime
+from datetime import datetime, timedelta
 import platform
 from typing import List, Dict, Any, Tuple, Set
 
@@ -70,6 +70,12 @@ if "failed_companies" not in st.session_state:
     st.session_state["failed_companies"] = {}  # Dictionary to store failed companies and reasons
 if "processed_companies" not in st.session_state:
     st.session_state["processed_companies"] = set()
+if "use_date_segmentation" not in st.session_state:
+    st.session_state["use_date_segmentation"] = True
+if "segment_size_days" not in st.session_state:
+    st.session_state["segment_size_days"] = 7  # Default to weekly segments
+if "tweet_section" not in st.session_state:
+    st.session_state["tweet_section"] = "top"  # Default to top tweets instead of latest
 
 # API key rotation state
 if "api_keys" not in st.session_state:
@@ -112,11 +118,16 @@ def ensure_directories():
         logs_dir = os.path.join(st.session_state["output_dir"], "logs")
         os.makedirs(logs_dir, exist_ok=True)
         
+        # Combined results directory
+        combined_dir = os.path.join(st.session_state["output_dir"], "combined_output")
+        os.makedirs(combined_dir, exist_ok=True)
+        
         return {
             "main": st.session_state["output_dir"],
             "json": json_dir,
             "csv": csv_dir,
-            "logs": logs_dir
+            "logs": logs_dir,
+            "combined": combined_dir
         }
     except Exception as e:
         st.error(f"Error creating directories: {e}")
@@ -125,7 +136,8 @@ def ensure_directories():
             "main": st.session_state["output_dir"],
             "json": os.path.join(st.session_state["output_dir"], "json_output"),
             "csv": os.path.join(st.session_state["output_dir"], "csv_output"),
-            "logs": os.path.join(st.session_state["output_dir"], "logs")
+            "logs": os.path.join(st.session_state["output_dir"], "logs"),
+            "combined": os.path.join(st.session_state["output_dir"], "combined_output")
         }
 
 # Ensure directories exist and store in session state
@@ -139,13 +151,15 @@ except Exception as e:
         "main": st.session_state["output_dir"],
         "json": os.path.join(st.session_state["output_dir"], "json_output"),
         "csv": os.path.join(st.session_state["output_dir"], "csv_output"),
-        "logs": os.path.join(st.session_state["output_dir"], "logs")
+        "logs": os.path.join(st.session_state["output_dir"], "logs"),
+        "combined": os.path.join(st.session_state["output_dir"], "combined_output")
     }
     st.session_state["directories"] = dirs
 
 # Now we can use dirs["json"] and dirs["csv"] instead of hardcoded paths
 JSON_OUTPUT_DIR = dirs["json"]
 CSV_OUTPUT_DIR = dirs["csv"]
+COMBINED_OUTPUT_DIR = dirs["combined"]
 
 def generate_combined_keywords(base_keywords):
     """Generate default combined keywords for each base keyword with + instead of spaces"""
@@ -213,12 +227,28 @@ try:
 except Exception as e:
     st.error(f"Error during startup: {e}")
 
+def split_date_range(start_date, end_date, segment_size_days=7):
+    """Split a date range into segments of specified size in days"""
+    segments = []
+    current_start = start_date
+    
+    while current_start <= end_date:
+        # Calculate the end of this segment
+        segment_end = min(current_start + timedelta(days=segment_size_days - 1), end_date)
+        segments.append((current_start, segment_end))
+        
+        # Move to the next segment
+        current_start = segment_end + timedelta(days=1)
+    
+    return segments
+
 def fetch_tweets_for_keyword_worker(worker_id: int, keyword: str, start_date, end_date, api_key: str, 
-                                   status_queue: Queue, result_queue: Queue, error_queue: Queue):
+                                   status_queue: Queue, result_queue: Queue, error_queue: Queue,
+                                   segment_id: str = "", tweet_section: str = "top"):
     """Worker function to fetch tweets for a specific keyword"""
     try:
         display_keyword = keyword.replace("+", " ")
-        status_queue.put(f"Worker {worker_id}: Fetching tweets for: {display_keyword}")
+        status_queue.put(f"Worker {worker_id}: Fetching {tweet_section} tweets for: {display_keyword} ({start_date} to {end_date})")
         
         conn = http.client.HTTPSConnection(API_HOST)
         headers = {
@@ -230,7 +260,7 @@ def fetch_tweets_for_keyword_worker(worker_id: int, keyword: str, start_date, en
         end_date_str = end_date.strftime("%Y-%m-%d")
         
         api_query = format_keyword_for_api(keyword)
-        endpoint = f"/search/search?query={api_query}&section=latest&min_retweets=1&min_likes=1&limit=50&start_date={start_date_str}&language=en&end_date={end_date_str}"
+        endpoint = f"/search/search?query={api_query}&section={tweet_section}&min_retweets=1&min_likes=1&limit=50&start_date={start_date_str}&language=en&end_date={end_date_str}"
         
         try:
             conn.request("GET", endpoint, headers=headers)
@@ -238,41 +268,43 @@ def fetch_tweets_for_keyword_worker(worker_id: int, keyword: str, start_date, en
             data_bytes = res.read()
             
             if not data_bytes:
-                error_msg = f"Empty response for {display_keyword}"
+                error_msg = f"Empty response for {display_keyword} ({start_date} to {end_date})"
                 status_queue.put(error_msg)
                 error_queue.put((keyword, datetime.now().strftime("%Y-%m-%d %H:%M:%S"), error_msg))
-                result_queue.put((keyword, None))
+                result_queue.put((keyword, None, segment_id))
                 return
             
             try:
                 data = json.loads(data_bytes.decode("utf-8"))
-                status_queue.put(f"Worker {worker_id}: Found {len(data.get('results', []))} tweets for {display_keyword}")
-                result_queue.put((keyword, data))
+                tweet_count = len(data.get('results', []))
+                status_queue.put(f"Worker {worker_id}: Found {tweet_count} {tweet_section} tweets for {display_keyword} ({start_date} to {end_date})")
+                result_queue.put((keyword, data, segment_id))
             except json.JSONDecodeError as e:
-                error_msg = f"Error parsing JSON for {display_keyword}: {e}"
+                error_msg = f"Error parsing JSON for {display_keyword} ({start_date} to {end_date}): {e}"
                 status_queue.put(error_msg)
                 error_queue.put((keyword, datetime.now().strftime("%Y-%m-%d %H:%M:%S"), error_msg))
-                result_queue.put((keyword, None))
+                result_queue.put((keyword, None, segment_id))
         except Exception as e:
-            error_msg = f"API request failed for {display_keyword}: {e}"
+            error_msg = f"API request failed for {display_keyword} ({start_date} to {end_date}): {e}"
             status_queue.put(error_msg)
             error_queue.put((keyword, datetime.now().strftime("%Y-%m-%d %H:%M:%S"), error_msg))
-            result_queue.put((keyword, None))
+            result_queue.put((keyword, None, segment_id))
         finally:
             conn.close()
             
     except Exception as e:
-        error_msg = f"Fatal error fetching tweets for {keyword.replace('+', ' ')}: {e}"
+        error_msg = f"Fatal error fetching tweets for {keyword.replace('+', ' ')} ({start_date} to {end_date}): {e}"
         status_queue.put(error_msg)
         error_queue.put((keyword, datetime.now().strftime("%Y-%m-%d %H:%M:%S"), error_msg))
-        result_queue.put((keyword, None))
+        result_queue.put((keyword, None, segment_id))
 
 def fetch_company_data_worker(worker_id: int, company: str, combined_keywords: List[str], 
                              start_date, end_date, api_key: str, 
-                             status_queue: Queue, result_queue: Queue, error_queue: Queue):
+                             status_queue: Queue, result_queue: Queue, error_queue: Queue,
+                             segment_id: str = "", tweet_section: str = "top"):
     """Worker function to fetch data for a company and all its combinations"""
     try:
-        status_queue.put(f"Worker {worker_id}: Processing company: {company}")
+        status_queue.put(f"Worker {worker_id}: Processing company: {company} ({start_date} to {end_date})")
         
         # First, fetch the base company keyword
         all_keywords = [company] + combined_keywords
@@ -282,7 +314,7 @@ def fetch_company_data_worker(worker_id: int, company: str, combined_keywords: L
         for keyword in all_keywords:
             try:
                 display_keyword = keyword.replace("+", " ")
-                status_queue.put(f"Worker {worker_id}: Fetching tweets for: {display_keyword}")
+                status_queue.put(f"Worker {worker_id}: Fetching {tweet_section} tweets for: {display_keyword} ({start_date} to {end_date})")
                 
                 conn = http.client.HTTPSConnection(API_HOST)
                 headers = {
@@ -294,20 +326,20 @@ def fetch_company_data_worker(worker_id: int, company: str, combined_keywords: L
                 end_date_str = end_date.strftime("%Y-%m-%d")
                 
                 api_query = format_keyword_for_api(keyword)
-                endpoint = f"/search/search?query={api_query}&section=latest&min_retweets=1&min_likes=1&limit=50&start_date={start_date_str}&language=en&end_date={end_date_str}"
+                endpoint = f"/search/search?query={api_query}&section={tweet_section}&min_retweets=1&min_likes=1&limit=50&start_date={start_date_str}&language=en&end_date={end_date_str}"
                 
                 conn.request("GET", endpoint, headers=headers)
                 res = conn.getresponse()
                 data_bytes = res.read()
                 
                 if not data_bytes:
-                    error_msg = f"Empty response for {display_keyword}"
+                    error_msg = f"Empty response for {display_keyword} ({start_date} to {end_date})"
                     status_queue.put(error_msg)
                     continue
                 
                 data = json.loads(data_bytes.decode("utf-8"))
                 tweet_count = len(data.get('results', []))
-                status_queue.put(f"Worker {worker_id}: Found {tweet_count} tweets for {display_keyword}")
+                status_queue.put(f"Worker {worker_id}: Found {tweet_count} {tweet_section} tweets for {display_keyword} ({start_date} to {end_date})")
                 
                 company_results[keyword] = data
                 success_count += 1
@@ -316,7 +348,7 @@ def fetch_company_data_worker(worker_id: int, company: str, combined_keywords: L
                 time.sleep(0.5)
                 
             except Exception as e:
-                error_msg = f"Error fetching tweets for {keyword.replace('+', ' ')}: {e}"
+                error_msg = f"Error fetching tweets for {keyword.replace('+', ' ')} ({start_date} to {end_date}): {e}"
                 status_queue.put(error_msg)
                 continue
             finally:
@@ -324,21 +356,21 @@ def fetch_company_data_worker(worker_id: int, company: str, combined_keywords: L
         
         # Report overall company success/failure
         if success_count > 0:
-            status_queue.put(f"Worker {worker_id}: Successfully processed {success_count}/{len(all_keywords)} keywords for company {company}")
-            result_queue.put((company, company_results))
+            status_queue.put(f"Worker {worker_id}: Successfully processed {success_count}/{len(all_keywords)} keywords for company {company} ({start_date} to {end_date})")
+            result_queue.put((company, company_results, segment_id))
         else:
-            error_msg = f"Failed to fetch any data for company {company}"
+            error_msg = f"Failed to fetch any data for company {company} ({start_date} to {end_date})"
             status_queue.put(error_msg)
             error_queue.put((company, datetime.now().strftime("%Y-%m-%d %H:%M:%S"), error_msg))
-            result_queue.put((company, None))
+            result_queue.put((company, None, segment_id))
             
     except Exception as e:
-        error_msg = f"Fatal error processing company {company}: {e}"
+        error_msg = f"Fatal error processing company {company} ({start_date} to {end_date}): {e}"
         status_queue.put(error_msg)
         error_queue.put((company, datetime.now().strftime("%Y-%m-%d %H:%M:%S"), error_msg))
-        result_queue.put((company, None))
+        result_queue.put((company, None, segment_id))
 
-def fetch_data_parallel(companies, start_date, end_date, max_workers=MAX_WORKERS):
+def fetch_data_parallel(companies, start_date, end_date, max_workers=MAX_WORKERS, use_date_segmentation=True, segment_size_days=7, tweet_section="top"):
     """Fetch data for companies and their combinations using parallel workers"""
     if not companies:
         st.warning("No companies selected to fetch")
@@ -354,152 +386,230 @@ def fetch_data_parallel(companies, start_date, end_date, max_workers=MAX_WORKERS
     
     # Determine number of workers (limited by MAX_WORKERS and available keys)
     num_workers = min(max_workers, len(st.session_state["api_keys"]))
-    st.write(f"Using {num_workers} parallel workers for fetching data")
     
-    # Create queues for thread communication
-    status_queue = Queue()
-    result_queue = Queue()
-    error_queue = Queue()
+    # Split the date range into segments if enabled
+    if use_date_segmentation:
+        date_segments = split_date_range(start_date, end_date, segment_size_days)
+        st.write(f"Date range split into {len(date_segments)} segments of {segment_size_days} days each")
+        segment_progress = st.progress(0)
+        segment_status = st.empty()
+    else:
+        date_segments = [(start_date, end_date)]
     
-    # Divide companies among workers
-    company_batches = divide_into_chunks(companies, num_workers)
-    
-    # Create progress indicators
-    progress_bar = st.progress(0)
-    status_area = st.empty()
-    eta_display = st.empty()
-    
-    # Use ThreadPoolExecutor for proper parallel execution
-    with concurrent.futures.ThreadPoolExecutor(max_workers=num_workers) as executor:
-        # Submit tasks to the executor
-        futures = []
-        for i in range(min(num_workers, len(company_batches))):
-            if i < len(company_batches) and company_batches[i]:  # Check if this batch has companies
-                api_key = st.session_state["api_keys"][i % len(st.session_state["api_keys"])]
-                for company in company_batches[i]:
-                    # Get combined keywords for this company
-                    combined_keywords = st.session_state["combined_keywords"].get(company, [])
-                    
-                    future = executor.submit(
-                        fetch_company_data_worker,
-                        i+1, company, combined_keywords, start_date, end_date, api_key,
-                        status_queue, result_queue, error_queue
-                    )
-                    futures.append((future, company))
-                    # Add a small delay to prevent overwhelming the API
-                    time.sleep(0.2)
+    # Process each date segment
+    all_results = {}
+    for segment_index, (segment_start, segment_end) in enumerate(date_segments):
+        if use_date_segmentation:
+            segment_status.text(f"Processing segment {segment_index + 1}/{len(date_segments)}: {segment_start} to {segment_end}")
         
-        # Process results as they come in
-        results = {}
-        processed_count = 0
-        total_count = len(companies)
-        start_time = time.time()
+        segment_id = f"{segment_start.strftime('%Y%m%d')}-{segment_end.strftime('%Y%m%d')}"
         
-        # Monitor status queue and update UI
-        while processed_count < total_count:
-            # Update status messages
-            status_messages = []
-            while not status_queue.empty():
-                status = status_queue.get()
-                with status_lock:
-                    st.session_state["process_status"].append(status)
-                status_messages.append(status)
+        st.write(f"Using {num_workers} parallel workers for fetching {tweet_section} tweets for period: {segment_start} to {segment_end}")
+        
+        # Create queues for thread communication
+        status_queue = Queue()
+        result_queue = Queue()
+        error_queue = Queue()
+        
+        # Divide companies among workers
+        company_batches = divide_into_chunks(companies, num_workers)
+        
+        # Create progress indicators
+        progress_bar = st.progress(0)
+        status_area = st.empty()
+        eta_display = st.empty()
+        
+        # Use ThreadPoolExecutor for proper parallel execution
+        with concurrent.futures.ThreadPoolExecutor(max_workers=num_workers) as executor:
+            # Submit tasks to the executor
+            futures = []
+            for i in range(min(num_workers, len(company_batches))):
+                if i < len(company_batches) and company_batches[i]:  # Check if this batch has companies
+                    api_key = st.session_state["api_keys"][i % len(st.session_state["api_keys"])]
+                    for company in company_batches[i]:
+                        # Get combined keywords for this company
+                        combined_keywords = st.session_state["combined_keywords"].get(company, [])
+                        
+                        future = executor.submit(
+                            fetch_company_data_worker,
+                            i+1, company, combined_keywords, segment_start, segment_end, api_key,
+                            status_queue, result_queue, error_queue, segment_id, tweet_section
+                        )
+                        futures.append((future, company))
+                        # Add a small delay to prevent overwhelming the API
+                        time.sleep(0.2)
             
-            if status_messages:
-                status_area.text("\n".join(status_messages[-5:]))  # Show last 5 messages
+            # Process results as they come in
+            segment_results = {}
+            processed_count = 0
+            total_count = len(companies)
+            start_time = time.time()
             
-            # Process results
-            while not result_queue.empty():
-                company, company_results = result_queue.get()
-                processed_count += 1
+            # Monitor status queue and update UI
+            while processed_count < total_count:
+                # Update status messages
+                status_messages = []
+                while not status_queue.empty():
+                    status = status_queue.get()
+                    with status_lock:
+                        st.session_state["process_status"].append(status)
+                    status_messages.append(status)
                 
-                # Update API key rotation counter
-                st.session_state["companies_processed_with_current_key"] += 1
-                if st.session_state["companies_processed_with_current_key"] >= st.session_state["companies_per_key"]:
-                    rotate_to_next_api_key()
+                if status_messages:
+                    status_area.text("\n".join(status_messages[-5:]))  # Show last 5 messages
                 
-                if company_results:
-                    results[company] = company_results
-                    # Mark as processed
-                    st.session_state["processed_companies"].add(company)
+                # Process results
+                while not result_queue.empty():
+                    company, company_results, seg_id = result_queue.get()
+                    processed_count += 1
                     
-                    # Save results to files
-                    for keyword, data in company_results.items():
+                    # Update API key rotation counter
+                    st.session_state["companies_processed_with_current_key"] += 1
+                    if st.session_state["companies_processed_with_current_key"] >= st.session_state["companies_per_key"]:
+                        rotate_to_next_api_key()
+                    
+                    if company_results:
+                        segment_results[company] = company_results
+                        # Mark as processed
+                        st.session_state["processed_companies"].add(company)
+                        
+                        # Save results to files with segment ID in filename
+                        for keyword, data in company_results.items():
+                            try:
+                                sanitized_keyword = keyword.replace(" ", "_").replace("/", "_").replace("+", "_")
+                                # Include tweet section in filename
+                                output_file = os.path.join(JSON_OUTPUT_DIR, f"{sanitized_keyword}_{tweet_section}_{seg_id}.json")
+                                with open(output_file, "w", encoding="utf-8") as outfile:
+                                    json.dump(data, outfile)
+                                
+                                display_keyword = keyword.replace("+", " ")
+                                keyword_type = "Base" if keyword == company else "Combined"
+                                
+                                st.session_state["status_table"].append({
+                                    "Company": company,
+                                    "Keyword": display_keyword,
+                                    "Type": keyword_type,
+                                    "Tweet Type": tweet_section.capitalize(),
+                                    "Tweet Extract JSON": "✅",
+                                    "CSV Output": "❌",
+                                    "Date Range": f"{segment_start.strftime('%Y-%m-%d')} to {segment_end.strftime('%Y-%m-%d')}",
+                                    "Segment": seg_id
+                                })
+                            except Exception as e:
+                                st.error(f"Error saving tweets for {keyword.replace('+', ' ')}: {e}")
+                    
+                    # Update progress
+                    progress_bar.progress(processed_count / total_count)
+                    
+                    # Calculate and display ETA
+                    if processed_count > 0:
+                        elapsed_time = time.time() - start_time
+                        companies_per_second = processed_count / elapsed_time
+                        remaining_companies = total_count - processed_count
+                        eta_seconds = remaining_companies / companies_per_second if companies_per_second > 0 else 0
+                        
+                        # Format ETA nicely
+                        if eta_seconds < 60:
+                            eta_text = f"{eta_seconds:.0f} seconds"
+                        elif eta_seconds < 3600:
+                            eta_text = f"{eta_seconds/60:.1f} minutes"
+                        else:
+                            eta_text = f"{eta_seconds/3600:.1f} hours"
+                        
+                        eta_display.text(f"Progress: {processed_count}/{total_count} companies | ETA: {eta_text}")
+                
+                # Process errors
+                while not error_queue.empty():
+                    company, timestamp, reason = error_queue.get()
+                    st.session_state["failed_companies"][company] = {
+                        "timestamp": timestamp,
+                        "reason": reason
+                    }
+                
+                # Check if any futures are done
+                for future, company in list(futures):
+                    if future.done():
+                        futures.remove((future, company))
                         try:
-                            sanitized_keyword = keyword.replace(" ", "_").replace("/", "_").replace("+", "_")
-                            output_file = os.path.join(JSON_OUTPUT_DIR, f"{sanitized_keyword}.json")
-                            with open(output_file, "w", encoding="utf-8") as outfile:
-                                json.dump(data, outfile)
-                            
-                            display_keyword = keyword.replace("+", " ")
-                            keyword_type = "Base" if keyword == company else "Combined"
-                            
-                            st.session_state["status_table"].append({
-                                "Company": company,
-                                "Keyword": display_keyword,
-                                "Type": keyword_type,
-                                "Tweet Extract JSON": "✅",
-                                "CSV Output": "❌",
-                                "Date Range": f"{start_date.strftime('%Y-%m-%d')} to {end_date.strftime('%Y-%m-%d')}"
-                            })
+                            # This will raise an exception if the future raised one
+                            future.result()
                         except Exception as e:
-                            st.error(f"Error saving tweets for {keyword.replace('+', ' ')}: {e}")
+                            st.error(f"Error in worker thread for {company}: {e}")
+                            # Make sure we count this as processed
+                            if company not in segment_results:
+                                processed_count += 1
                 
-                # Update progress
-                progress_bar.progress(processed_count / total_count)
+                # If all futures are done but we haven't processed all companies, something went wrong
+                if not futures and processed_count < total_count:
+                    st.error(f"All workers finished but only processed {processed_count}/{total_count} companies")
+                    break
                 
-                # Calculate and display ETA
-                if processed_count > 0:
-                    elapsed_time = time.time() - start_time
-                    companies_per_second = processed_count / elapsed_time
-                    remaining_companies = total_count - processed_count
-                    eta_seconds = remaining_companies / companies_per_second if companies_per_second > 0 else 0
+                time.sleep(0.1)  # Prevent busy waiting
+        
+        # Save failed companies
+        save_failed_companies()
+        
+        eta_display.empty()
+        status_area.empty()
+        
+        # Merge this segment's results into the overall results
+        for company, company_results in segment_results.items():
+            if company not in all_results:
+                all_results[company] = {}
+            
+            for keyword, data in company_results.items():
+                if keyword not in all_results[company]:
+                    all_results[company][keyword] = []
+                
+                # Add the tweets from this segment
+                all_results[company][keyword].extend(data.get('results', []))
+        
+        # Update segment progress
+        if use_date_segmentation:
+            segment_progress.progress((segment_index + 1) / len(date_segments))
+    
+    # After all segments are processed, combine the results
+    if use_date_segmentation:
+        segment_status.text("All segments processed. Combining results...")
+        combine_segmented_results(all_results, tweet_section)
+        segment_status.text("Results combined successfully!")
+    
+    return all_results
+
+def combine_segmented_results(all_results, tweet_section="top"):
+    """Combine results from different segments into unified files"""
+    try:
+        # Process each company
+        for company, company_results in all_results.items():
+            # Process each keyword
+            for keyword, tweets in company_results.items():
+                try:
+                    # Create a combined data structure
+                    combined_data = {
+                        "results": tweets,
+                        "meta": {
+                            "combined_from_segments": True,
+                            "total_tweets": len(tweets),
+                            "tweet_section": tweet_section,
+                            "combination_date": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                        }
+                    }
                     
-                    # Format ETA nicely
-                    if eta_seconds < 60:
-                        eta_text = f"{eta_seconds:.0f} seconds"
-                    elif eta_seconds < 3600:
-                        eta_text = f"{eta_seconds/60:.1f} minutes"
-                    else:
-                        eta_text = f"{eta_seconds/3600:.1f} hours"
+                    # Save the combined data
+                    sanitized_keyword = keyword.replace(" ", "_").replace("/", "_").replace("+", "_")
+                    output_file = os.path.join(COMBINED_OUTPUT_DIR, f"{sanitized_keyword}_{tweet_section}_combined.json")
+                    with open(output_file, "w", encoding="utf-8") as outfile:
+                        json.dump(combined_data, outfile)
                     
-                    eta_display.text(f"Progress: {processed_count}/{total_count} companies | ETA: {eta_text}")
-            
-            # Process errors
-            while not error_queue.empty():
-                company, timestamp, reason = error_queue.get()
-                st.session_state["failed_companies"][company] = {
-                    "timestamp": timestamp,
-                    "reason": reason
-                }
-            
-            # Check if any futures are done
-            for future, company in list(futures):
-                if future.done():
-                    futures.remove((future, company))
-                    try:
-                        # This will raise an exception if the future raised one
-                        future.result()
-                    except Exception as e:
-                        st.error(f"Error in worker thread for {company}: {e}")
-                        # Make sure we count this as processed
-                        if company not in results:
-                            processed_count += 1
-            
-            # If all futures are done but we haven't processed all companies, something went wrong
-            if not futures and processed_count < total_count:
-                st.error(f"All workers finished but only processed {processed_count}/{total_count} companies")
-                break
-            
-            time.sleep(0.1)  # Prevent busy waiting
-    
-    # Save failed companies
-    save_failed_companies()
-    
-    eta_display.empty()
-    status_area.empty()
-    
-    return results
+                    # Update status
+                    st.session_state["process_status"].append(f"Combined {len(tweets)} {tweet_section} tweets for {keyword.replace('+', ' ')}")
+                    
+                except Exception as e:
+                    st.error(f"Error combining results for {keyword.replace('+', ' ')}: {e}")
+        
+        st.success(f"Combined results saved to {COMBINED_OUTPUT_DIR}")
+    except Exception as e:
+        st.error(f"Error combining segmented results: {e}")
 
 def convert_json_to_csv_worker(worker_id: int, json_file: str, status_queue: Queue, result_queue: Queue, error_queue: Queue):
     """Worker function to convert a JSON file to CSV"""
@@ -533,7 +643,15 @@ def convert_json_to_csv_worker(worker_id: int, json_file: str, status_queue: Que
         df = pd.DataFrame(records)
         df.to_csv(csv_file_path, index=False)
         
-        keyword = json_file.replace(".json", "").replace("_", " ")
+        # Extract keyword from filename (remove segment ID if present)
+        keyword_parts = os.path.splitext(json_file)[0].split('_')
+        if len(keyword_parts) > 2 and keyword_parts[-2].isdigit() and keyword_parts[-1].isdigit():
+            # This is a segmented file, remove the segment ID
+            keyword = '_'.join(keyword_parts[:-2])
+        else:
+            keyword = '_'.join(keyword_parts)
+        
+        keyword = keyword.replace("_", " ")
         result_queue.put((json_file, keyword, True))
         
     except Exception as e:
@@ -541,6 +659,60 @@ def convert_json_to_csv_worker(worker_id: int, json_file: str, status_queue: Que
         status_queue.put(error_msg)
         error_queue.put((json_file, datetime.now().strftime("%Y-%m-%d %H:%M:%S"), error_msg))
         result_queue.put((json_file, None, False))
+
+def convert_combined_json_to_csv():
+    """Convert all combined JSON files to CSV"""
+    if not os.path.exists(COMBINED_OUTPUT_DIR):
+        st.warning("No combined JSON files found. Please fetch tweets with segmentation first.")
+        return
+    
+    json_files = [f for f in os.listdir(COMBINED_OUTPUT_DIR) if f.endswith(".json")]
+    if not json_files:
+        st.warning("No combined JSON files found in the output directory.")
+        return
+    
+    progress_bar = st.progress(0)
+    status_area = st.empty()
+    
+    for i, json_file in enumerate(json_files):
+        try:
+            status_area.text(f"Converting {json_file} to CSV...")
+            
+            json_file_path = os.path.join(COMBINED_OUTPUT_DIR, json_file)
+            csv_file_name = f"{os.path.splitext(json_file)[0]}.csv"
+            csv_file_path = os.path.join(COMBINED_OUTPUT_DIR, csv_file_name)
+            
+            with open(json_file_path, "r") as file:
+                data = json.load(file)
+            
+            records = []
+            for item in data.get("results", []):
+                flat_item = {
+                    "tweet_id": item.get("tweet_id"),
+                    "creation_date": item.get("creation_date"),
+                    "text": item.get("text"),
+                    "language": item.get("language"),
+                    "favorite_count": item.get("favorite_count"),
+                    "retweet_count": item.get("retweet_count"),
+                    "reply_count": item.get("reply_count"),
+                    "views": item.get("views"),
+                }
+                user_info = item.get("user", {})
+                for key, value in user_info.items():
+                    flat_item[f"user_{key}"] = value
+                records.append(flat_item)
+            
+            df = pd.DataFrame(records)
+            df.to_csv(csv_file_path, index=False)
+            
+            # Update progress
+            progress_bar.progress((i + 1) / len(json_files))
+            
+        except Exception as e:
+            st.error(f"Error converting {json_file} to CSV: {e}")
+    
+    status_area.empty()
+    st.success(f"Converted {len(json_files)} combined JSON files to CSV")
 
 def convert_json_to_csv_parallel(max_workers=MAX_WORKERS):
     """Convert all JSON files to CSV using parallel workers"""
@@ -640,8 +812,24 @@ def convert_json_to_csv_parallel(max_workers=MAX_WORKERS):
     
     status_area.empty()
 
-def combine_company_csvs(company_name):
+def combine_company_csvs(company_name, use_combined=True):
     """Merge all CSV files for a company's combined keywords into one DataFrame"""
+    if use_combined and os.path.exists(COMBINED_OUTPUT_DIR):
+        # First check for combined files
+        company_prefix = company_name.replace(" ", "_")
+        csv_files = [
+            f for f in os.listdir(COMBINED_OUTPUT_DIR) 
+            if f.startswith(company_prefix) and f.endswith(".csv")
+        ]
+        
+        if csv_files:
+            combined_df = pd.concat(
+                [pd.read_csv(os.path.join(COMBINED_OUTPUT_DIR, f)) for f in csv_files],
+                ignore_index=True
+            )
+            return combined_df
+    
+    # Fall back to regular CSV files
     if not os.path.exists(CSV_OUTPUT_DIR):
         return None
     
@@ -670,6 +858,10 @@ def clear_temp():
         if os.path.exists(CSV_OUTPUT_DIR):
             shutil.rmtree(CSV_OUTPUT_DIR)
             os.makedirs(CSV_OUTPUT_DIR, exist_ok=True)
+            
+        if os.path.exists(COMBINED_OUTPUT_DIR):
+            shutil.rmtree(COMBINED_OUTPUT_DIR)
+            os.makedirs(COMBINED_OUTPUT_DIR, exist_ok=True)
 
         st.session_state["status_table"] = []
         st.session_state["process_status"] = []
@@ -720,6 +912,17 @@ st.session_state["companies_per_key"] = st.number_input(
 
 # Advanced settings in expander
 with st.expander("Advanced Settings"):
+    # Tweet section selection
+    tweet_section_options = ["top", "latest"]
+    tweet_section_index = 0 if st.session_state["tweet_section"] == "top" else 1
+    
+    st.session_state["tweet_section"] = st.selectbox(
+        "Tweet Type",
+        options=tweet_section_options,
+        index=tweet_section_index,
+        help="'top' returns the most popular tweets, 'latest' returns the most recent tweets"
+    )
+    
     max_workers = st.slider(
         "Maximum Parallel Workers", 
         min_value=1, 
@@ -728,6 +931,22 @@ with st.expander("Advanced Settings"):
         step=1,
         help="Maximum number of parallel workers. Each worker uses one API key."
     )
+    
+    # Date segmentation settings
+    st.session_state["use_date_segmentation"] = st.checkbox(
+        "Use Date Segmentation", 
+        value=st.session_state["use_date_segmentation"],
+        help="Split the date range into smaller segments to get more tweets"
+    )
+    
+    if st.session_state["use_date_segmentation"]:
+        st.session_state["segment_size_days"] = st.slider(
+            "Segment Size (Days)",
+            min_value=1,
+            max_value=30,
+            value=st.session_state["segment_size_days"],
+            help="Size of each date segment in days. Smaller segments may yield more tweets but require more API calls."
+        )
 
 # Date input section
 col1, col2 = st.columns(2)
@@ -735,6 +954,19 @@ with col1:
     start_date = st.date_input("Start Date", value=datetime(2025, 1, 1))
 with col2:
     end_date = st.date_input("End Date", value=datetime(2025, 3, 10))
+
+# Show date segmentation preview if enabled
+if st.session_state["use_date_segmentation"]:
+    segments = split_date_range(start_date, end_date, st.session_state["segment_size_days"])
+    st.write(f"Date range will be split into {len(segments)} segments:")
+    for i, (seg_start, seg_end) in enumerate(segments[:5]):  # Show first 5 segments
+        st.write(f"  {i+1}. {seg_start} to {seg_end}")
+    if len(segments) > 5:
+        st.write(f"  ... and {len(segments) - 5} more segments")
+    
+    # Calculate potential tweet yield
+    potential_tweets = len(segments) * 250  # 250 tweets per segment per company
+    st.write(f"Potential maximum tweets per company: {potential_tweets} (250 per segment × {len(segments)} segments)")
 
 # Load base keywords
 base_keywords = []
@@ -762,7 +994,7 @@ if base_keywords:
     )
     
     # Combined CSV download button
-    combined_csv = combine_company_csvs(st.session_state["selected_company"])
+    combined_csv = combine_company_csvs(st.session_state["selected_company"], use_combined=True)
     if combined_csv is not None:
         csv_data = combined_csv.to_csv(index=False)
         st.download_button(
@@ -798,13 +1030,23 @@ col1, col2, col3 = st.columns(3)
 with col1:
     if st.button("Fetch Data"):
         if start_date <= end_date and base_keywords:
-            fetch_data_parallel(base_keywords, start_date, end_date, max_workers)
+            fetch_data_parallel(
+                base_keywords, 
+                start_date, 
+                end_date, 
+                max_workers,
+                st.session_state["use_date_segmentation"],
+                st.session_state["segment_size_days"],
+                st.session_state["tweet_section"]
+            )
         else:
             st.warning("Invalid date range or no companies found!")
 
 with col2:
     if st.button("Convert JSON to CSV"):
         convert_json_to_csv_parallel(max_workers)
+        if st.session_state["use_date_segmentation"]:
+            convert_combined_json_to_csv()
 
 with col3:
     if st.button("Clear Temp"):
@@ -886,6 +1128,8 @@ with st.expander("Storage Information"):
                     dir_display_name = "Twitter CSV Output"
                 elif dir_name == "logs":
                     dir_display_name = "Twitter Logs"
+                elif dir_name == "combined":
+                    dir_display_name = "Twitter Combined Output"
                 else:
                     dir_display_name = f"Twitter {dir_name.capitalize()}"
                 
@@ -908,6 +1152,8 @@ with st.expander("Storage Information"):
                     dir_display_name = "Twitter CSV Output"
                 elif dir_name == "logs":
                     dir_display_name = "Twitter Logs"
+                elif dir_name == "combined":
+                    dir_display_name = "Twitter Combined Output"
                 else:
                     dir_display_name = f"Twitter {dir_name.capitalize()}"
                 
@@ -927,11 +1173,10 @@ with st.expander("Storage Information"):
         
         # Add Twitter-specific information about accessing these files
         st.write("### Accessing Twitter Data Files")
-        st.write("These files are stored in temporary directories on the server. To access them from another website, you would need to:")
+        st.write("These files are stored in directories on your system. To access them:")
         st.write("1. Use the download buttons provided in the app")
-        st.write("2. Or modify the code to store files in a cloud storage service like AWS S3")
-        st.write("3. Or set up an API endpoint to serve these files")
-        st.write("4. Or change the storage location to a web-accessible directory")
+        st.write("2. Navigate to the output directory on your system")
+        st.write("3. The combined results (with more tweets) are in the 'combined_output' directory")
         
     except Exception as e:
         st.error(f"Error displaying storage information: {e}")
@@ -955,3 +1200,20 @@ if os.path.exists(CSV_OUTPUT_DIR):
         st.warning("No CSV files found")
 else:
     st.warning("CSV output directory does not exist")
+
+# Combined CSV Download Section
+if os.path.exists(COMBINED_OUTPUT_DIR):
+    combined_csv_files = [f for f in os.listdir(COMBINED_OUTPUT_DIR) if f.endswith(".csv")]
+    if combined_csv_files:
+        with st.expander("Download Combined CSV Files"):
+            st.write("These files contain tweets from all date segments combined:")
+            cols = st.columns(3)
+            for i, csv_file in enumerate(combined_csv_files):
+                with cols[i % 3]:
+                    with open(os.path.join(COMBINED_OUTPUT_DIR, csv_file), "r") as f:
+                        st.download_button(
+                            label=f"Download {csv_file.replace('_', ' ').replace('.csv', '').replace('combined', 'All Dates')}",
+                            data=f.read(),
+                            file_name=csv_file,
+                            mime="text/csv"
+                        )
