@@ -260,7 +260,7 @@ def fetch_tweets_for_keyword_worker(worker_id: int, keyword: str, start_date, en
         end_date_str = end_date.strftime("%Y-%m-%d")
         
         api_query = format_keyword_for_api(keyword)
-        endpoint = f"/search/search?query={api_query}&section={tweet_section}&min_retweets=1&min_likes=1&limit=50&start_date={start_date_str}&language=en&end_date={end_date_str}"
+        endpoint = f"/search/search?query={api_query}&section={tweet_section}&min_retweets=0&min_likes=0&limit=50&start_date={start_date_str}&language=en&end_date={end_date_str}"
         
         try:
             conn.request("GET", endpoint, headers=headers)
