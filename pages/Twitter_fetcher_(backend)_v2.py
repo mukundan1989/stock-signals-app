@@ -9,6 +9,7 @@ import threading
 import concurrent.futures
 from queue import Queue
 from datetime import datetime
+import platform
 from typing import List, Dict, Any, Tuple, Set
 
 # Custom CSS
@@ -32,17 +33,27 @@ st.markdown(
     unsafe_allow_html=True
 )
 
+# Default paths based on OS
+def get_default_output_dir():
+    system = platform.system()
+    if system == "Windows":
+        return os.path.join(os.path.expanduser("~"), "Documents", "TwitterData")
+    elif system == "Darwin":  # macOS
+        return os.path.join(os.path.expanduser("~"), "Documents", "TwitterData")
+    else:  # Linux and others
+        return os.path.join(os.path.expanduser("~"), "TwitterData")
+
 # Configuration
 API_HOST = "twitter154.p.rapidapi.com"
 DEFAULT_API_KEY = "3cf0736f79mshe60115701a871c4p19c558jsncccfd9521243"
 KEYWORDS_FILE = "data/keywords.txt"
-JSON_OUTPUT_DIR = "/tmp/data/output"
-CSV_OUTPUT_DIR = "/tmp/data/csv_output"
 MAX_WORKERS = 4  # Maximum number of parallel workers
 
-# Ensure output directories exist
-os.makedirs(JSON_OUTPUT_DIR, exist_ok=True)
-os.makedirs(CSV_OUTPUT_DIR, exist_ok=True)
+# Initialize session state for output directories
+if "output_dir" not in st.session_state:
+    st.session_state["output_dir"] = get_default_output_dir()
+if "directories" not in st.session_state:
+    st.session_state["directories"] = {}
 
 # Initialize session state
 if "status_table" not in st.session_state:
@@ -72,6 +83,69 @@ if "companies_per_key" not in st.session_state:
 
 # Thread-safe locks for shared resources
 status_lock = threading.Lock()
+
+# Streamlit UI
+st.title("Twitter Data Fetcher")
+
+# Output directory configuration
+st.session_state["output_dir"] = st.text_input(
+    "Output Directory",
+    value=st.session_state["output_dir"],
+    help="Directory where all files will be saved"
+)
+
+# Create directory structure
+def ensure_directories():
+    try:
+        # Main output directory
+        os.makedirs(st.session_state["output_dir"], exist_ok=True)
+        
+        # JSON output directory
+        json_dir = os.path.join(st.session_state["output_dir"], "json_output")
+        os.makedirs(json_dir, exist_ok=True)
+        
+        # CSV output directory
+        csv_dir = os.path.join(st.session_state["output_dir"], "csv_output")
+        os.makedirs(csv_dir, exist_ok=True)
+        
+        # Logs directory
+        logs_dir = os.path.join(st.session_state["output_dir"], "logs")
+        os.makedirs(logs_dir, exist_ok=True)
+        
+        return {
+            "main": st.session_state["output_dir"],
+            "json": json_dir,
+            "csv": csv_dir,
+            "logs": logs_dir
+        }
+    except Exception as e:
+        st.error(f"Error creating directories: {e}")
+        # Return a default dictionary to prevent errors
+        return {
+            "main": st.session_state["output_dir"],
+            "json": os.path.join(st.session_state["output_dir"], "json_output"),
+            "csv": os.path.join(st.session_state["output_dir"], "csv_output"),
+            "logs": os.path.join(st.session_state["output_dir"], "logs")
+        }
+
+# Ensure directories exist and store in session state
+try:
+    st.session_state["directories"] = ensure_directories()
+    dirs = st.session_state["directories"]
+except Exception as e:
+    st.error(f"Error initializing directories: {e}")
+    # Provide a fallback
+    dirs = {
+        "main": st.session_state["output_dir"],
+        "json": os.path.join(st.session_state["output_dir"], "json_output"),
+        "csv": os.path.join(st.session_state["output_dir"], "csv_output"),
+        "logs": os.path.join(st.session_state["output_dir"], "logs")
+    }
+    st.session_state["directories"] = dirs
+
+# Now we can use dirs["json"] and dirs["csv"] instead of hardcoded paths
+JSON_OUTPUT_DIR = dirs["json"]
+CSV_OUTPUT_DIR = dirs["csv"]
 
 def generate_combined_keywords(base_keywords):
     """Generate default combined keywords for each base keyword with + instead of spaces"""
@@ -107,8 +181,7 @@ def rotate_to_next_api_key():
 def save_failed_companies():
     """Save failed companies to a file"""
     try:
-        os.makedirs(os.path.join(JSON_OUTPUT_DIR, "logs"), exist_ok=True)
-        failed_file = os.path.join(JSON_OUTPUT_DIR, "logs", "failed_companies.txt")
+        failed_file = os.path.join(dirs["logs"], "failed_companies.txt")
         with open(failed_file, "w", encoding="utf-8") as f:
             for company, details in st.session_state["failed_companies"].items():
                 f.write(f"{company},{details['timestamp']},{details['reason']}\n")
@@ -120,7 +193,7 @@ def save_failed_companies():
 def load_failed_companies():
     """Load failed companies from a file"""
     try:
-        failed_file = os.path.join(JSON_OUTPUT_DIR, "logs", "failed_companies.txt")
+        failed_file = os.path.join(dirs["logs"], "failed_companies.txt")
         if os.path.exists(failed_file):
             with open(failed_file, "r", encoding="utf-8") as f:
                 for line in f:
@@ -621,9 +694,6 @@ def divide_into_chunks(items, num_chunks):
         
     return result
 
-# Streamlit UI
-st.title("Twitter Data Fetcher")
-
 # API Key Input
 api_keys_input = st.text_area(
     "Twitter API Keys (one per line)",
@@ -785,8 +855,6 @@ if st.session_state["status_table"]:
 else:
     st.write("No actions performed yet. Fetch data to see the status.")
 
-# Add this code at the end of the file, just before the last CSV Download Section
-
 # Display storage information
 with st.expander("Storage Information"):
     try:
@@ -794,14 +862,8 @@ with st.expander("Storage Information"):
         total_size = 0
         file_count = 0
         
-        # Define directories to check
-        directories = {
-            "JSON Output": JSON_OUTPUT_DIR,
-            "CSV Output": CSV_OUTPUT_DIR
-        }
-        
         # Check each directory
-        for dir_name, dir_path in directories.items():
+        for dir_name, dir_path in dirs.items():
             if os.path.exists(dir_path):
                 files = os.listdir(dir_path)
                 dir_size = sum(os.path.getsize(os.path.join(dir_path, f)) for f in files if os.path.isfile(os.path.join(dir_path, f)))
@@ -817,7 +879,7 @@ with st.expander("Storage Information"):
                 else:
                     dir_size_str = f"{dir_size/(1024*1024):.2f} MB"
                 
-                st.write(f"### {dir_name}: {dir_path}")
+                st.write(f"### {dir_name.capitalize()}: {dir_path}")
                 st.write(f"- Contains {dir_file_count} files")
                 st.write(f"- Size: {dir_size_str}")
                 
@@ -829,7 +891,7 @@ with st.expander("Storage Information"):
                     if len(files) > 5:
                         st.write(f"  - ... and {len(files) - 5} more")
             else:
-                st.write(f"### {dir_name}: {dir_path}")
+                st.write(f"### {dir_name.capitalize()}: {dir_path}")
                 st.write("- Directory does not exist")
         
         # Format total size nicely
@@ -842,14 +904,6 @@ with st.expander("Storage Information"):
         
         st.write(f"### Total Storage Used: {size_str}")
         st.write(f"### Total Files: {file_count}")
-        
-        # Add information about accessing these files
-        st.write("### Accessing These Files")
-        st.write("These files are stored in temporary directories on the server. To access them from another website, you would need to:")
-        st.write("1. Use the download buttons provided in the app")
-        st.write("2. Or modify the code to store files in a cloud storage service like AWS S3")
-        st.write("3. Or set up an API endpoint to serve these files")
-        st.write("4. Or change the storage location to a web-accessible directory")
         
     except Exception as e:
         st.error(f"Error displaying storage information: {e}")
