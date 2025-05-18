@@ -709,14 +709,21 @@ def convert_json_to_csv_worker(worker_id: int, json_file: str, status_queue: Que
         df = pd.DataFrame(records)
         df.to_csv(csv_file_path, index=False)
         
-        # Extract keyword from filename (remove segment ID if present)
+        # Extract keyword from filename (remove segment ID and tweet section if present)
         keyword_parts = os.path.splitext(json_file)[0].split('_')
-        if len(keyword_parts) > 1 and keyword_parts[-2].isdigit() and keyword_parts[-1].isdigit():
+        # Check for segment ID pattern (YYYYMMDD-YYYYMMDD)
+        if len(keyword_parts) > 1 and any(part.isdigit() or '-' in part for part in keyword_parts[-2:]):
             # This is a segmented file, remove the segment ID
-            keyword = '_'.join(keyword_parts[:-2])
-        else:
-            keyword = '_'.join(keyword_parts)
-        
+            keyword_parts = keyword_parts[:-2] if len(keyword_parts) > 2 else keyword_parts
+        elif len(keyword_parts) > 1:
+            # Check for tweet section and combined markers
+            sections = ["latest", "top", "user", "image", "video"]
+            if any(section in keyword_parts for section in sections) or "combined" in keyword_parts:
+                # Remove section and combined markers
+                keyword_parts = [part for part in keyword_parts if part not in sections and part != "combined"]
+
+        # Join the remaining parts to get the base keyword
+        keyword = '_'.join(keyword_parts)
         keyword = keyword.replace("_", " ")
         result_queue.put((json_file, keyword, True))
         
@@ -770,6 +777,19 @@ def convert_combined_json_to_csv():
             
             df = pd.DataFrame(records)
             df.to_csv(csv_file_path, index=False)
+            
+            # Extract the base keyword from the filename
+            keyword_parts = os.path.splitext(json_file)[0].split('_')
+            # Remove section and combined markers
+            sections = ["latest", "top", "user", "image", "video", "combined"]
+            keyword_parts = [part for part in keyword_parts if part not in sections]
+            keyword = ' '.join(keyword_parts)
+
+            # Update status table
+            for entry in st.session_state["status_table"]:
+                if entry["Keyword"] == keyword or entry["Keyword"] == keyword.replace("_", " "):
+                    entry["CSV Output"] = "✅"
+                    break
             
             # Update progress
             progress_bar.progress((i + 1) / len(json_files))
