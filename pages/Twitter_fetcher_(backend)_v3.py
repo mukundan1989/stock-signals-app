@@ -1366,9 +1366,9 @@ if base_keywords:
 else:
     st.warning("No companies found in keywords.txt")
 
-# Buttons - Legacy mode has separate buttons for base and combined keywords
+# Buttons - Legacy mode has a single fetch button now
 if st.session_state["use_legacy_mode"]:
-    col1, col2, col3, col4 = st.columns(4)
+    col1, col2 = st.columns(2)
     with col1:
         if st.button("Fetch All Keywords"):
             if start_date <= end_date and base_keywords:
@@ -1377,27 +1377,36 @@ if st.session_state["use_legacy_mode"]:
                 all_keywords.extend(base_keywords)
                 for combos in st.session_state["combined_keywords"].values():
                     all_keywords.extend(combos)
+                
+                # Show what will happen automatically
+                auto_message = "Will automatically:"
+                if st.session_state["auto_convert_to_csv"]:
+                    auto_message += " convert JSON to CSV"
+                if st.session_state["auto_combine_company_files"] and st.session_state["auto_convert_to_csv"]:
+                    auto_message += " and combine company files"
+                st.info(auto_message)
+                
                 fetch_tweets_legacy(start_date, end_date, all_keywords, st.session_state["tweet_section"])
             else:
                 st.warning("Invalid date range or no base keywords!")
 
     with col2:
-        if st.button("Convert JSON to CSV"):
-            convert_json_to_csv_legacy()
-
-    with col3:
-        if st.button("Combine Company Files"):
-            combine_all_company_files()
-
-    with col4:
         if st.button("Clear Temp"):
             clear_temp()
 else:
     # Enhanced mode has a single fetch button
-    col1, col2, col3 = st.columns(3)
+    col1, col2 = st.columns(2)
     with col1:
         if st.button("Fetch Data"):
             if start_date <= end_date and base_keywords:
+                # Show what will happen automatically
+                auto_message = "Will automatically:"
+                if st.session_state["auto_convert_to_csv"]:
+                    auto_message += " convert JSON to CSV"
+                if st.session_state["auto_combine_company_files"] and st.session_state["auto_convert_to_csv"]:
+                    auto_message += " and combine company files"
+                st.info(auto_message)
+                
                 fetch_data_parallel(
                     base_keywords, 
                     start_date, 
@@ -1411,14 +1420,6 @@ else:
                 st.warning("Invalid date range or no companies found!")
 
     with col2:
-        if st.button("Convert JSON to CSV"):
-            if st.session_state["use_date_segmentation"]:
-                convert_json_to_csv_parallel(MAX_WORKERS)
-                convert_combined_json_to_csv()
-            else:
-                convert_json_to_csv_parallel(MAX_WORKERS)
-
-    with col3:
         if st.button("Clear Temp"):
             clear_temp()
 
