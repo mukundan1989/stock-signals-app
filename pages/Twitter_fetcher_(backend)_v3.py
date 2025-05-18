@@ -880,6 +880,8 @@ def convert_json_to_csv_parallel(max_workers=MAX_WORKERS):
 
 def combine_company_csvs(company_name, use_combined=True):
     """Merge all CSV files for a company's combined keywords into one DataFrame"""
+    dataframes = []
+    
     if use_combined and os.path.exists(COMBINED_OUTPUT_DIR):
         # First check for combined files
         company_prefix = company_name.replace(" ", "_")
@@ -889,11 +891,23 @@ def combine_company_csvs(company_name, use_combined=True):
         ]
         
         if csv_files:
-            combined_df = pd.concat(
-                [pd.read_csv(os.path.join(COMBINED_OUTPUT_DIR, f)) for f in csv_files],
-                ignore_index=True
-            )
-            return combined_df
+            for csv_file in csv_files:
+                try:
+                    file_path = os.path.join(COMBINED_OUTPUT_DIR, csv_file)
+                    # Check if file is not empty
+                    if os.path.getsize(file_path) > 0:
+                        df = pd.read_csv(file_path)
+                        if not df.empty:
+                            dataframes.append(df)
+                    else:
+                        st.warning(f"Skipping empty file: {csv_file}")
+                except pd.errors.EmptyDataError:
+                    st.warning(f"No data in file: {csv_file}")
+                except Exception as e:
+                    st.warning(f"Error reading {csv_file}: {str(e)}")
+            
+            if dataframes:
+                return pd.concat(dataframes, ignore_index=True)
     
     # Fall back to regular CSV files
     if not os.path.exists(CSV_OUTPUT_DIR):
@@ -908,11 +922,26 @@ def combine_company_csvs(company_name, use_combined=True):
     if not csv_files:
         return None
     
-    combined_df = pd.concat(
-        [pd.read_csv(os.path.join(CSV_OUTPUT_DIR, f)) for f in csv_files],
-        ignore_index=True
-    )
-    return combined_df
+    dataframes = []
+    for csv_file in csv_files:
+        try:
+            file_path = os.path.join(CSV_OUTPUT_DIR, csv_file)
+            # Check if file is not empty
+            if os.path.getsize(file_path) > 0:
+                df = pd.read_csv(file_path)
+                if not df.empty:
+                    dataframes.append(df)
+            else:
+                st.warning(f"Skipping empty file: {csv_file}")
+        except pd.errors.EmptyDataError:
+            st.warning(f"No data in file: {csv_file}")
+        except Exception as e:
+            st.warning(f"Error reading {csv_file}: {str(e)}")
+    
+    if dataframes:
+        return pd.concat(dataframes, ignore_index=True)
+    else:
+        return None
 
 def clear_temp():
     """Clear temporary files"""
