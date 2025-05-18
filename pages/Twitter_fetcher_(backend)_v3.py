@@ -8,7 +8,8 @@ import time
 import threading
 import concurrent.futures
 from queue import Queue
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
+import calendar
 import platform
 from typing import List, Dict, Any, Tuple, Set
 
@@ -43,11 +44,36 @@ def get_default_output_dir():
     else:  # Linux and others
         return os.path.join(os.path.expanduser("~"), "TwitterData")
 
+# Get previous month's date range
+def get_previous_month_range():
+    today = date.today()
+    
+    # If we're in the first month of the year
+    if today.month == 1:
+        prev_month = 12
+        year = today.year - 1
+    else:
+        prev_month = today.month - 1
+        year = today.year
+    
+    # Get the first day of the previous month
+    first_day = date(year, prev_month, 1)
+    
+    # Get the last day of the previous month
+    _, last_day_num = calendar.monthrange(year, prev_month)
+    last_day = date(year, prev_month, last_day_num)
+    
+    return first_day, last_day
+
 # Configuration
 API_HOST = "twitter154.p.rapidapi.com"
 DEFAULT_API_KEY = "3cf0736f79mshe60115701a871c4p19c558jsncccfd9521243"
 KEYWORDS_FILE = "data/keywords.txt"
 MAX_WORKERS = 4  # Maximum number of parallel workers
+TWEETS_PER_REQUEST = 20  # Maximum tweets per API request
+
+# Get previous month's date range
+prev_month_start, prev_month_end = get_previous_month_range()
 
 # Initialize session state for output directories
 if "output_dir" not in st.session_state:
@@ -71,19 +97,11 @@ if "failed_companies" not in st.session_state:
 if "processed_companies" not in st.session_state:
     st.session_state["processed_companies"] = set()
 if "use_date_segmentation" not in st.session_state:
-    st.session_state["use_date_segmentation"] = False  # Default to disabled for better compatibility
+    st.session_state["use_date_segmentation"] = True
 if "segment_size_days" not in st.session_state:
     st.session_state["segment_size_days"] = 7  # Default to weekly segments
 if "tweet_section" not in st.session_state:
-    st.session_state["tweet_section"] = "latest"  # Default to latest tweets like the original code
-if "use_legacy_mode" not in st.session_state:
-    st.session_state["use_legacy_mode"] = True  # Default to legacy mode for better compatibility
-if "delay_between_requests" not in st.session_state:
-    st.session_state["delay_between_requests"] = 1.0  # Default delay between requests in seconds
-if "auto_convert_to_csv" not in st.session_state:
-    st.session_state["auto_convert_to_csv"] = True  # Auto-convert JSON to CSV
-if "auto_combine_company_files" not in st.session_state:
-    st.session_state["auto_combine_company_files"] = True  # Auto-combine company files
+    st.session_state["tweet_section"] = "latest"  # Default to latest tweets
 
 # API key rotation state
 if "api_keys" not in st.session_state:
@@ -130,17 +148,12 @@ def ensure_directories():
         combined_dir = os.path.join(st.session_state["output_dir"], "combined_output")
         os.makedirs(combined_dir, exist_ok=True)
         
-        # Company combined results directory
-        company_combined_dir = os.path.join(st.session_state["output_dir"], "company_combined")
-        os.makedirs(company_combined_dir, exist_ok=True)
-        
         return {
             "main": st.session_state["output_dir"],
             "json": json_dir,
             "csv": csv_dir,
             "logs": logs_dir,
-            "combined": combined_dir,
-            "company_combined": company_combined_dir
+            "combined": combined_dir
         }
     except Exception as e:
         st.error(f"Error creating directories: {e}")
@@ -150,8 +163,7 @@ def ensure_directories():
             "json": os.path.join(st.session_state["output_dir"], "json_output"),
             "csv": os.path.join(st.session_state["output_dir"], "csv_output"),
             "logs": os.path.join(st.session_state["output_dir"], "logs"),
-            "combined": os.path.join(st.session_state["output_dir"], "combined_output"),
-            "company_combined": os.path.join(st.session_state["output_dir"], "company_combined")
+            "combined": os.path.join(st.session_state["output_dir"], "combined_output")
         }
 
 # Ensure directories exist and store in session state
@@ -166,8 +178,7 @@ except Exception as e:
         "json": os.path.join(st.session_state["output_dir"], "json_output"),
         "csv": os.path.join(st.session_state["output_dir"], "csv_output"),
         "logs": os.path.join(st.session_state["output_dir"], "logs"),
-        "combined": os.path.join(st.session_state["output_dir"], "combined_output"),
-        "company_combined": os.path.join(st.session_state["output_dir"], "company_combined")
+        "combined": os.path.join(st.session_state["output_dir"], "combined_output")
     }
     st.session_state["directories"] = dirs
 
@@ -175,33 +186,22 @@ except Exception as e:
 JSON_OUTPUT_DIR = dirs["json"]
 CSV_OUTPUT_DIR = dirs["csv"]
 COMBINED_OUTPUT_DIR = dirs["combined"]
-COMPANY_COMBINED_DIR = dirs["company_combined"]
-
-def format_keyword(keyword):
-    """Replace spaces with + for all keywords"""
-    return keyword.replace(" ", "+")
-
-def display_keyword(keyword):
-    """Convert + to spaces for display"""
-    return keyword.replace("+", " ")
 
 def generate_combined_keywords(base_keywords):
     """Generate default combined keywords for each base keyword with + instead of spaces"""
     combined = {}
     for keyword in base_keywords:
-        # Ensure base keyword has + instead of spaces
-        formatted_keyword = format_keyword(keyword)
-        combined[formatted_keyword] = [
-            f"{formatted_keyword}+Portfolio",
-            f"{formatted_keyword}+Stock",
-            f"{formatted_keyword}+Earnings",
-            f"{formatted_keyword}+Analysis"
+        combined[keyword] = [
+            f"{keyword}+Portfolio",
+            f"{keyword}+Stock",
+            f"{keyword}+Earnings",
+            f"{keyword}+Analysis"
         ]
     return combined
 
 def format_keyword_for_api(keyword):
-    """Format keyword for API query - already has + instead of spaces"""
-    return keyword  # No need to replace spaces as they should already be +
+    """Replace spaces with + for API queries while preserving original for display"""
+    return keyword.replace(" ", "+")
 
 def get_current_api_key():
     """Get the current API key from the rotation"""
@@ -268,127 +268,13 @@ def split_date_range(start_date, end_date, segment_size_days=7):
     
     return segments
 
-# Legacy mode functions (similar to the original code)
-def fetch_tweets_for_keyword_legacy(keyword, start_date, end_date, api_key, tweet_section="latest"):
-    """Fetch tweets for a specific keyword from the API (legacy mode)"""
-    if not api_key.strip():
-        st.error("API key is missing! Please enter a valid key.")
-        return None
-
-    conn = http.client.HTTPSConnection(API_HOST)
-    headers = {
-        'x-rapidapi-key': api_key,
-        'x-rapidapi-host': API_HOST
-    }
-    start_date_str = start_date.strftime("%Y-%m-%d")
-    end_date_str = end_date.strftime("%Y-%m-%d")
-    
-    # Keyword should already be formatted with + instead of spaces
-    api_query = keyword
-    endpoint = f"/search/search?query={api_query}&section={tweet_section}&min_retweets=1&min_likes=1&limit=50&start_date={start_date_str}&language=en&end_date={end_date_str}"
-    
-    try:
-        conn.request("GET", endpoint, headers=headers)
-        res = conn.getresponse()
-        data = res.read()
-        return data.decode("utf-8")
-    except Exception as e:
-        st.error(f"API request failed: {e}")
-        return None
-    finally:
-        conn.close()
-
-def fetch_tweets_legacy(start_date, end_date, keywords_to_fetch, tweet_section="latest"):
-    """Fetch tweets for specified keywords (legacy mode)"""
-    if not keywords_to_fetch:
-        st.warning("No keywords selected to fetch")
-        return
-    
-    api_key = st.session_state["api_key"]
-    if not api_key.strip():
-        st.error("API key is missing!")
-        return
-
-    status_placeholder = st.empty()
-    progress_bar = st.progress(0)
-
-    for i, keyword in enumerate(keywords_to_fetch):
-        try:
-            # Display keyword with spaces for readability
-            display_name = display_keyword(keyword)
-            status_placeholder.write(f"Fetching {tweet_section} tweets for: {display_name}")
-            result = fetch_tweets_for_keyword_legacy(keyword, start_date, end_date, api_key, tweet_section)
-
-            if not result:
-                continue
-
-            # Sanitize keyword for filename (replace + with _ for filesystem compatibility)
-            sanitized_keyword = keyword.replace("+", "_").replace("/", "_")
-            output_file = os.path.join(JSON_OUTPUT_DIR, f"{sanitized_keyword}_{tweet_section}.json")
-            with open(output_file, "w", encoding="utf-8") as outfile:
-                outfile.write(result)
-
-            # Determine if this is a base keyword or a combined keyword
-            is_base = False
-            for base_keyword in st.session_state["combined_keywords"].keys():
-                if keyword == base_keyword:
-                    is_base = True
-                    break
-            
-            keyword_type = "Base" if is_base else "Combined"
-            
-            # Find the base company for this keyword
-            company = keyword
-            for base_keyword, combinations in st.session_state["combined_keywords"].items():
-                if keyword in combinations:
-                    company = base_keyword
-                    break
-            
-            st.session_state["status_table"].append({
-                "Company": display_keyword(company),
-                "Keyword": display_name,
-                "Type": keyword_type,
-                "Tweet Type": tweet_section.capitalize(),
-                "Tweet Extract JSON": "✅",
-                "CSV Output": "❌",
-                "Date Range": f"{start_date.strftime('%Y-%m-%d')} to {end_date.strftime('%Y-%m-%d')}"
-            })
-
-            status_placeholder.write(f"Saved {tweet_section} tweets for: {display_name}")
-            
-            # Update progress
-            progress_bar.progress((i + 1) / len(keywords_to_fetch))
-            
-            # Add a delay between requests to avoid rate limiting
-            time.sleep(st.session_state["delay_between_requests"])
-
-        except Exception as e:
-            st.error(f"Error fetching tweets for '{display_keyword(keyword)}': {e}")
-
-    status_placeholder.empty()
-    progress_bar.empty()
-    
-    # Automatically convert to CSV if enabled
-    if st.session_state["auto_convert_to_csv"]:
-        status_placeholder.write("Automatically converting JSON to CSV...")
-        convert_json_to_csv_legacy()
-        status_placeholder.empty()
-        
-        # Automatically combine company files if enabled
-        if st.session_state["auto_combine_company_files"]:
-            status_placeholder.write("Automatically combining company files...")
-            combine_all_company_files()
-            status_placeholder.empty()
-
-# Enhanced mode functions
 def fetch_tweets_for_keyword_worker(worker_id: int, keyword: str, start_date, end_date, api_key: str, 
                                    status_queue: Queue, result_queue: Queue, error_queue: Queue,
                                    segment_id: str = "", tweet_section: str = "latest"):
     """Worker function to fetch tweets for a specific keyword"""
     try:
-        # Display keyword with spaces for readability
-        display_name = display_keyword(keyword)
-        status_queue.put(f"Worker {worker_id}: Fetching {tweet_section} tweets for: {display_name} ({start_date} to {end_date})")
+        display_keyword = keyword.replace("+", " ")
+        status_queue.put(f"Worker {worker_id}: Fetching tweets for: {display_keyword} ({start_date} to {end_date})")
         
         conn = http.client.HTTPSConnection(API_HOST)
         headers = {
@@ -399,9 +285,21 @@ def fetch_tweets_for_keyword_worker(worker_id: int, keyword: str, start_date, en
         start_date_str = start_date.strftime("%Y-%m-%d")
         end_date_str = end_date.strftime("%Y-%m-%d")
         
-        # Keyword should already be formatted with + instead of spaces
-        api_query = keyword
-        endpoint = f"/search/search?query={api_query}&section={tweet_section}&min_retweets=1&min_likes=1&limit=50&start_date={start_date_str}&language=en&end_date={end_date_str}"
+        api_query = format_keyword_for_api(keyword)
+        
+        # Enhanced API endpoint with sort_by parameter to ensure latest tweets
+        # Changed limit from 50 to 20 as requested
+        endpoint = (
+            f"/search/search?query={api_query}"
+            f"&section={tweet_section}"
+            f"&min_retweets=1"
+            f"&min_likes=1"
+            f"&limit={TWEETS_PER_REQUEST}"  # Now using 20 instead of 50
+            f"&start_date={start_date_str}"
+            f"&end_date={end_date_str}"
+            f"&language=en"
+            f"&sort_by=recency"  # Sort by most recent tweets first
+        )
         
         try:
             conn.request("GET", endpoint, headers=headers)
@@ -409,7 +307,7 @@ def fetch_tweets_for_keyword_worker(worker_id: int, keyword: str, start_date, en
             data_bytes = res.read()
             
             if not data_bytes:
-                error_msg = f"Empty response for {display_name} ({start_date} to {end_date})"
+                error_msg = f"Empty response for {display_keyword} ({start_date} to {end_date})"
                 status_queue.put(error_msg)
                 error_queue.put((keyword, datetime.now().strftime("%Y-%m-%d %H:%M:%S"), error_msg))
                 result_queue.put((keyword, None, segment_id))
@@ -418,15 +316,15 @@ def fetch_tweets_for_keyword_worker(worker_id: int, keyword: str, start_date, en
             try:
                 data = json.loads(data_bytes.decode("utf-8"))
                 tweet_count = len(data.get('results', []))
-                status_queue.put(f"Worker {worker_id}: Found {tweet_count} {tweet_section} tweets for {display_name} ({start_date} to {end_date})")
+                status_queue.put(f"Worker {worker_id}: Found {tweet_count} tweets for {display_keyword} ({start_date} to {end_date})")
                 result_queue.put((keyword, data, segment_id))
             except json.JSONDecodeError as e:
-                error_msg = f"Error parsing JSON for {display_name} ({start_date} to {end_date}): {e}"
+                error_msg = f"Error parsing JSON for {display_keyword} ({start_date} to {end_date}): {e}"
                 status_queue.put(error_msg)
                 error_queue.put((keyword, datetime.now().strftime("%Y-%m-%d %H:%M:%S"), error_msg))
                 result_queue.put((keyword, None, segment_id))
         except Exception as e:
-            error_msg = f"API request failed for {display_name} ({start_date} to {end_date}): {e}"
+            error_msg = f"API request failed for {display_keyword} ({start_date} to {end_date}): {e}"
             status_queue.put(error_msg)
             error_queue.put((keyword, datetime.now().strftime("%Y-%m-%d %H:%M:%S"), error_msg))
             result_queue.put((keyword, None, segment_id))
@@ -434,7 +332,7 @@ def fetch_tweets_for_keyword_worker(worker_id: int, keyword: str, start_date, en
             conn.close()
             
     except Exception as e:
-        error_msg = f"Fatal error fetching tweets for {display_keyword(keyword)} ({start_date} to {end_date}): {e}"
+        error_msg = f"Fatal error fetching tweets for {keyword.replace('+', ' ')} ({start_date} to {end_date}): {e}"
         status_queue.put(error_msg)
         error_queue.put((keyword, datetime.now().strftime("%Y-%m-%d %H:%M:%S"), error_msg))
         result_queue.put((keyword, None, segment_id))
@@ -445,9 +343,7 @@ def fetch_company_data_worker(worker_id: int, company: str, combined_keywords: L
                              segment_id: str = "", tweet_section: str = "latest"):
     """Worker function to fetch data for a company and all its combinations"""
     try:
-        # Display company with spaces for readability
-        display_company = display_keyword(company)
-        status_queue.put(f"Worker {worker_id}: Processing company: {display_company} ({start_date} to {end_date})")
+        status_queue.put(f"Worker {worker_id}: Processing company: {company} ({start_date} to {end_date})")
         
         # First, fetch the base company keyword
         all_keywords = [company] + combined_keywords
@@ -456,9 +352,8 @@ def fetch_company_data_worker(worker_id: int, company: str, combined_keywords: L
         
         for keyword in all_keywords:
             try:
-                # Display keyword with spaces for readability
-                display_name = display_keyword(keyword)
-                status_queue.put(f"Worker {worker_id}: Fetching {tweet_section} tweets for: {display_name} ({start_date} to {end_date})")
+                display_keyword = keyword.replace("+", " ")
+                status_queue.put(f"Worker {worker_id}: Fetching tweets for: {display_keyword} ({start_date} to {end_date})")
                 
                 conn = http.client.HTTPSConnection(API_HOST)
                 headers = {
@@ -469,31 +364,43 @@ def fetch_company_data_worker(worker_id: int, company: str, combined_keywords: L
                 start_date_str = start_date.strftime("%Y-%m-%d")
                 end_date_str = end_date.strftime("%Y-%m-%d")
                 
-                # Keyword should already be formatted with + instead of spaces
-                api_query = keyword
-                endpoint = f"/search/search?query={api_query}&section={tweet_section}&min_retweets=1&min_likes=1&limit=50&start_date={start_date_str}&language=en&end_date={end_date_str}"
+                api_query = format_keyword_for_api(keyword)
+                
+                # Enhanced API endpoint with sort_by parameter to ensure latest tweets
+                # Changed limit from 50 to 20 as requested
+                endpoint = (
+                    f"/search/search?query={api_query}"
+                    f"&section={tweet_section}"
+                    f"&min_retweets=1"
+                    f"&min_likes=1"
+                    f"&limit={TWEETS_PER_REQUEST}"  # Now using 20 instead of 50
+                    f"&start_date={start_date_str}"
+                    f"&end_date={end_date_str}"
+                    f"&language=en"
+                    f"&sort_by=recency"  # Sort by most recent tweets first
+                )
                 
                 conn.request("GET", endpoint, headers=headers)
                 res = conn.getresponse()
                 data_bytes = res.read()
                 
                 if not data_bytes:
-                    error_msg = f"Empty response for {display_name} ({start_date} to {end_date})"
+                    error_msg = f"Empty response for {display_keyword} ({start_date} to {end_date})"
                     status_queue.put(error_msg)
                     continue
                 
                 data = json.loads(data_bytes.decode("utf-8"))
                 tweet_count = len(data.get('results', []))
-                status_queue.put(f"Worker {worker_id}: Found {tweet_count} {tweet_section} tweets for {display_name} ({start_date} to {end_date})")
+                status_queue.put(f"Worker {worker_id}: Found {tweet_count} tweets for {display_keyword} ({start_date} to {end_date})")
                 
                 company_results[keyword] = data
                 success_count += 1
                 
-                # Add a delay between requests to avoid rate limiting
-                time.sleep(st.session_state["delay_between_requests"])
+                # Add a small delay between requests to avoid rate limiting
+                time.sleep(0.5)
                 
             except Exception as e:
-                error_msg = f"Error fetching tweets for {display_keyword(keyword)} ({start_date} to {end_date}): {e}"
+                error_msg = f"Error fetching tweets for {keyword.replace('+', ' ')} ({start_date} to {end_date}): {e}"
                 status_queue.put(error_msg)
                 continue
             finally:
@@ -501,21 +408,22 @@ def fetch_company_data_worker(worker_id: int, company: str, combined_keywords: L
         
         # Report overall company success/failure
         if success_count > 0:
-            status_queue.put(f"Worker {worker_id}: Successfully processed {success_count}/{len(all_keywords)} keywords for company {display_company} ({start_date} to {end_date})")
+            status_queue.put(f"Worker {worker_id}: Successfully processed {success_count}/{len(all_keywords)} keywords for company {company} ({start_date} to {end_date})")
             result_queue.put((company, company_results, segment_id))
         else:
-            error_msg = f"Failed to fetch any data for company {display_company} ({start_date} to {end_date})"
+            error_msg = f"Failed to fetch any data for company {company} ({start_date} to {end_date})"
             status_queue.put(error_msg)
             error_queue.put((company, datetime.now().strftime("%Y-%m-%d %H:%M:%S"), error_msg))
             result_queue.put((company, None, segment_id))
             
     except Exception as e:
-        error_msg = f"Fatal error processing company {display_keyword(company)} ({start_date} to {end_date}): {e}"
+        error_msg = f"Fatal error processing company {company} ({start_date} to {end_date}): {e}"
         status_queue.put(error_msg)
         error_queue.put((company, datetime.now().strftime("%Y-%m-%d %H:%M:%S"), error_msg))
         result_queue.put((company, None, segment_id))
 
-def fetch_data_parallel(companies, start_date, end_date, max_workers=MAX_WORKERS, use_date_segmentation=False, segment_size_days=7, tweet_section="latest"):
+def fetch_data_parallel(companies, start_date, end_date, max_workers=MAX_WORKERS, 
+                       use_date_segmentation=True, segment_size_days=7, tweet_section="latest"):
     """Fetch data for companies and their combinations using parallel workers"""
     if not companies:
         st.warning("No companies selected to fetch")
@@ -581,7 +489,7 @@ def fetch_data_parallel(companies, start_date, end_date, max_workers=MAX_WORKERS
                             status_queue, result_queue, error_queue, segment_id, tweet_section
                         )
                         futures.append((future, company))
-                        # Add a delay to prevent overwhelming the API
+                        # Add a small delay to prevent overwhelming the API
                         time.sleep(0.2)
             
             # Process results as they come in
@@ -621,33 +529,26 @@ def fetch_data_parallel(companies, start_date, end_date, max_workers=MAX_WORKERS
                         # Save results to files with segment ID in filename
                         for keyword, data in company_results.items():
                             try:
-                                # Sanitize keyword for filename (replace + with _ for filesystem compatibility)
-                                sanitized_keyword = keyword.replace("+", "_").replace("/", "_")
-                                # Include tweet section in filename
-                                if use_date_segmentation:
-                                    output_file = os.path.join(JSON_OUTPUT_DIR, f"{sanitized_keyword}_{tweet_section}_{seg_id}.json")
-                                else:
-                                    output_file = os.path.join(JSON_OUTPUT_DIR, f"{sanitized_keyword}_{tweet_section}.json")
-                                
+                                sanitized_keyword = keyword.replace(" ", "_").replace("/", "_").replace("+", "_")
+                                output_file = os.path.join(JSON_OUTPUT_DIR, f"{sanitized_keyword}_{seg_id}.json")
                                 with open(output_file, "w", encoding="utf-8") as outfile:
                                     json.dump(data, outfile)
                                 
-                                # Display keyword with spaces for readability
-                                display_name = display_keyword(keyword)
+                                display_keyword = keyword.replace("+", " ")
                                 keyword_type = "Base" if keyword == company else "Combined"
                                 
                                 st.session_state["status_table"].append({
-                                    "Company": display_keyword(company),
-                                    "Keyword": display_name,
+                                    "Company": company,
+                                    "Keyword": display_keyword,
                                     "Type": keyword_type,
-                                    "Tweet Type": tweet_section.capitalize(),
                                     "Tweet Extract JSON": "✅",
                                     "CSV Output": "❌",
                                     "Date Range": f"{segment_start.strftime('%Y-%m-%d')} to {segment_end.strftime('%Y-%m-%d')}",
-                                    "Segment": seg_id if use_date_segmentation else ""
+                                    "Segment": seg_id,
+                                    "Section": tweet_section
                                 })
                             except Exception as e:
-                                st.error(f"Error saving tweets for {display_keyword(keyword)}: {e}")
+                                st.error(f"Error saving tweets for {keyword.replace('+', ' ')}: {e}")
                     
                     # Update progress
                     progress_bar.progress(processed_count / total_count)
@@ -685,7 +586,7 @@ def fetch_data_parallel(companies, start_date, end_date, max_workers=MAX_WORKERS
                             # This will raise an exception if the future raised one
                             future.result()
                         except Exception as e:
-                            st.error(f"Error in worker thread for {display_keyword(company)}: {e}")
+                            st.error(f"Error in worker thread for {company}: {e}")
                             # Make sure we count this as processed
                             if company not in segment_results:
                                 processed_count += 1
@@ -725,20 +626,6 @@ def fetch_data_parallel(companies, start_date, end_date, max_workers=MAX_WORKERS
         combine_segmented_results(all_results, tweet_section)
         segment_status.text("Results combined successfully!")
     
-    # Automatically convert to CSV if enabled
-    if st.session_state["auto_convert_to_csv"]:
-        st.write("Automatically converting JSON to CSV...")
-        if use_date_segmentation:
-            convert_json_to_csv_parallel(MAX_WORKERS)
-            convert_combined_json_to_csv()
-        else:
-            convert_json_to_csv_parallel(MAX_WORKERS)
-        
-        # Automatically combine company files if enabled
-        if st.session_state["auto_combine_company_files"]:
-            st.write("Automatically combining company files...")
-            combine_all_company_files()
-    
     return all_results
 
 def combine_segmented_results(all_results, tweet_section="latest"):
@@ -749,29 +636,42 @@ def combine_segmented_results(all_results, tweet_section="latest"):
             # Process each keyword
             for keyword, tweets in company_results.items():
                 try:
+                    # Remove duplicate tweets based on tweet_id
+                    seen_ids = set()
+                    unique_tweets = []
+                    for tweet in tweets:
+                        tweet_id = tweet.get('tweet_id')
+                        if tweet_id and tweet_id not in seen_ids:
+                            seen_ids.add(tweet_id)
+                            unique_tweets.append(tweet)
+                    
                     # Create a combined data structure
                     combined_data = {
-                        "results": tweets,
+                        "results": unique_tweets,
                         "meta": {
                             "combined_from_segments": True,
-                            "total_tweets": len(tweets),
-                            "tweet_section": tweet_section,
-                            "combination_date": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                            "total_tweets": len(unique_tweets),
+                            "combination_date": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                            "section": tweet_section,
+                            "original_tweets_count": len(tweets),
+                            "duplicate_tweets_removed": len(tweets) - len(unique_tweets)
                         }
                     }
                     
                     # Save the combined data
-                    # Sanitize keyword for filename (replace + with _ for filesystem compatibility)
-                    sanitized_keyword = keyword.replace("+", "_").replace("/", "_")
+                    sanitized_keyword = keyword.replace(" ", "_").replace("/", "_").replace("+", "_")
                     output_file = os.path.join(COMBINED_OUTPUT_DIR, f"{sanitized_keyword}_{tweet_section}_combined.json")
                     with open(output_file, "w", encoding="utf-8") as outfile:
                         json.dump(combined_data, outfile)
                     
                     # Update status
-                    st.session_state["process_status"].append(f"Combined {len(tweets)} {tweet_section} tweets for {display_keyword(keyword)}")
+                    st.session_state["process_status"].append(
+                        f"Combined {len(unique_tweets)} unique tweets for {keyword.replace('+', ' ')} "
+                        f"(removed {len(tweets) - len(unique_tweets)} duplicates)"
+                    )
                     
                 except Exception as e:
-                    st.error(f"Error combining results for {display_keyword(keyword)}: {e}")
+                    st.error(f"Error combining results for {keyword.replace('+', ' ')}: {e}")
         
         st.success(f"Combined results saved to {COMBINED_OUTPUT_DIR}")
     except Exception as e:
@@ -811,14 +711,13 @@ def convert_json_to_csv_worker(worker_id: int, json_file: str, status_queue: Que
         
         # Extract keyword from filename (remove segment ID if present)
         keyword_parts = os.path.splitext(json_file)[0].split('_')
-        if len(keyword_parts) > 2 and keyword_parts[-2].isdigit() and keyword_parts[-1].isdigit():
+        if len(keyword_parts) > 1 and keyword_parts[-2].isdigit() and keyword_parts[-1].isdigit():
             # This is a segmented file, remove the segment ID
             keyword = '_'.join(keyword_parts[:-2])
         else:
             keyword = '_'.join(keyword_parts)
         
-        # Convert _ back to + for internal representation
-        keyword = keyword.replace("_", "+")
+        keyword = keyword.replace("_", " ")
         result_queue.put((json_file, keyword, True))
         
     except Exception as e:
@@ -826,78 +725,6 @@ def convert_json_to_csv_worker(worker_id: int, json_file: str, status_queue: Que
         status_queue.put(error_msg)
         error_queue.put((json_file, datetime.now().strftime("%Y-%m-%d %H:%M:%S"), error_msg))
         result_queue.put((json_file, None, False))
-
-def convert_json_to_csv_legacy():
-    """Convert all JSON files to CSV (legacy mode)"""
-    if not os.path.exists(JSON_OUTPUT_DIR):
-        st.warning("No JSON files found. Please fetch tweets first.")
-        return
-
-    json_files = [f for f in os.listdir(JSON_OUTPUT_DIR) if f.endswith(".json")]
-    if not json_files:
-        st.warning("No JSON files found in the output directory.")
-        return
-
-    status_placeholder = st.empty()
-    progress_bar = st.progress(0)
-
-    for i, json_file in enumerate(json_files):
-        try:
-            status_placeholder.write(f"Converting {json_file} to CSV...")
-
-            json_file_path = os.path.join(JSON_OUTPUT_DIR, json_file)
-            csv_file_name = f"{os.path.splitext(json_file)[0]}.csv"
-            csv_file_path = os.path.join(CSV_OUTPUT_DIR, csv_file_name)
-
-            with open(json_file_path, "r") as file:
-                data = json.load(file)
-
-            records = []
-            for item in data.get("results", []):
-                flat_item = {
-                    "tweet_id": item.get("tweet_id"),
-                    "creation_date": item.get("creation_date"),
-                    "text": item.get("text"),
-                    "language": item.get("language"),
-                    "favorite_count": item.get("favorite_count"),
-                    "retweet_count": item.get("retweet_count"),
-                    "reply_count": item.get("reply_count"),
-                    "views": item.get("views"),
-                }
-                user_info = item.get("user", {})
-                for key, value in user_info.items():
-                    flat_item[f"user_{key}"] = value
-                records.append(flat_item)
-
-            df = pd.DataFrame(records)
-            df.to_csv(csv_file_path, index=False)
-
-            # Extract keyword from filename
-            keyword_parts = os.path.splitext(json_file)[0].split('_')
-            if len(keyword_parts) > 2 and keyword_parts[-2].isdigit() and keyword_parts[-1].isdigit():
-                # This is a segmented file, remove the segment ID
-                keyword = '_'.join(keyword_parts[:-2])
-            else:
-                keyword = '_'.join(keyword_parts)
-            
-            # Convert _ back to + for internal representation
-            keyword = keyword.replace("_", "+")
-            
-            # Update status table
-            for entry in st.session_state["status_table"]:
-                if entry["Keyword"] == display_keyword(keyword):
-                    entry["CSV Output"] = "✅"
-                    break
-            
-            # Update progress
-            progress_bar.progress((i + 1) / len(json_files))
-
-        except Exception as e:
-            st.error(f"Error converting {json_file} to CSV: {e}")
-
-    status_placeholder.empty()
-    progress_bar.empty()
-    st.success("All JSON files converted to CSV successfully!")
 
 def convert_combined_json_to_csv():
     """Convert all combined JSON files to CSV"""
@@ -1018,7 +845,7 @@ def convert_json_to_csv_parallel(max_workers=MAX_WORKERS):
                 if success and keyword:
                     # Update status table
                     for entry in st.session_state["status_table"]:
-                        if entry["Keyword"] == display_keyword(keyword):
+                        if entry["Keyword"] == keyword:
                             entry["CSV Output"] = "✅"
                             break
                 
@@ -1050,14 +877,12 @@ def convert_json_to_csv_parallel(max_workers=MAX_WORKERS):
             time.sleep(0.1)  # Prevent busy waiting
     
     status_area.empty()
-    st.success("All JSON files converted to CSV successfully!")
 
 def combine_company_csvs(company_name, use_combined=True):
     """Merge all CSV files for a company's combined keywords into one DataFrame"""
     if use_combined and os.path.exists(COMBINED_OUTPUT_DIR):
         # First check for combined files
-        # Sanitize company name for filename (replace + with _ for filesystem compatibility)
-        company_prefix = company_name.replace("+", "_")
+        company_prefix = company_name.replace(" ", "_")
         csv_files = [
             f for f in os.listdir(COMBINED_OUTPUT_DIR) 
             if f.startswith(company_prefix) and f.endswith(".csv")
@@ -1074,22 +899,11 @@ def combine_company_csvs(company_name, use_combined=True):
     if not os.path.exists(CSV_OUTPUT_DIR):
         return None
     
-    # Sanitize company name for filename (replace + with _ for filesystem compatibility)
-    company_prefix = company_name.replace("+", "_")
+    company_prefix = company_name.replace(" ", "_")
     csv_files = [
         f for f in os.listdir(CSV_OUTPUT_DIR) 
         if f.startswith(company_prefix) and f.endswith(".csv")
     ]
-    
-    # Also include files that start with combinations of this company
-    if company_name in st.session_state["combined_keywords"]:
-        for combo in st.session_state["combined_keywords"][company_name]:
-            combo_prefix = combo.replace("+", "_")
-            combo_files = [
-                f for f in os.listdir(CSV_OUTPUT_DIR)
-                if f.startswith(combo_prefix) and f.endswith(".csv")
-            ]
-            csv_files.extend(combo_files)
     
     if not csv_files:
         return None
@@ -1099,52 +913,6 @@ def combine_company_csvs(company_name, use_combined=True):
         ignore_index=True
     )
     return combined_df
-
-def combine_all_company_files():
-    """Combine all files for each company into a single CSV file"""
-    if not os.path.exists(CSV_OUTPUT_DIR):
-        st.warning("No CSV files found. Please fetch and convert tweets first.")
-        return
-    
-    # Get all base companies
-    companies = list(st.session_state["combined_keywords"].keys())
-    if not companies:
-        st.warning("No companies found to combine.")
-        return
-    
-    progress_bar = st.progress(0)
-    status_area = st.empty()
-    
-    for i, company in enumerate(companies):
-        try:
-            # Display company with spaces for readability
-            display_company = display_keyword(company)
-            status_area.text(f"Combining files for company: {display_company}")
-            
-            # Get combined DataFrame for this company
-            combined_df = combine_company_csvs(company)
-            
-            if combined_df is not None and not combined_df.empty:
-                # Sanitize company name for filename (replace + with _ for filesystem compatibility)
-                sanitized_company = company.replace("+", "_")
-                output_file = os.path.join(COMPANY_COMBINED_DIR, f"{sanitized_company}_ALL.csv")
-                
-                # Save the combined file
-                combined_df.to_csv(output_file, index=False)
-                
-                # Update status
-                st.session_state["process_status"].append(f"Combined {len(combined_df)} tweets for company {display_company}")
-            else:
-                st.session_state["process_status"].append(f"No data found for company {display_company}")
-            
-            # Update progress
-            progress_bar.progress((i + 1) / len(companies))
-            
-        except Exception as e:
-            st.error(f"Error combining files for company {display_keyword(company)}: {e}")
-    
-    status_area.empty()
-    st.success(f"Combined files for {len(companies)} companies")
 
 def clear_temp():
     """Clear temporary files"""
@@ -1160,10 +928,6 @@ def clear_temp():
         if os.path.exists(COMBINED_OUTPUT_DIR):
             shutil.rmtree(COMBINED_OUTPUT_DIR)
             os.makedirs(COMBINED_OUTPUT_DIR, exist_ok=True)
-            
-        if os.path.exists(COMPANY_COMBINED_DIR):
-            shutil.rmtree(COMPANY_COMBINED_DIR)
-            os.makedirs(COMPANY_COMBINED_DIR, exist_ok=True)
 
         st.session_state["status_table"] = []
         st.session_state["process_status"] = []
@@ -1214,83 +978,57 @@ st.session_state["companies_per_key"] = st.number_input(
 
 # Advanced settings in expander
 with st.expander("Advanced Settings"):
-    # Legacy mode toggle
-    st.session_state["use_legacy_mode"] = st.checkbox(
-        "Use Legacy Mode", 
-        value=st.session_state["use_legacy_mode"],
-        help="Use the original code's sequential processing for better compatibility"
+    max_workers = st.slider(
+        "Maximum Parallel Workers", 
+        min_value=1, 
+        max_value=8, 
+        value=MAX_WORKERS,
+        step=1,
+        help="Maximum number of parallel workers. Each worker uses one API key."
     )
     
     # Tweet section selection
-    tweet_section_options = ["latest", "top"]
-    tweet_section_index = 0 if st.session_state["tweet_section"] == "latest" else 1
+    tweet_section_options = {
+        "latest": "Latest Tweets (most recent)",
+        "top": "Top Tweets (most popular)",
+        "user": "User Tweets (from specific users)",
+        "image": "Image Tweets (tweets with images)",
+        "video": "Video Tweets (tweets with videos)"
+    }
     
     st.session_state["tweet_section"] = st.selectbox(
-        "Tweet Type",
-        options=tweet_section_options,
-        index=tweet_section_index,
-        help="'latest' returns the most recent tweets, 'top' returns the most popular tweets"
+        "Tweet Section",
+        options=list(tweet_section_options.keys()),
+        format_func=lambda x: tweet_section_options[x],
+        index=list(tweet_section_options.keys()).index(st.session_state["tweet_section"]),
+        help="Type of tweets to fetch. 'Latest' gets the most recent tweets."
     )
     
-    # Delay between requests
-    st.session_state["delay_between_requests"] = st.slider(
-        "Delay Between Requests (seconds)",
-        min_value=0.1,
-        max_value=5.0,
-        value=st.session_state["delay_between_requests"],
-        step=0.1,
-        help="Add a delay between API requests to avoid rate limiting"
+    # Date segmentation settings
+    st.session_state["use_date_segmentation"] = st.checkbox(
+        "Use Date Segmentation", 
+        value=st.session_state["use_date_segmentation"],
+        help="Split the date range into smaller segments to get more tweets"
     )
     
-    # Auto-convert to CSV
-    st.session_state["auto_convert_to_csv"] = st.checkbox(
-        "Auto-Convert JSON to CSV", 
-        value=st.session_state["auto_convert_to_csv"],
-        help="Automatically convert JSON files to CSV after fetching"
-    )
-    
-    # Auto-combine company files
-    st.session_state["auto_combine_company_files"] = st.checkbox(
-        "Auto-Combine Company Files", 
-        value=st.session_state["auto_combine_company_files"],
-        help="Automatically combine all files for each company into a single CSV file"
-    )
-    
-    if not st.session_state["use_legacy_mode"]:
-        max_workers = st.slider(
-            "Maximum Parallel Workers", 
-            min_value=1, 
-            max_value=8, 
-            value=MAX_WORKERS,
-            step=1,
-            help="Maximum number of parallel workers. Each worker uses one API key."
+    if st.session_state["use_date_segmentation"]:
+        st.session_state["segment_size_days"] = st.slider(
+            "Segment Size (Days)",
+            min_value=1,
+            max_value=30,
+            value=st.session_state["segment_size_days"],
+            help="Size of each date segment in days. Smaller segments may yield more tweets but require more API calls."
         )
-        
-        # Date segmentation settings
-        st.session_state["use_date_segmentation"] = st.checkbox(
-            "Use Date Segmentation", 
-            value=st.session_state["use_date_segmentation"],
-            help="Split the date range into smaller segments to get more tweets"
-        )
-        
-        if st.session_state["use_date_segmentation"]:
-            st.session_state["segment_size_days"] = st.slider(
-                "Segment Size (Days)",
-                min_value=1,
-                max_value=30,
-                value=st.session_state["segment_size_days"],
-                help="Size of each date segment in days. Smaller segments may yield more tweets but require more API calls."
-            )
 
-# Date input section
+# Date input section - Using previous month as default
 col1, col2 = st.columns(2)
 with col1:
-    start_date = st.date_input("Start Date", value=datetime(2025, 1, 1))
+    start_date = st.date_input("Start Date", value=prev_month_start)
 with col2:
-    end_date = st.date_input("End Date", value=datetime(2025, 3, 10))
+    end_date = st.date_input("End Date", value=prev_month_end)
 
 # Show date segmentation preview if enabled
-if not st.session_state["use_legacy_mode"] and st.session_state["use_date_segmentation"]:
+if st.session_state["use_date_segmentation"]:
     segments = split_date_range(start_date, end_date, st.session_state["segment_size_days"])
     st.write(f"Date range will be split into {len(segments)} segments:")
     for i, (seg_start, seg_end) in enumerate(segments[:5]):  # Show first 5 segments
@@ -1298,15 +1036,16 @@ if not st.session_state["use_legacy_mode"] and st.session_state["use_date_segmen
     if len(segments) > 5:
         st.write(f"  ... and {len(segments) - 5} more segments")
     
-    # Calculate potential tweet yield
-    potential_tweets = len(segments) * 250  # 250 tweets per segment per company
-    st.write(f"Potential maximum tweets per company: {potential_tweets} (250 per segment × {len(segments)} segments)")
+    # Calculate potential tweet yield - updated for 20 tweets per request
+    tweets_per_segment = 5 * TWEETS_PER_REQUEST  # 5 keywords × 20 tweets
+    potential_tweets = len(segments) * tweets_per_segment
+    st.write(f"Potential maximum tweets per company: {potential_tweets} ({tweets_per_segment} per segment × {len(segments)} segments)")
 
 # Load base keywords
 base_keywords = []
 if os.path.exists(KEYWORDS_FILE):
     with open(KEYWORDS_FILE, "r") as file:
-        base_keywords = [format_keyword(line.strip()) for line in file if line.strip()]
+        base_keywords = [line.strip() for line in file if line.strip()]
 else:
     # Create the directory and file if it doesn't exist
     os.makedirs(os.path.dirname(KEYWORDS_FILE), exist_ok=True)
@@ -1321,31 +1060,26 @@ if not st.session_state["combined_keywords"] and base_keywords:
 
 # Company selection dropdown
 if base_keywords:
-    # Display company names with spaces for readability
-    display_base_keywords = [display_keyword(k) for k in base_keywords]
-    selected_display = st.selectbox(
+    st.session_state["selected_company"] = st.selectbox(
         "Select Company to Manage Combinations",
-        display_base_keywords,
+        base_keywords,
         index=0
     )
-    
-    # Convert back to internal format with + instead of spaces
-    st.session_state["selected_company"] = format_keyword(selected_display)
     
     # Combined CSV download button
     combined_csv = combine_company_csvs(st.session_state["selected_company"], use_combined=True)
     if combined_csv is not None:
         csv_data = combined_csv.to_csv(index=False)
         st.download_button(
-            label=f"Download ALL {display_keyword(st.session_state['selected_company'])} Data (Combined)",
+            label=f"Download ALL {st.session_state['selected_company']} Data (Combined)",
             data=csv_data,
-            file_name=f"{st.session_state['selected_company'].replace('+', '_')}_ALL.csv",
+            file_name=f"{st.session_state['selected_company'].replace(' ', '_')}_ALL.csv",
             mime="text/csv",
             key=f"combined_{st.session_state['selected_company']}"
         )
     
-    st.subheader(f"Combination Keywords for: {display_keyword(st.session_state['selected_company'])}")
-    # Initialize combined keywords for this company if not exists
+    st.subheader(f"Combination Keywords for: {st.session_state['selected_company']}")
+    
     if st.session_state["selected_company"] not in st.session_state["combined_keywords"]:
         st.session_state["combined_keywords"][st.session_state["selected_company"]] = generate_combined_keywords(
             [st.session_state["selected_company"]]
@@ -1354,74 +1088,42 @@ if base_keywords:
     cols = st.columns(4)
     for i in range(4):
         with cols[i]:
-            # Display combination with spaces for readability
-            display_value = display_keyword(st.session_state["combined_keywords"][st.session_state["selected_company"]][i])
+            display_value = st.session_state["combined_keywords"][st.session_state["selected_company"]][i].replace("+", " ")
             new_value = st.text_input(
                 f"Combination {i+1}",
                 value=display_value,
                 key=f"combo_{st.session_state['selected_company']}_{i}"
             )
-            # Store with + instead of spaces
-            st.session_state["combined_keywords"][st.session_state["selected_company"]][i] = format_keyword(new_value)
+            st.session_state["combined_keywords"][st.session_state["selected_company"]][i] = new_value.replace(" ", "+")
 else:
     st.warning("No companies found in keywords.txt")
 
-# Buttons - Legacy mode has a single fetch button now
-if st.session_state["use_legacy_mode"]:
-    col1, col2 = st.columns(2)
-    with col1:
-        if st.button("Fetch All Keywords"):
-            if start_date <= end_date and base_keywords:
-                # Get all keywords (base + combinations)
-                all_keywords = []
-                all_keywords.extend(base_keywords)
-                for combos in st.session_state["combined_keywords"].values():
-                    all_keywords.extend(combos)
-                
-                # Show what will happen automatically
-                auto_message = "Will automatically:"
-                if st.session_state["auto_convert_to_csv"]:
-                    auto_message += " convert JSON to CSV"
-                if st.session_state["auto_combine_company_files"] and st.session_state["auto_convert_to_csv"]:
-                    auto_message += " and combine company files"
-                st.info(auto_message)
-                
-                fetch_tweets_legacy(start_date, end_date, all_keywords, st.session_state["tweet_section"])
-            else:
-                st.warning("Invalid date range or no base keywords!")
+# Buttons
+col1, col2, col3 = st.columns(3)
+with col1:
+    if st.button("Fetch Data"):
+        if start_date <= end_date and base_keywords:
+            fetch_data_parallel(
+                base_keywords, 
+                start_date, 
+                end_date, 
+                max_workers,
+                st.session_state["use_date_segmentation"],
+                st.session_state["segment_size_days"],
+                st.session_state["tweet_section"]
+            )
+        else:
+            st.warning("Invalid date range or no companies found!")
 
-    with col2:
-        if st.button("Clear Temp"):
-            clear_temp()
-else:
-    # Enhanced mode has a single fetch button
-    col1, col2 = st.columns(2)
-    with col1:
-        if st.button("Fetch Data"):
-            if start_date <= end_date and base_keywords:
-                # Show what will happen automatically
-                auto_message = "Will automatically:"
-                if st.session_state["auto_convert_to_csv"]:
-                    auto_message += " convert JSON to CSV"
-                if st.session_state["auto_combine_company_files"] and st.session_state["auto_convert_to_csv"]:
-                    auto_message += " and combine company files"
-                st.info(auto_message)
-                
-                fetch_data_parallel(
-                    base_keywords, 
-                    start_date, 
-                    end_date, 
-                    MAX_WORKERS,
-                    st.session_state["use_date_segmentation"],
-                    st.session_state["segment_size_days"],
-                    st.session_state["tweet_section"]
-                )
-            else:
-                st.warning("Invalid date range or no companies found!")
+with col2:
+    if st.button("Convert JSON to CSV"):
+        convert_json_to_csv_parallel(max_workers)
+        if st.session_state["use_date_segmentation"]:
+            convert_combined_json_to_csv()
 
-    with col2:
-        if st.button("Clear Temp"):
-            clear_temp()
+with col3:
+    if st.button("Clear Temp"):
+        clear_temp()
 
 # Display failed companies
 if st.session_state["failed_companies"]:
@@ -1432,7 +1134,7 @@ if st.session_state["failed_companies"]:
         failed_data = []
         for company, details in st.session_state["failed_companies"].items():
             failed_data.append({
-                "Company": display_keyword(company),
+                "Company": company,
                 "Timestamp": details["timestamp"],
                 "Reason": details["reason"]
             })
@@ -1447,11 +1149,10 @@ if st.session_state["failed_companies"]:
             st.success("Failed companies list cleared.")
 
 # Display API key usage
-if not st.session_state["use_legacy_mode"]:
-    with st.expander("API Key Usage"):
-        st.write(f"Current key index: {st.session_state['current_key_index'] + 1} of {len(st.session_state['api_keys'])}")
-        st.write(f"Companies processed with current key: {st.session_state['companies_processed_with_current_key']} of {st.session_state['companies_per_key']}")
-        st.write(f"Total companies processed: {len(st.session_state['processed_companies'])}")
+with st.expander("API Key Usage"):
+    st.write(f"Current key index: {st.session_state['current_key_index'] + 1} of {len(st.session_state['api_keys'])}")
+    st.write(f"Companies processed with current key: {st.session_state['companies_processed_with_current_key']} of {st.session_state['companies_per_key']}")
+    st.write(f"Total companies processed: {len(st.session_state['processed_companies'])}")
 
 # Display process status
 if st.session_state["process_status"]:
@@ -1467,7 +1168,7 @@ if st.session_state["status_table"]:
     status_df = pd.DataFrame(st.session_state["status_table"])
     st.dataframe(status_df, hide_index=True)
 else:
-    st.write("No actions performed yet. Fetch tweets to see the status.")
+    st.write("No actions performed yet. Fetch data to see the status.")
 
 # Display storage information
 with st.expander("Storage Information"):
@@ -1502,8 +1203,6 @@ with st.expander("Storage Information"):
                     dir_display_name = "Twitter Logs"
                 elif dir_name == "combined":
                     dir_display_name = "Twitter Combined Output"
-                elif dir_name == "company_combined":
-                    dir_display_name = "Twitter Company Combined Output"
                 else:
                     dir_display_name = f"Twitter {dir_name.capitalize()}"
                 
@@ -1528,8 +1227,6 @@ with st.expander("Storage Information"):
                     dir_display_name = "Twitter Logs"
                 elif dir_name == "combined":
                     dir_display_name = "Twitter Combined Output"
-                elif dir_name == "company_combined":
-                    dir_display_name = "Twitter Company Combined Output"
                 else:
                     dir_display_name = f"Twitter {dir_name.capitalize()}"
                 
@@ -1553,7 +1250,6 @@ with st.expander("Storage Information"):
         st.write("1. Use the download buttons provided in the app")
         st.write("2. Navigate to the output directory on your system")
         st.write("3. The combined results (with more tweets) are in the 'combined_output' directory")
-        st.write("4. Company-specific combined files are in the 'company_combined' directory")
         
     except Exception as e:
         st.error(f"Error displaying storage information: {e}")
@@ -1590,23 +1286,6 @@ if os.path.exists(COMBINED_OUTPUT_DIR):
                     with open(os.path.join(COMBINED_OUTPUT_DIR, csv_file), "r") as f:
                         st.download_button(
                             label=f"Download {csv_file.replace('_', ' ').replace('.csv', '').replace('combined', 'All Dates')}",
-                            data=f.read(),
-                            file_name=csv_file,
-                            mime="text/csv"
-                        )
-
-# Company Combined CSV Download Section
-if os.path.exists(COMPANY_COMBINED_DIR):
-    company_csv_files = [f for f in os.listdir(COMPANY_COMBINED_DIR) if f.endswith(".csv")]
-    if company_csv_files:
-        with st.expander("Download Company Combined CSV Files", expanded=True):
-            st.write("These files contain all tweets for each company (base keyword + combinations):")
-            cols = st.columns(3)
-            for i, csv_file in enumerate(company_csv_files):
-                with cols[i % 3]:
-                    with open(os.path.join(COMPANY_COMBINED_DIR, csv_file), "r") as f:
-                        st.download_button(
-                            label=f"Download {csv_file.replace('_', ' ').replace('.csv', '')}",
                             data=f.read(),
                             file_name=csv_file,
                             mime="text/csv"
