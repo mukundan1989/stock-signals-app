@@ -51,11 +51,11 @@ if "failed_symbols" not in st.session_state:
 if "directories" not in st.session_state:
     st.session_state["directories"] = {}  # Initialize directories dictionary
     
-# CHANGE: Separate API key lists for each service
+# CHANGE: Separate API key lists for each service - CRITICAL FIX
 if "seeking_alpha_api_keys" not in st.session_state:
-    st.session_state["seeking_alpha_api_keys"] = [DEFAULT_API_KEY]  # Initialize with default key
+    st.session_state["seeking_alpha_api_keys"] = []
 if "perplexity_api_keys" not in st.session_state:
-    st.session_state["perplexity_api_keys"] = [DEFAULT_API_KEY]  # Initialize with default key
+    st.session_state["perplexity_api_keys"] = []
 
 # Seeking Alpha API rotation state
 if "current_key_index_seeking_alpha" not in st.session_state:
@@ -173,17 +173,35 @@ except Exception as e:
 # CHANGE: Separate API Key Inputs for each service
 st.subheader("API Keys Configuration")
 
-# Seeking Alpha API Keys
-seeking_alpha_api_keys_input = st.text_area(
+# Seeking Alpha API Keys - UPDATED as per solution
+seeking_alpha_keys = st.text_area(
     "Seeking Alpha API Keys (one per line)",
-    help="Enter your RapidAPI keys for Seeking Alpha, one per line. The app will rotate through these keys."
+    help="Enter RapidAPI keys for Seeking Alpha only."
 )
+if seeking_alpha_keys:
+    st.session_state["seeking_alpha_api_keys"] = [k.strip() for k in seeking_alpha_keys.split('\n') if k.strip()]
+    total_capacity_seeking_alpha = len(st.session_state["seeking_alpha_api_keys"]) * st.session_state["stocks_per_key_seeking_alpha"]
+    st.write(f"Found {len(st.session_state['seeking_alpha_api_keys'])} Seeking Alpha API keys.")
+    st.write(f"Can process approximately {total_capacity_seeking_alpha} stocks with Seeking Alpha API.")
+elif not st.session_state["seeking_alpha_api_keys"]:
+    # Add default key if none provided
+    st.session_state["seeking_alpha_api_keys"] = [DEFAULT_API_KEY]
+    st.warning("No Seeking Alpha API keys provided. Using default key which is rate-limited.")
 
-# Perplexity API Keys
-perplexity_api_keys_input = st.text_area(
+# Perplexity API Keys - UPDATED as per solution
+perplexity_keys = st.text_area(
     "Perplexity API Keys (one per line)",
-    help="Enter your RapidAPI keys for Perplexity, one per line. The app will rotate through these keys."
+    help="Enter RapidAPI keys for Perplexity only."
 )
+if perplexity_keys:
+    st.session_state["perplexity_api_keys"] = [k.strip() for k in perplexity_keys.split('\n') if k.strip()]
+    total_capacity_perplexity = len(st.session_state["perplexity_api_keys"]) * st.session_state["stocks_per_key_perplexity"]
+    st.write(f"Found {len(st.session_state['perplexity_api_keys'])} Perplexity API keys.")
+    st.write(f"Can process approximately {total_capacity_perplexity} stocks with Perplexity API.")
+elif not st.session_state["perplexity_api_keys"]:
+    # Add default key if none provided
+    st.session_state["perplexity_api_keys"] = [DEFAULT_API_KEY]
+    st.warning("No Perplexity API keys provided. Using default key which is rate-limited.")
 
 # API rotation settings
 col1, col2 = st.columns(2)
@@ -202,27 +220,6 @@ with col2:
         value=st.session_state["stocks_per_key_perplexity"],
         help="Number of stocks to process with each key for Perplexity API"
     )
-
-# CHANGE: Parse the keys for each service separately
-# Parse Seeking Alpha API keys
-if seeking_alpha_api_keys_input:
-    st.session_state["seeking_alpha_api_keys"] = [key.strip() for key in seeking_alpha_api_keys_input.split('\n') if key.strip()]
-    total_capacity_seeking_alpha = len(st.session_state["seeking_alpha_api_keys"]) * st.session_state["stocks_per_key_seeking_alpha"]
-    st.write(f"Found {len(st.session_state['seeking_alpha_api_keys'])} Seeking Alpha API keys.")
-    st.write(f"Can process approximately {total_capacity_seeking_alpha} stocks with Seeking Alpha API.")
-elif not st.session_state["seeking_alpha_api_keys"]:
-    st.session_state["seeking_alpha_api_keys"] = [DEFAULT_API_KEY]
-    st.warning("No Seeking Alpha API keys provided. Using default key which is rate-limited.")
-
-# Parse Perplexity API keys
-if perplexity_api_keys_input:
-    st.session_state["perplexity_api_keys"] = [key.strip() for key in perplexity_api_keys_input.split('\n') if key.strip()]
-    total_capacity_perplexity = len(st.session_state["perplexity_api_keys"]) * st.session_state["stocks_per_key_perplexity"]
-    st.write(f"Found {len(st.session_state['perplexity_api_keys'])} Perplexity API keys.")
-    st.write(f"Can process approximately {total_capacity_perplexity} stocks with Perplexity API.")
-elif not st.session_state["perplexity_api_keys"]:
-    st.session_state["perplexity_api_keys"] = [DEFAULT_API_KEY]
-    st.warning("No Perplexity API keys provided. Using default key which is rate-limited.")
 
 # Advanced settings in expander
 with st.expander("Advanced Settings"):
@@ -252,8 +249,9 @@ with st.expander("Advanced Settings"):
 
 # CHANGE: Updated function to get the next Seeking Alpha API key
 def get_next_seeking_alpha_api_key():
-    # Ensure we have at least one key
-    if not st.session_state["seeking_alpha_api_keys"] or len(st.session_state["seeking_alpha_api_keys"]) == 0:
+    # Safety check - if no keys, use default
+    if not st.session_state["seeking_alpha_api_keys"]:
+        st.session_state["seeking_alpha_api_keys"] = [DEFAULT_API_KEY]
         return DEFAULT_API_KEY
     
     # Check if we need to rotate to the next key
@@ -270,8 +268,9 @@ def get_next_seeking_alpha_api_key():
 
 # CHANGE: Updated function to get the next Perplexity API key
 def get_next_perplexity_api_key():
-    # Ensure we have at least one key
-    if not st.session_state["perplexity_api_keys"] or len(st.session_state["perplexity_api_keys"]) == 0:
+    # Safety check - if no keys, use default
+    if not st.session_state["perplexity_api_keys"]:
+        st.session_state["perplexity_api_keys"] = [DEFAULT_API_KEY]
         return DEFAULT_API_KEY
     
     # Check if we need to rotate to the next key
