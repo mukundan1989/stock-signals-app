@@ -51,9 +51,11 @@ if "failed_symbols" not in st.session_state:
 if "directories" not in st.session_state:
     st.session_state["directories"] = {}  # Initialize directories dictionary
     
-# API key rotation state - separate for each API
-if "api_keys" not in st.session_state:
-    st.session_state["api_keys"] = []
+# CHANGE: Separate API key lists for each service
+if "seeking_alpha_api_keys" not in st.session_state:
+    st.session_state["seeking_alpha_api_keys"] = []
+if "perplexity_api_keys" not in st.session_state:
+    st.session_state["perplexity_api_keys"] = []
 
 # Seeking Alpha API rotation state
 if "current_key_index_seeking_alpha" not in st.session_state:
@@ -168,10 +170,19 @@ try:
 except Exception as e:
     st.error(f"Error during startup: {e}")
 
-# API Key Input
-api_keys_input = st.text_area(
-    "API Keys (one per line)",
-    help="Enter your RapidAPI keys, one per line. The app will rotate through these keys."
+# CHANGE: Separate API Key Inputs for each service
+st.subheader("API Keys Configuration")
+
+# Seeking Alpha API Keys
+seeking_alpha_api_keys_input = st.text_area(
+    "Seeking Alpha API Keys (one per line)",
+    help="Enter your RapidAPI keys for Seeking Alpha, one per line. The app will rotate through these keys."
+)
+
+# Perplexity API Keys
+perplexity_api_keys_input = st.text_area(
+    "Perplexity API Keys (one per line)",
+    help="Enter your RapidAPI keys for Perplexity, one per line. The app will rotate through these keys."
 )
 
 # API rotation settings
@@ -192,17 +203,26 @@ with col2:
         help="Number of stocks to process with each key for Perplexity API"
     )
 
-# Parse the keys
-if api_keys_input:
-    st.session_state["api_keys"] = [key.strip() for key in api_keys_input.split('\n') if key.strip()]
-    total_capacity_seeking_alpha = len(st.session_state["api_keys"]) * st.session_state["stocks_per_key_seeking_alpha"]
-    total_capacity_perplexity = len(st.session_state["api_keys"]) * st.session_state["stocks_per_key_perplexity"]
-    st.write(f"Found {len(st.session_state['api_keys'])} API keys.")
+# CHANGE: Parse the keys for each service separately
+# Parse Seeking Alpha API keys
+if seeking_alpha_api_keys_input:
+    st.session_state["seeking_alpha_api_keys"] = [key.strip() for key in seeking_alpha_api_keys_input.split('\n') if key.strip()]
+    total_capacity_seeking_alpha = len(st.session_state["seeking_alpha_api_keys"]) * st.session_state["stocks_per_key_seeking_alpha"]
+    st.write(f"Found {len(st.session_state['seeking_alpha_api_keys'])} Seeking Alpha API keys.")
     st.write(f"Can process approximately {total_capacity_seeking_alpha} stocks with Seeking Alpha API.")
+elif not st.session_state["seeking_alpha_api_keys"]:
+    st.session_state["seeking_alpha_api_keys"] = [DEFAULT_API_KEY]
+    st.warning("No Seeking Alpha API keys provided. Using default key which is rate-limited.")
+
+# Parse Perplexity API keys
+if perplexity_api_keys_input:
+    st.session_state["perplexity_api_keys"] = [key.strip() for key in perplexity_api_keys_input.split('\n') if key.strip()]
+    total_capacity_perplexity = len(st.session_state["perplexity_api_keys"]) * st.session_state["stocks_per_key_perplexity"]
+    st.write(f"Found {len(st.session_state['perplexity_api_keys'])} Perplexity API keys.")
     st.write(f"Can process approximately {total_capacity_perplexity} stocks with Perplexity API.")
-elif not st.session_state["api_keys"]:
-    st.session_state["api_keys"] = [DEFAULT_API_KEY]
-    st.warning("No API keys provided. Using default key which is rate-limited.")
+elif not st.session_state["perplexity_api_keys"]:
+    st.session_state["perplexity_api_keys"] = [DEFAULT_API_KEY]
+    st.warning("No Perplexity API keys provided. Using default key which is rate-limited.")
 
 # Advanced settings in expander
 with st.expander("Advanced Settings"):
@@ -230,10 +250,47 @@ with st.expander("Advanced Settings"):
         help="Maximum number of parallel workers. Each worker uses one API key."
     )
 
-# Fetch articles function for a single symbol - used by worker threads
-def fetch_articles_for_symbol(worker_id: int, symbol: str, since_timestamp: int, until_timestamp: int, api_key: str, 
+# CHANGE: Updated function to get the next Seeking Alpha API key
+def get_next_seeking_alpha_api_key():
+    if not st.session_state["seeking_alpha_api_keys"]:
+        return DEFAULT_API_KEY
+    
+    # Check if we need to rotate to the next key
+    if st.session_state["stocks_processed_with_current_key_seeking_alpha"] >= st.session_state["stocks_per_key_seeking_alpha"]:
+        # Reset counter and move to next key
+        st.session_state["stocks_processed_with_current_key_seeking_alpha"] = 0
+        st.session_state["current_key_index_seeking_alpha"] = (st.session_state["current_key_index_seeking_alpha"] + 1) % len(st.session_state["seeking_alpha_api_keys"])
+    
+    # Increment counter
+    st.session_state["stocks_processed_with_current_key_seeking_alpha"] += 1
+    
+    # Return the current key
+    return st.session_state["seeking_alpha_api_keys"][st.session_state["current_key_index_seeking_alpha"]]
+
+# CHANGE: Updated function to get the next Perplexity API key
+def get_next_perplexity_api_key():
+    if not st.session_state["perplexity_api_keys"]:
+        return DEFAULT_API_KEY
+    
+    # Check if we need to rotate to the next key
+    if st.session_state["stocks_processed_with_current_key_perplexity"] >= st.session_state["stocks_per_key_perplexity"]:
+        # Reset counter and move to next key
+        st.session_state["stocks_processed_with_current_key_perplexity"] = 0
+        st.session_state["current_key_index_perplexity"] = (st.session_state["current_key_index_perplexity"] + 1) % len(st.session_state["perplexity_api_keys"])
+    
+    # Increment counter
+    st.session_state["stocks_processed_with_current_key_perplexity"] += 1
+    
+    # Return the current key
+    return st.session_state["perplexity_api_keys"][st.session_state["current_key_index_perplexity"]]
+
+# CHANGE: Updated fetch articles function to use Seeking Alpha API keys
+def fetch_articles_for_symbol(worker_id: int, symbol: str, since_timestamp: int, until_timestamp: int, 
                              status_queue: Queue, result_queue: Queue, error_queue: Queue):
     try:
+        # Get the next Seeking Alpha API key
+        api_key = get_next_seeking_alpha_api_key()
+        
         status_queue.put(f"Worker {worker_id}: Fetching articles for: {symbol}")
         
         conn = http.client.HTTPSConnection(API_HOST_SEEKING_ALPHA)
@@ -296,10 +353,13 @@ def fetch_articles_for_symbol(worker_id: int, symbol: str, since_timestamp: int,
         error_queue.put((symbol, datetime.now().strftime("%Y-%m-%d %H:%M:%S"), error_msg))
         result_queue.put((symbol, None))
 
-# Function to fetch content summary for a single article - used by worker threads
-def fetch_content_for_article(worker_id: int, article_id: int, symbol: str, title: str, publish_date: str, api_key: str, 
+# CHANGE: Updated function to fetch content summary using Perplexity API keys
+def fetch_content_for_article(worker_id: int, article_id: int, symbol: str, title: str, publish_date: str, 
                              status_queue: Queue, result_queue: Queue, error_queue: Queue):
     try:
+        # Get the next Perplexity API key
+        api_key = get_next_perplexity_api_key()
+        
         # Format the date if needed
         try:
             if isinstance(publish_date, str):
@@ -403,8 +463,8 @@ def divide_into_chunks(items, num_chunks):
 col1, col2, col3 = st.columns(3)
 with col1:
     if st.button("Fetch Articles"):
-        if not st.session_state["api_keys"]:
-            st.error("Please enter at least one valid API key!")
+        if not st.session_state["seeking_alpha_api_keys"]:
+            st.error("Please enter at least one valid Seeking Alpha API key!")
         else:
             st.session_state["status_table"] = []
             st.session_state["process_status"] = []
@@ -424,7 +484,7 @@ with col1:
                 symbols = ["AAPL", "MSFT", "GOOG"]
             
             # Determine number of workers (limited by MAX_WORKERS and available keys)
-            num_workers = min(max_workers, len(st.session_state["api_keys"]))
+            num_workers = min(max_workers, len(st.session_state["seeking_alpha_api_keys"]))
             st.write(f"Using {num_workers} parallel workers for fetching articles")
             
             # Create queues for thread communication
@@ -445,11 +505,10 @@ with col1:
                 futures = []
                 for i in range(min(num_workers, len(symbol_batches))):
                     if i < len(symbol_batches) and symbol_batches[i]:  # Check if this batch has symbols
-                        api_key = st.session_state["api_keys"][i % len(st.session_state["api_keys"])]
                         for symbol in symbol_batches[i]:
                             future = executor.submit(
                                 fetch_articles_for_symbol,
-                                i+1, symbol, since_timestamp, until_timestamp, api_key, 
+                                i+1, symbol, since_timestamp, until_timestamp,
                                 status_queue, result_queue, error_queue
                             )
                             futures.append((future, symbol))
@@ -557,161 +616,163 @@ with col1:
 with col2:
     # New button to fetch content summaries with parallel processing
     if st.button("Fetch Content", disabled=not st.session_state["articles_fetched"]):
-        st.session_state["process_status"].append("Starting to fetch content summaries...")
-        st.session_state["processed_symbols_perplexity"] = set()
-        
-        try:
-            # Ensure the articles directory exists
-            os.makedirs(dirs["articles"], exist_ok=True)
+        if not st.session_state["perplexity_api_keys"]:
+            st.error("Please enter at least one valid Perplexity API key!")
+        else:
+            st.session_state["process_status"].append("Starting to fetch content summaries...")
+            st.session_state["processed_symbols_perplexity"] = set()
             
-            csv_files = [f for f in os.listdir(dirs["articles"]) if f.endswith("_news_data.csv")]
-            
-            # Determine number of workers (limited by MAX_WORKERS and available keys)
-            num_workers = min(max_workers, len(st.session_state["api_keys"]))
-            st.write(f"Using {num_workers} parallel workers for fetching content")
-            
-            # Create queues for thread communication
-            status_queue = Queue()
-            result_queue = Queue()
-            error_queue = Queue()  # New queue for error reporting
-            
-            # Collect all articles that need summaries
-            all_articles = []
-            symbol_to_file = {}
-            
-            for csv_file in csv_files:
-                symbol = csv_file.replace("_news_data.csv", "")
-                file_path = os.path.join(dirs["articles"], csv_file)
-                symbol_to_file[symbol] = file_path
+            try:
+                # Ensure the articles directory exists
+                os.makedirs(dirs["articles"], exist_ok=True)
                 
-                df = pd.read_csv(file_path)
+                csv_files = [f for f in os.listdir(dirs["articles"]) if f.endswith("_news_data.csv")]
                 
-                for _, row in df.iterrows():
-                    # Only process articles without summaries or with error summaries
-                    if pd.isna(row['Summary']) or row['Summary'].startswith("Error:"):
-                        article_id = row['ID']
-                        title = row['Title']
-                        publish_date = row['Publish Date']
-                        all_articles.append((article_id, symbol, title, publish_date))
-            
-            # Create progress indicators
-            progress_bar = st.progress(0)
-            status_area = st.empty()
-            eta_display = st.empty()
-            
-            # Divide articles among workers
-            article_batches = divide_into_chunks(all_articles, num_workers)
-            
-            # Load all DataFrames
-            dataframes = {}
-            for symbol, file_path in symbol_to_file.items():
-                dataframes[symbol] = pd.read_csv(file_path)
-            
-            # Use ThreadPoolExecutor for proper parallel execution
-            with concurrent.futures.ThreadPoolExecutor(max_workers=num_workers) as executor:
-                # Submit tasks to the executor
-                futures = []
-                for i in range(min(num_workers, len(article_batches))):
-                    if i < len(article_batches) and article_batches[i]:  # Check if this batch has articles
-                        api_key = st.session_state["api_keys"][i % len(st.session_state["api_keys"])]
-                        for article_id, symbol, title, publish_date in article_batches[i]:
-                            future = executor.submit(
-                                fetch_content_for_article,
-                                i+1, article_id, symbol, title, publish_date, api_key,
-                                status_queue, result_queue, error_queue
-                            )
-                            futures.append((future, article_id, symbol))
-                            # Add a small delay to prevent overwhelming the API
-                            time.sleep(0.1)
+                # Determine number of workers (limited by MAX_WORKERS and available keys)
+                num_workers = min(max_workers, len(st.session_state["perplexity_api_keys"]))
+                st.write(f"Using {num_workers} parallel workers for fetching content")
                 
-                # Process results as they come in
-                processed_count = 0
-                total_count = len(all_articles)
-                start_time = time.time()
+                # Create queues for thread communication
+                status_queue = Queue()
+                result_queue = Queue()
+                error_queue = Queue()  # New queue for error reporting
                 
-                # Monitor status queue and update UI
-                while processed_count < total_count:
-                    # Update status messages
-                    status_messages = []
-                    while not status_queue.empty():
-                        status = status_queue.get()
-                        st.session_state["process_status"].append(status)
-                        status_messages.append(status)
+                # Collect all articles that need summaries
+                all_articles = []
+                symbol_to_file = {}
+                
+                for csv_file in csv_files:
+                    symbol = csv_file.replace("_news_data.csv", "")
+                    file_path = os.path.join(dirs["articles"], csv_file)
+                    symbol_to_file[symbol] = file_path
                     
-                    if status_messages:
-                        status_area.text("\n".join(status_messages[-5:]))  # Show last 5 messages
+                    df = pd.read_csv(file_path)
                     
-                    # Process results
-                    while not result_queue.empty():
-                        article_id, symbol, summary = result_queue.get()
-                        processed_count += 1
+                    for _, row in df.iterrows():
+                        # Only process articles without summaries or with error summaries
+                        if pd.isna(row['Summary']) or row['Summary'].startswith("Error:"):
+                            article_id = row['ID']
+                            title = row['Title']
+                            publish_date = row['Publish Date']
+                            all_articles.append((article_id, symbol, title, publish_date))
+                
+                # Create progress indicators
+                progress_bar = st.progress(0)
+                status_area = st.empty()
+                eta_display = st.empty()
+                
+                # Divide articles among workers
+                article_batches = divide_into_chunks(all_articles, num_workers)
+                
+                # Load all DataFrames
+                dataframes = {}
+                for symbol, file_path in symbol_to_file.items():
+                    dataframes[symbol] = pd.read_csv(file_path)
+                
+                # Use ThreadPoolExecutor for proper parallel execution
+                with concurrent.futures.ThreadPoolExecutor(max_workers=num_workers) as executor:
+                    # Submit tasks to the executor
+                    futures = []
+                    for i in range(min(num_workers, len(article_batches))):
+                        if i < len(article_batches) and article_batches[i]:  # Check if this batch has articles
+                            for article_id, symbol, title, publish_date in article_batches[i]:
+                                future = executor.submit(
+                                    fetch_content_for_article,
+                                    i+1, article_id, symbol, title, publish_date,
+                                    status_queue, result_queue, error_queue
+                                )
+                                futures.append((future, article_id, symbol))
+                                # Add a small delay to prevent overwhelming the API
+                                time.sleep(0.1)
+                    
+                    # Process results as they come in
+                    processed_count = 0
+                    total_count = len(all_articles)
+                    start_time = time.time()
+                    
+                    # Monitor status queue and update UI
+                    while processed_count < total_count:
+                        # Update status messages
+                        status_messages = []
+                        while not status_queue.empty():
+                            status = status_queue.get()
+                            st.session_state["process_status"].append(status)
+                            status_messages.append(status)
                         
-                        # Update the DataFrame with the summary
-                        df = dataframes[symbol]
-                        idx = df.index[df['ID'] == article_id].tolist()
-                        if idx:
-                            df.at[idx[0], 'Summary'] = summary
+                        if status_messages:
+                            status_area.text("\n".join(status_messages[-5:]))  # Show last 5 messages
                         
-                        # Update progress
-                        progress_bar.progress(processed_count / total_count)
-                        
-                        # Calculate and display ETA
-                        if processed_count > 0:
-                            elapsed_time = time.time() - start_time
-                            articles_per_second = processed_count / elapsed_time
-                            remaining_articles = total_count - processed_count
-                            eta_seconds = remaining_articles / articles_per_second if articles_per_second > 0 else 0
+                        # Process results
+                        while not result_queue.empty():
+                            article_id, symbol, summary = result_queue.get()
+                            processed_count += 1
                             
-                            # Format ETA nicely
-                            if eta_seconds < 60:
-                                eta_text = f"{eta_seconds:.0f} seconds"
-                            elif eta_seconds < 3600:
-                                eta_text = f"{eta_seconds/60:.1f} minutes"
-                            else:
-                                eta_text = f"{eta_seconds/3600:.1f} hours"
+                            # Update the DataFrame with the summary
+                            df = dataframes[symbol]
+                            idx = df.index[df['ID'] == article_id].tolist()
+                            if idx:
+                                df.at[idx[0], 'Summary'] = summary
                             
-                            eta_display.text(f"Progress: {processed_count}/{total_count} articles | ETA: {eta_text}")
-                    
-                    # Process errors
-                    while not error_queue.empty():
-                        symbol, timestamp, reason = error_queue.get()
-                        st.session_state["failed_symbols"][symbol] = {
-                            "timestamp": timestamp,
-                            "reason": reason
-                        }
-                    
-                    # Check if any futures are done
-                    for future, article_id, symbol in list(futures):
-                        if future.done():
-                            futures.remove((future, article_id, symbol))
-                            try:
-                                # This will raise an exception if the future raised one
-                                future.result()
-                            except Exception as e:
-                                st.error(f"Error in worker thread for article {article_id}: {e}")
-                                # Make sure we count this as processed
-                                processed_count += 1
-                    
-                    # If all futures are done but we haven't processed all articles, something went wrong
-                    if not futures and processed_count < total_count:
-                        st.error(f"All workers finished but only processed {processed_count}/{total_count} articles")
-                        break
-                    
-                    time.sleep(0.1)  # Prevent busy waiting
-            
-            # Save all updated DataFrames back to CSV files
-            for symbol, df in dataframes.items():
-                file_path = symbol_to_file[symbol]
-                df.to_csv(file_path, index=False)
-                st.session_state["process_status"].append(f"Saved {len(df)} summaries for {symbol}")
-                # Mark symbol as processed
-                st.session_state["processed_symbols_perplexity"].add(symbol)
-            
-            elapsed_time = time.time() - start_time
-            st.session_state["content_fetched"] = True
-            st.success(f"Content summaries fetched successfully! Added {total_count} summaries in {elapsed_time:.1f} seconds.")
-        except Exception as e:
-            st.error(f"Error fetching content: {e}")
+                            # Update progress
+                            progress_bar.progress(processed_count / total_count)
+                            
+                            # Calculate and display ETA
+                            if processed_count > 0:
+                                elapsed_time = time.time() - start_time
+                                articles_per_second = processed_count / elapsed_time
+                                remaining_articles = total_count - processed_count
+                                eta_seconds = remaining_articles / articles_per_second if articles_per_second > 0 else 0
+                                
+                                # Format ETA nicely
+                                if eta_seconds < 60:
+                                    eta_text = f"{eta_seconds:.0f} seconds"
+                                elif eta_seconds < 3600:
+                                    eta_text = f"{eta_seconds/60:.1f} minutes"
+                                else:
+                                    eta_text = f"{eta_seconds/3600:.1f} hours"
+                                
+                                eta_display.text(f"Progress: {processed_count}/{total_count} articles | ETA: {eta_text}")
+                        
+                        # Process errors
+                        while not error_queue.empty():
+                            symbol, timestamp, reason = error_queue.get()
+                            st.session_state["failed_symbols"][symbol] = {
+                                "timestamp": timestamp,
+                                "reason": reason
+                            }
+                        
+                        # Check if any futures are done
+                        for future, article_id, symbol in list(futures):
+                            if future.done():
+                                futures.remove((future, article_id, symbol))
+                                try:
+                                    # This will raise an exception if the future raised one
+                                    future.result()
+                                except Exception as e:
+                                    st.error(f"Error in worker thread for article {article_id}: {e}")
+                                    # Make sure we count this as processed
+                                    processed_count += 1
+                        
+                        # If all futures are done but we haven't processed all articles, something went wrong
+                        if not futures and processed_count < total_count:
+                            st.error(f"All workers finished but only processed {processed_count}/{total_count} articles")
+                            break
+                        
+                        time.sleep(0.1)  # Prevent busy waiting
+                
+                # Save all updated DataFrames back to CSV files
+                for symbol, df in dataframes.items():
+                    file_path = symbol_to_file[symbol]
+                    df.to_csv(file_path, index=False)
+                    st.session_state["process_status"].append(f"Saved {len(df)} summaries for {symbol}")
+                    # Mark symbol as processed
+                    st.session_state["processed_symbols_perplexity"].add(symbol)
+                
+                elapsed_time = time.time() - start_time
+                st.session_state["content_fetched"] = True
+                st.success(f"Content summaries fetched successfully! Added {total_count} summaries in {elapsed_time:.1f} seconds.")
+            except Exception as e:
+                st.error(f"Error fetching content: {e}")
 
 with col3:
     if st.button("Clean Up"):
@@ -764,15 +825,17 @@ if st.session_state["failed_symbols"]:
             save_failed_symbols()
             st.success("Failed symbols list cleared.")
 
-# Display API key usage
+# CHANGE: Updated API key usage display to show separate key lists
 with st.expander("API Key Usage"):
     st.write("### Seeking Alpha API")
-    st.write(f"Current key index: {st.session_state['current_key_index_seeking_alpha'] + 1} of {len(st.session_state['api_keys'])}")
+    st.write(f"Number of keys: {len(st.session_state['seeking_alpha_api_keys'])}")
+    st.write(f"Current key index: {st.session_state['current_key_index_seeking_alpha'] + 1} of {len(st.session_state['seeking_alpha_api_keys'])}")
     st.write(f"Stocks processed with current key: {st.session_state['stocks_processed_with_current_key_seeking_alpha']} of {st.session_state['stocks_per_key_seeking_alpha']}")
     st.write(f"Total stocks processed: {len(st.session_state['processed_symbols_seeking_alpha'])}")
     
     st.write("### Perplexity API")
-    st.write(f"Current key index: {st.session_state['current_key_index_perplexity'] + 1} of {len(st.session_state['api_keys'])}")
+    st.write(f"Number of keys: {len(st.session_state['perplexity_api_keys'])}")
+    st.write(f"Current key index: {st.session_state['current_key_index_perplexity'] + 1} of {len(st.session_state['perplexity_api_keys'])}")
     st.write(f"Stocks processed with current key: {st.session_state['stocks_processed_with_current_key_perplexity']} of {st.session_state['stocks_per_key_perplexity']}")
     st.write(f"Total stocks processed: {len(st.session_state['processed_symbols_perplexity'])}")
 
