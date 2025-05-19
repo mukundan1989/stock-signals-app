@@ -53,9 +53,9 @@ if "directories" not in st.session_state:
     
 # CHANGE: Separate API key lists for each service
 if "seeking_alpha_api_keys" not in st.session_state:
-    st.session_state["seeking_alpha_api_keys"] = []
+    st.session_state["seeking_alpha_api_keys"] = [DEFAULT_API_KEY]  # Initialize with default key
 if "perplexity_api_keys" not in st.session_state:
-    st.session_state["perplexity_api_keys"] = []
+    st.session_state["perplexity_api_keys"] = [DEFAULT_API_KEY]  # Initialize with default key
 
 # Seeking Alpha API rotation state
 if "current_key_index_seeking_alpha" not in st.session_state:
@@ -228,7 +228,7 @@ elif not st.session_state["perplexity_api_keys"]:
 with st.expander("Advanced Settings"):
     summary_prompt_template = st.text_area(
         "Summary Prompt Template",
-        value="Do you know about '{title}' news published on {date}? Sumarize it within 150 words. Do not judge, or have bias. Report as it is.",
+        value="Do you know about '{title}' news published on {date}? Please provide a detailed summary of this news, including key details, implications, and context.",
         help="Template for the prompt sent to Perplexity API. Use {title} and {date} as placeholders."
     )
     
@@ -252,7 +252,8 @@ with st.expander("Advanced Settings"):
 
 # CHANGE: Updated function to get the next Seeking Alpha API key
 def get_next_seeking_alpha_api_key():
-    if not st.session_state["seeking_alpha_api_keys"]:
+    # Ensure we have at least one key
+    if not st.session_state["seeking_alpha_api_keys"] or len(st.session_state["seeking_alpha_api_keys"]) == 0:
         return DEFAULT_API_KEY
     
     # Check if we need to rotate to the next key
@@ -269,7 +270,8 @@ def get_next_seeking_alpha_api_key():
 
 # CHANGE: Updated function to get the next Perplexity API key
 def get_next_perplexity_api_key():
-    if not st.session_state["perplexity_api_keys"]:
+    # Ensure we have at least one key
+    if not st.session_state["perplexity_api_keys"] or len(st.session_state["perplexity_api_keys"]) == 0:
         return DEFAULT_API_KEY
     
     # Check if we need to rotate to the next key
