@@ -14,6 +14,13 @@ import concurrent.futures
 from queue import Queue
 from typing import List, Dict, Any, Tuple, Set
 
+# CRITICAL FIX: Initialize session state variables at the very beginning
+# This ensures they exist before any function tries to access them
+if "seeking_alpha_api_keys" not in st.session_state:
+    st.session_state["seeking_alpha_api_keys"] = []
+if "perplexity_api_keys" not in st.session_state:
+    st.session_state["perplexity_api_keys"] = []
+
 # Default paths based on OS
 def get_default_output_dir():
     system = platform.system()
@@ -50,12 +57,12 @@ if "failed_symbols" not in st.session_state:
     st.session_state["failed_symbols"] = {}  # Dictionary to store failed symbols and reasons
 if "directories" not in st.session_state:
     st.session_state["directories"] = {}  # Initialize directories dictionary
-    
-# CHANGE: Separate API key lists for each service - CRITICAL FIX
-if "seeking_alpha_api_keys" not in st.session_state:
-    st.session_state["seeking_alpha_api_keys"] = []
-if "perplexity_api_keys" not in st.session_state:
-    st.session_state["perplexity_api_keys"] = []
+
+# CRITICAL FIX: Initialize API keys with default value to prevent errors
+if not st.session_state["seeking_alpha_api_keys"]:
+    st.session_state["seeking_alpha_api_keys"] = [DEFAULT_API_KEY]
+if not st.session_state["perplexity_api_keys"]:
+    st.session_state["perplexity_api_keys"] = [DEFAULT_API_KEY]
 
 # Seeking Alpha API rotation state
 if "current_key_index_seeking_alpha" not in st.session_state:
@@ -80,6 +87,11 @@ if "processed_symbols_perplexity" not in st.session_state:
 
 # Thread-safe locks for shared resources
 status_lock = threading.Lock()
+
+# CRITICAL FIX: Create global variables as a fallback
+# These will be used if session state fails
+GLOBAL_SEEKING_ALPHA_KEYS = [DEFAULT_API_KEY]
+GLOBAL_PERPLEXITY_KEYS = [DEFAULT_API_KEY]
 
 # Streamlit UI
 st.title("Seeking Alpha News Fetcher")
@@ -179,13 +191,20 @@ seeking_alpha_keys = st.text_area(
     help="Enter RapidAPI keys for Seeking Alpha only."
 )
 if seeking_alpha_keys:
-    st.session_state["seeking_alpha_api_keys"] = [k.strip() for k in seeking_alpha_keys.split('\n') if k.strip()]
-    total_capacity_seeking_alpha = len(st.session_state["seeking_alpha_api_keys"]) * st.session_state["stocks_per_key_seeking_alpha"]
-    st.write(f"Found {len(st.session_state['seeking_alpha_api_keys'])} Seeking Alpha API keys.")
-    st.write(f"Can process approximately {total_capacity_seeking_alpha} stocks with Seeking Alpha API.")
+    keys = [k.strip() for k in seeking_alpha_keys.split('\n') if k.strip()]
+    if keys:  # Only update if we have valid keys
+        st.session_state["seeking_alpha_api_keys"] = keys
+        # CRITICAL FIX: Also update global fallback
+        global GLOBAL_SEEKING_ALPHA_KEYS
+        GLOBAL_SEEKING_ALPHA_KEYS = keys
+        
+        total_capacity_seeking_alpha = len(keys) * st.session_state["stocks_per_key_seeking_alpha"]
+        st.write(f"Found {len(keys)} Seeking Alpha API keys.")
+        st.write(f"Can process approximately {total_capacity_seeking_alpha} stocks with Seeking Alpha API.")
 elif not st.session_state["seeking_alpha_api_keys"]:
     # Add default key if none provided
     st.session_state["seeking_alpha_api_keys"] = [DEFAULT_API_KEY]
+    GLOBAL_SEEKING_ALPHA_KEYS = [DEFAULT_API_KEY]
     st.warning("No Seeking Alpha API keys provided. Using default key which is rate-limited.")
 
 # Perplexity API Keys - UPDATED as per solution
@@ -194,13 +213,20 @@ perplexity_keys = st.text_area(
     help="Enter RapidAPI keys for Perplexity only."
 )
 if perplexity_keys:
-    st.session_state["perplexity_api_keys"] = [k.strip() for k in perplexity_keys.split('\n') if k.strip()]
-    total_capacity_perplexity = len(st.session_state["perplexity_api_keys"]) * st.session_state["stocks_per_key_perplexity"]
-    st.write(f"Found {len(st.session_state['perplexity_api_keys'])} Perplexity API keys.")
-    st.write(f"Can process approximately {total_capacity_perplexity} stocks with Perplexity API.")
+    keys = [k.strip() for k in perplexity_keys.split('\n') if k.strip()]
+    if keys:  # Only update if we have valid keys
+        st.session_state["perplexity_api_keys"] = keys
+        # CRITICAL FIX: Also update global fallback
+        global GLOBAL_PERPLEXITY_KEYS
+        GLOBAL_PERPLEXITY_KEYS = keys
+        
+        total_capacity_perplexity = len(keys) * st.session_state["stocks_per_key_perplexity"]
+        st.write(f"Found {len(keys)} Perplexity API keys.")
+        st.write(f"Can process approximately {total_capacity_perplexity} stocks with Perplexity API.")
 elif not st.session_state["perplexity_api_keys"]:
     # Add default key if none provided
     st.session_state["perplexity_api_keys"] = [DEFAULT_API_KEY]
+    GLOBAL_PERPLEXITY_KEYS = [DEFAULT_API_KEY]
     st.warning("No Perplexity API keys provided. Using default key which is rate-limited.")
 
 # API rotation settings
@@ -247,43 +273,93 @@ with st.expander("Advanced Settings"):
         help="Maximum number of parallel workers. Each worker uses one API key."
     )
 
-# CHANGE: Updated function to get the next Seeking Alpha API key
+# CRITICAL FIX: Completely rewritten function to be more robust
 def get_next_seeking_alpha_api_key():
-    # Safety check - if no keys, use default
-    if not st.session_state["seeking_alpha_api_keys"]:
-        st.session_state["seeking_alpha_api_keys"] = [DEFAULT_API_KEY]
-        return DEFAULT_API_KEY
+    """Get the next Seeking Alpha API key with robust error handling"""
+    try:
+        # First try to use session state
+        if "seeking_alpha_api_keys" in st.session_state and st.session_state["seeking_alpha_api_keys"]:
+            keys = st.session_state["seeking_alpha_api_keys"]
+            
+            # Make sure we have a valid index
+            if "current_key_index_seeking_alpha" not in st.session_state:
+                st.session_state["current_key_index_seeking_alpha"] = 0
+            
+            # Make sure the index is in range
+            if st.session_state["current_key_index_seeking_alpha"] >= len(keys):
+                st.session_state["current_key_index_seeking_alpha"] = 0
+            
+            # Check if we need to rotate to the next key
+            if "stocks_processed_with_current_key_seeking_alpha" in st.session_state:
+                if st.session_state["stocks_processed_with_current_key_seeking_alpha"] >= st.session_state["stocks_per_key_seeking_alpha"]:
+                    # Reset counter and move to next key
+                    st.session_state["stocks_processed_with_current_key_seeking_alpha"] = 0
+                    st.session_state["current_key_index_seeking_alpha"] = (st.session_state["current_key_index_seeking_alpha"] + 1) % len(keys)
+                
+                # Increment counter
+                st.session_state["stocks_processed_with_current_key_seeking_alpha"] += 1
+            else:
+                st.session_state["stocks_processed_with_current_key_seeking_alpha"] = 1
+            
+            # Return the current key
+            return keys[st.session_state["current_key_index_seeking_alpha"]]
+    except Exception as e:
+        st.error(f"Error getting Seeking Alpha API key from session state: {e}")
     
-    # Check if we need to rotate to the next key
-    if st.session_state["stocks_processed_with_current_key_seeking_alpha"] >= st.session_state["stocks_per_key_seeking_alpha"]:
-        # Reset counter and move to next key
-        st.session_state["stocks_processed_with_current_key_seeking_alpha"] = 0
-        st.session_state["current_key_index_seeking_alpha"] = (st.session_state["current_key_index_seeking_alpha"] + 1) % len(st.session_state["seeking_alpha_api_keys"])
+    # Fallback to global variable if session state fails
+    try:
+        global GLOBAL_SEEKING_ALPHA_KEYS
+        if GLOBAL_SEEKING_ALPHA_KEYS:
+            return GLOBAL_SEEKING_ALPHA_KEYS[0]
+    except:
+        pass
     
-    # Increment counter
-    st.session_state["stocks_processed_with_current_key_seeking_alpha"] += 1
-    
-    # Return the current key
-    return st.session_state["seeking_alpha_api_keys"][st.session_state["current_key_index_seeking_alpha"]]
+    # Ultimate fallback to default key
+    return DEFAULT_API_KEY
 
-# CHANGE: Updated function to get the next Perplexity API key
+# CRITICAL FIX: Completely rewritten function to be more robust
 def get_next_perplexity_api_key():
-    # Safety check - if no keys, use default
-    if not st.session_state["perplexity_api_keys"]:
-        st.session_state["perplexity_api_keys"] = [DEFAULT_API_KEY]
-        return DEFAULT_API_KEY
+    """Get the next Perplexity API key with robust error handling"""
+    try:
+        # First try to use session state
+        if "perplexity_api_keys" in st.session_state and st.session_state["perplexity_api_keys"]:
+            keys = st.session_state["perplexity_api_keys"]
+            
+            # Make sure we have a valid index
+            if "current_key_index_perplexity" not in st.session_state:
+                st.session_state["current_key_index_perplexity"] = 0
+            
+            # Make sure the index is in range
+            if st.session_state["current_key_index_perplexity"] >= len(keys):
+                st.session_state["current_key_index_perplexity"] = 0
+            
+            # Check if we need to rotate to the next key
+            if "stocks_processed_with_current_key_perplexity" in st.session_state:
+                if st.session_state["stocks_processed_with_current_key_perplexity"] >= st.session_state["stocks_per_key_perplexity"]:
+                    # Reset counter and move to next key
+                    st.session_state["stocks_processed_with_current_key_perplexity"] = 0
+                    st.session_state["current_key_index_perplexity"] = (st.session_state["current_key_index_perplexity"] + 1) % len(keys)
+                
+                # Increment counter
+                st.session_state["stocks_processed_with_current_key_perplexity"] += 1
+            else:
+                st.session_state["stocks_processed_with_current_key_perplexity"] = 1
+            
+            # Return the current key
+            return keys[st.session_state["current_key_index_perplexity"]]
+    except Exception as e:
+        st.error(f"Error getting Perplexity API key from session state: {e}")
     
-    # Check if we need to rotate to the next key
-    if st.session_state["stocks_processed_with_current_key_perplexity"] >= st.session_state["stocks_per_key_perplexity"]:
-        # Reset counter and move to next key
-        st.session_state["stocks_processed_with_current_key_perplexity"] = 0
-        st.session_state["current_key_index_perplexity"] = (st.session_state["current_key_index_perplexity"] + 1) % len(st.session_state["perplexity_api_keys"])
+    # Fallback to global variable if session state fails
+    try:
+        global GLOBAL_PERPLEXITY_KEYS
+        if GLOBAL_PERPLEXITY_KEYS:
+            return GLOBAL_PERPLEXITY_KEYS[0]
+    except:
+        pass
     
-    # Increment counter
-    st.session_state["stocks_processed_with_current_key_perplexity"] += 1
-    
-    # Return the current key
-    return st.session_state["perplexity_api_keys"][st.session_state["current_key_index_perplexity"]]
+    # Ultimate fallback to default key
+    return DEFAULT_API_KEY
 
 # CHANGE: Updated fetch articles function to use Seeking Alpha API keys
 def fetch_articles_for_symbol(worker_id: int, symbol: str, since_timestamp: int, until_timestamp: int, 
@@ -460,13 +536,48 @@ def divide_into_chunks(items, num_chunks):
         
     return result
 
+# CRITICAL FIX: Add a function to test API keys before using them
+def test_api_key(api_key, api_host):
+    """Test if an API key is valid by making a simple request"""
+    try:
+        conn = http.client.HTTPSConnection(api_host)
+        headers = {
+            'x-rapidapi-key': api_key,
+            'x-rapidapi-host': api_host
+        }
+        
+        if api_host == API_HOST_SEEKING_ALPHA:
+            # Use a simple endpoint for Seeking Alpha
+            conn.request("GET", "/news/v2/list-by-symbol?size=1&number=1&id=AAPL", headers=headers)
+        else:
+            # For Perplexity, we'll just make a simple query
+            headers['Content-Type'] = "application/json"
+            payload = json.dumps({"content": "Hello"})
+            conn.request("POST", "/", payload, headers)
+            
+        res = conn.getresponse()
+        return res.status < 400  # Return True if status code is less than 400 (success)
+    except:
+        return False
+
 # Buttons
 col1, col2, col3 = st.columns(3)
 with col1:
     if st.button("Fetch Articles"):
-        if not st.session_state["seeking_alpha_api_keys"]:
-            st.error("Please enter at least one valid Seeking Alpha API key!")
+        # CRITICAL FIX: Test API keys before proceeding
+        valid_keys = []
+        for key in st.session_state["seeking_alpha_api_keys"]:
+            if test_api_key(key, API_HOST_SEEKING_ALPHA):
+                valid_keys.append(key)
+        
+        if not valid_keys:
+            st.error("No valid Seeking Alpha API keys found! Please enter at least one valid key.")
         else:
+            # Update the keys with only valid ones
+            st.session_state["seeking_alpha_api_keys"] = valid_keys
+            global GLOBAL_SEEKING_ALPHA_KEYS
+            GLOBAL_SEEKING_ALPHA_KEYS = valid_keys
+            
             st.session_state["status_table"] = []
             st.session_state["process_status"] = []
             st.session_state["articles_fetched"] = False
@@ -485,7 +596,7 @@ with col1:
                 symbols = ["AAPL", "MSFT", "GOOG"]
             
             # Determine number of workers (limited by MAX_WORKERS and available keys)
-            num_workers = min(max_workers, len(st.session_state["seeking_alpha_api_keys"]))
+            num_workers = min(max_workers, len(valid_keys))
             st.write(f"Using {num_workers} parallel workers for fetching articles")
             
             # Create queues for thread communication
@@ -617,9 +728,20 @@ with col1:
 with col2:
     # New button to fetch content summaries with parallel processing
     if st.button("Fetch Content", disabled=not st.session_state["articles_fetched"]):
-        if not st.session_state["perplexity_api_keys"]:
-            st.error("Please enter at least one valid Perplexity API key!")
+        # CRITICAL FIX: Test API keys before proceeding
+        valid_keys = []
+        for key in st.session_state["perplexity_api_keys"]:
+            if test_api_key(key, API_HOST_PERPLEXITY):
+                valid_keys.append(key)
+        
+        if not valid_keys:
+            st.error("No valid Perplexity API keys found! Please enter at least one valid key.")
         else:
+            # Update the keys with only valid ones
+            st.session_state["perplexity_api_keys"] = valid_keys
+            global GLOBAL_PERPLEXITY_KEYS
+            GLOBAL_PERPLEXITY_KEYS = valid_keys
+            
             st.session_state["process_status"].append("Starting to fetch content summaries...")
             st.session_state["processed_symbols_perplexity"] = set()
             
@@ -630,7 +752,7 @@ with col2:
                 csv_files = [f for f in os.listdir(dirs["articles"]) if f.endswith("_news_data.csv")]
                 
                 # Determine number of workers (limited by MAX_WORKERS and available keys)
-                num_workers = min(max_workers, len(st.session_state["perplexity_api_keys"]))
+                num_workers = min(max_workers, len(valid_keys))
                 st.write(f"Using {num_workers} parallel workers for fetching content")
                 
                 # Create queues for thread communication
@@ -955,3 +1077,29 @@ with st.expander("Storage Information"):
             st.error("Directory structure information is not available.")
     except Exception as e:
         st.error(f"Error displaying storage information: {e}")
+
+# CRITICAL FIX: Add a debug section to help diagnose issues
+with st.expander("Debug Information"):
+    st.write("### Session State Variables")
+    st.write(f"seeking_alpha_api_keys exists: {'seeking_alpha_api_keys' in st.session_state}")
+    if 'seeking_alpha_api_keys' in st.session_state:
+        st.write(f"seeking_alpha_api_keys value: {st.session_state['seeking_alpha_api_keys']}")
+    
+    st.write(f"perplexity_api_keys exists: {'perplexity_api_keys' in st.session_state}")
+    if 'perplexity_api_keys' in st.session_state:
+        st.write(f"perplexity_api_keys value: {st.session_state['perplexity_api_keys']}")
+    
+    st.write("### Global Variables")
+    st.write(f"GLOBAL_SEEKING_ALPHA_KEYS: {GLOBAL_SEEKING_ALPHA_KEYS}")
+    st.write(f"GLOBAL_PERPLEXITY_KEYS: {GLOBAL_PERPLEXITY_KEYS}")
+    
+    st.write("### Test API Keys")
+    if st.button("Test Seeking Alpha Keys"):
+        for i, key in enumerate(st.session_state.get("seeking_alpha_api_keys", [])):
+            is_valid = test_api_key(key, API_HOST_SEEKING_ALPHA)
+            st.write(f"Key {i+1}: {'Valid' if is_valid else 'Invalid'}")
+    
+    if st.button("Test Perplexity Keys"):
+        for i, key in enumerate(st.session_state.get("perplexity_api_keys", [])):
+            is_valid = test_api_key(key, API_HOST_PERPLEXITY)
+            st.write(f"Key {i+1}: {'Valid' if is_valid else 'Invalid'}")
