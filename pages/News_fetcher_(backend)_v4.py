@@ -537,6 +537,53 @@ def fetch_content_for_article(worker_id: int, article_id: int, symbol: str, titl
         status_queue.put(error_msg)
         result_queue.put((article_id, symbol, f"Error: {str(e)}"))
 
+# CRITICAL FIX: Add this function to debug the summary update process
+def debug_summary_update(article_id, symbol, summary, df):
+    """Debug function to log details about summary updates"""
+    try:
+        # Check if the article_id exists in the DataFrame
+        if 'ID' not in df.columns:
+            st.error(f"Error: 'ID' column not found in DataFrame for {symbol}")
+            return False
+        
+        # Convert article_id to the same type as in the DataFrame
+        df_id_type = type(df['ID'].iloc[0]) if not df.empty else "unknown"
+        article_id_converted = article_id
+        
+        # If DataFrame ID is numeric but article_id is string, convert
+        if df_id_type == int and isinstance(article_id, str):
+            try:
+                article_id_converted = int(article_id)
+            except ValueError:
+                pass
+        # If DataFrame ID is string but article_id is numeric, convert
+        elif df_id_type == str and isinstance(article_id, (int, float)):
+            article_id_converted = str(article_id)
+        
+        # Find the index
+        idx = df.index[df['ID'] == article_id_converted].tolist()
+        
+        if not idx:
+            # Try alternative matching if direct match fails
+            # Sometimes IDs might have different formats (e.g., with/without leading zeros)
+            if isinstance(article_id, str) and article_id.isdigit():
+                idx = df.index[df['ID'] == int(article_id)].tolist()
+            elif isinstance(article_id, (int, float)):
+                idx = df.index[df['ID'] == str(article_id)].tolist()
+        
+        if idx:
+            return True, idx[0], article_id_converted
+        else:
+            # Log the failure for debugging
+            st.error(f"Error: Could not find article ID {article_id} in DataFrame for {symbol}")
+            st.write(f"DataFrame ID column type: {df_id_type}")
+            st.write(f"Article ID type: {type(article_id)}")
+            st.write(f"First few IDs in DataFrame: {df['ID'].head().tolist()}")
+            return False, None, article_id_converted
+    except Exception as e:
+        st.error(f"Error in debug_summary_update: {e}")
+        return False, None, article_id
+
 # Date input boxes
 col1, col2 = st.columns(2)
 with col1:
@@ -835,10 +882,25 @@ with col2:
                             processed_count += 1
                             
                             # Update the DataFrame with the summary
-                            df = dataframes[symbol]
-                            idx = df.index[df['ID'] == article_id].tolist()
-                            if idx:
-                                df.at[idx[0], 'Summary'] = summary
+                            if symbol in dataframes:
+                                df = dataframes[symbol]
+                                
+                                # Use the debug function to find the correct index
+                                success, idx, article_id_converted = debug_summary_update(article_id, symbol, summary, df)
+                                
+                                if success:
+                                    # Update the summary in the DataFrame
+                                    df.at[idx, 'Summary'] = summary
+                                    # Ensure the update is immediately written to the dataframe
+                                    dataframes[symbol] = df
+                                    
+                                    # Log success
+                                    st.session_state["process_status"].append(f"Updated summary for article {article_id_converted} in {symbol}")
+                                else:
+                                    # Log failure
+                                    st.session_state["process_status"].append(f"Failed to update summary for article {article_id} in {symbol}")
+                            else:
+                                st.error(f"Symbol {symbol} not found in dataframes dictionary")
                             
                             # Update progress
                             progress_bar.progress(processed_count / total_count)
@@ -889,12 +951,41 @@ with col2:
                 
                 # Save all updated DataFrames back to CSV files
                 for symbol, df in dataframes.items():
-                    file_path = symbol_to_file[symbol]
-                    df.to_csv(file_path, index=False)
-                    st.session_state["process_status"].append(f"Saved {len(df)} summaries for {symbol}")
-                    # Mark symbol as processed
-                    st.session_state["processed_symbols_perplexity"].add(symbol)
-                
+                    try:
+                        file_path = symbol_to_file[symbol]
+                        
+                        # Check if the DataFrame has a Summary column
+                        if 'Summary' not in df.columns:
+                            st.error(f"Error: 'Summary' column not found in DataFrame for {symbol}")
+                            # Add the Summary column if it doesn't exist
+                            df['Summary'] = ""
+                        
+                        # Check if any summaries were added
+                        summary_count = df['Summary'].notna().sum()
+                        empty_summary_count = (df['Summary'] == "").sum()
+                        
+                        # Log summary statistics
+                        st.session_state["process_status"].append(
+                            f"Symbol {symbol}: {summary_count} summaries, {empty_summary_count} empty summaries"
+                        )
+                        
+                        # Save the DataFrame to CSV
+                        df.to_csv(file_path, index=False)
+                        
+                        # Verify the file was written correctly
+                        if os.path.exists(file_path):
+                            file_size = os.path.getsize(file_path)
+                            st.session_state["process_status"].append(
+                                f"Saved {len(df)} rows to {file_path} ({file_size} bytes)"
+                            )
+                        else:
+                            st.error(f"Error: File {file_path} was not created")
+                        
+                        # Mark symbol as processed
+                        st.session_state["processed_symbols_perplexity"].add(symbol)
+                    except Exception as e:
+                        st.error(f"Error saving DataFrame for {symbol}: {e}")
+
                 elapsed_time = time.time() - start_time
                 st.session_state["content_fetched"] = True
                 st.success(f"Content summaries fetched successfully! Added {total_count} summaries in {elapsed_time:.1f} seconds.")
@@ -1107,3 +1198,57 @@ with st.expander("Debug Information"):
         for i, key in enumerate(st.session_state.get("perplexity_api_keys", [])):
             is_valid = test_api_key(key, API_HOST_PERPLEXITY)
             st.write(f"Key {i+1}: {'Valid' if is_valid else 'Invalid'}")
+
+# Add this function to verify summaries were saved
+
+def verify_summaries():
+    """Verify that summaries were properly saved to CSV files"""
+    try:
+        if not os.path.exists(dirs["articles"]):
+            st.error("Articles directory does not exist")
+            return
+        
+        csv_files = [f for f in os.listdir(dirs["articles"]) if f.endswith("_news_data.csv")]
+        if not csv_files:
+            st.error("No CSV files found in articles directory")
+            return
+        
+        st.write("### Summary Verification")
+        
+        for csv_file in csv_files:
+            file_path = os.path.join(dirs["articles"], csv_file)
+            symbol = csv_file.replace("_news_data.csv", "")
+            
+            try:
+                # Read the CSV file
+                df = pd.read_csv(file_path)
+                
+                # Check if Summary column exists
+                if 'Summary' not in df.columns:
+                    st.error(f"Error: 'Summary' column not found in {csv_file}")
+                    continue
+                
+                # Count summaries
+                total_rows = len(df)
+                non_empty_summaries = df['Summary'].notna().sum()
+                empty_summaries = total_rows - non_empty_summaries
+                
+                st.write(f"**{symbol.upper()}**: {non_empty_summaries}/{total_rows} summaries ({empty_summaries} empty)")
+                
+                # Display a sample of summaries
+                if non_empty_summaries > 0:
+                    with st.expander(f"Sample summaries for {symbol.upper()}"):
+                        sample_df = df[df['Summary'].notna() & (df['Summary'] != "")].head(3)
+                        for _, row in sample_df.iterrows():
+                            st.write(f"**{row['Title']}**")
+                            st.write(row['Summary'])
+                            st.write("---")
+            except Exception as e:
+                st.error(f"Error verifying summaries for {csv_file}: {e}")
+    except Exception as e:
+        st.error(f"Error in verify_summaries: {e}")
+
+# Add a button to verify summaries
+if st.session_state["content_fetched"]:
+    if st.button("Verify Summaries"):
+        verify_summaries()
