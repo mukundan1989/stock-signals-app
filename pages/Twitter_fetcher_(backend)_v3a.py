@@ -706,28 +706,38 @@ def convert_json_to_csv_worker(worker_id: int, json_file: str, status_queue: Que
         df = pd.DataFrame(records)
         df.to_csv(csv_file_path, index=False)
         
-        # Improved keyword extraction from filename
-        keyword = os.path.splitext(json_file)[0]
+        # Extract keyword and company from filename
+        filename_parts = os.path.splitext(json_file)[0].split('_')
         
-        # Remove segment ID if present (format: YYYYMMDD-YYYYMMDD)
-        if any(c.isdigit() for c in keyword.split('_')[-1]):
-            keyword = '_'.join(keyword.split('_')[:-1])
+        # The first part is always the company name
+        company = filename_parts[0]
         
-        # Remove tweet section if present
-        sections = ["latest", "top", "user", "image", "video"]
-        for section in sections:
-            if keyword.endswith(f"_{section}"):
-                keyword = keyword[:-len(f"_{section}")]
+        # The keyword is either:
+        # 1. For base keywords: just the company name
+        # 2. For combined keywords: company + the combination parts
+        if len(filename_parts) == 1:
+            keyword = company
+        else:
+            # Remove any date segments or section markers
+            keyword_parts = []
+            for part in filename_parts:
+                # Skip date segments (format: YYYYMMDD-YYYYMMDD)
+                if '-' in part and all(c.isdigit() or c == '-' for c in part):
+                    continue
+                # Skip section markers
+                if part in ["latest", "top", "user", "image", "video"]:
+                    continue
+                keyword_parts.append(part)
+            keyword = ' '.join(keyword_parts)
         
-        keyword = keyword.replace("_", " ")
-        result_queue.put((json_file, keyword, True))
+        result_queue.put((json_file, company, keyword, True))
         
     except Exception as e:
         error_msg = f"Error converting {json_file} to CSV: {e}"
         status_queue.put(error_msg)
         error_queue.put((json_file, datetime.now().strftime("%Y-%m-%d %H:%M:%S"), error_msg))
-        result_queue.put((json_file, None, False))
-
+        result_queue.put((json_file, None, None, False))
+        
 def convert_json_to_csv_parallel(max_workers=MAX_WORKERS):
     """Convert all JSON files to CSV using parallel workers"""
     if not os.path.exists(JSON_OUTPUT_DIR):
@@ -787,17 +797,18 @@ def convert_json_to_csv_parallel(max_workers=MAX_WORKERS):
             
             # Process results
             while not result_queue.empty():
-                json_file, keyword, success = result_queue.get()
+                json_file, company, keyword, success = result_queue.get()
                 processed_count += 1
                 
-                if success and keyword:
-                    # Update status table - this is the key fix
-                    for entry in st.session_state["status_table"]:
-                        # Match either the exact keyword or the base company name
-                        if (entry["Keyword"].lower() == keyword.lower() or 
-                            entry["Company"].lower() == keyword.split()[0].lower()):
-                            entry["CSV Output"] = "✅"
-                            break
+                if success:
+                    # Update status table
+                    with status_lock:
+                        for entry in st.session_state["status_table"]:
+                            # Match by both company and keyword to be precise
+                            if (entry["Company"] == company and 
+                                entry["Keyword"].replace('+', ' ') == keyword.replace('+', ' ')):
+                                entry["CSV Output"] = "✅"
+                                break
                 
                 # Update progress
                 progress_bar.progress(processed_count / total_count)
@@ -827,7 +838,7 @@ def convert_json_to_csv_parallel(max_workers=MAX_WORKERS):
             time.sleep(0.1)  # Prevent busy waiting
     
     status_area.empty()
-
+    
 def convert_combined_json_to_csv():
     """Convert all combined JSON files to CSV"""
     if not os.path.exists(COMBINED_OUTPUT_DIR):
@@ -873,16 +884,25 @@ def convert_combined_json_to_csv():
             df = pd.DataFrame(records)
             df.to_csv(csv_file_path, index=False)
             
-            # Extract the base keyword from the filename
-            keyword = os.path.splitext(json_file)[0]
-            # Remove "combined" and section markers
-            keyword = keyword.replace("_combined", "").replace("_latest", "").replace("_top", "")
+            # Extract company and keyword from filename
+            filename_parts = os.path.splitext(json_file)[0].split('_')
+            company = filename_parts[0]
             
-            # Update status table for all entries matching this keyword
-            for entry in st.session_state["status_table"]:
-                if (entry["Keyword"].lower() == keyword.lower() or 
-                    entry["Company"].lower() == keyword.split('_')[0].lower()):
-                    entry["CSV Output"] = "✅"
+            # Remove "combined" and section markers
+            keyword_parts = []
+            for part in filename_parts:
+                if part in ["combined", "latest", "top", "user", "image", "video"]:
+                    continue
+                keyword_parts.append(part)
+            keyword = ' '.join(keyword_parts)
+            
+            # Update status table
+            with status_lock:
+                for entry in st.session_state["status_table"]:
+                    if (entry["Company"] == company and 
+                        entry["Keyword"].replace('+', ' ') == keyword.replace('+', ' ')):
+                        entry["CSV Output"] = "✅"
+                        break
             
             # Update progress
             progress_bar.progress((i + 1) / len(json_files))
@@ -892,7 +912,7 @@ def convert_combined_json_to_csv():
     
     status_area.empty()
     st.success(f"Converted {len(json_files)} combined JSON files to CSV")
-
+    
 def combine_company_csvs(company_name, use_combined=True):
     """Merge all CSV files for a company's combined keywords into one DataFrame"""
     dataframes = []
