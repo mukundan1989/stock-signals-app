@@ -160,7 +160,7 @@ col1, col2 = st.columns(2)
 with col1:
     from_date = st.date_input("From Date", value=datetime(2025, 4, 1))
 with col2:
-    to_date = st.date_input("To Date", value=datetime(2025, 4, 31))
+    to_date = st.date_input("To Date", value=datetime(2025, 4, 30))
 
 # Convert dates to timestamps
 since_timestamp = int(datetime.combine(from_date, datetime.min.time()).timestamp())
