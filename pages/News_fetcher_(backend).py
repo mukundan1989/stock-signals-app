@@ -158,9 +158,9 @@ def fetch_content_summary(title, publish_date):
 # Date input boxes
 col1, col2 = st.columns(2)
 with col1:
-    from_date = st.date_input("From Date", value=datetime(2025, 04, 1))
+    from_date = st.date_input("From Date", value=datetime(2025, 04, 01))
 with col2:
-    to_date = st.date_input("To Date", value=datetime(2025, 04, 31))
+    to_date = st.date_input("To Date", value=datetime(2025, 04, 30))
 
 # Convert dates to timestamps
 since_timestamp = int(datetime.combine(from_date, datetime.min.time()).timestamp())
