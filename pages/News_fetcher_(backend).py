@@ -14,7 +14,7 @@ DEFAULT_API_KEY = "4eab47a1bfmsh51c8a20cf14a71fp13947bjsnbff888983296"  # Defaul
 API_HOST_SEEKING_ALPHA = "seeking-alpha.p.rapidapi.com"
 API_HOST_PERPLEXITY = "perplexity2.p.rapidapi.com"
 SYMBOL_FILE = "data/symbollist.txt"
-OUTPUT_DIR = "/tmp/newsdirec"
+OUTPUT_DIR = "/tmp/newsdirect"
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 # Initialize session state
