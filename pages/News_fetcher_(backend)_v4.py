@@ -1333,7 +1333,6 @@ with st.expander("Debug Information"):
     
     if st.button("Test Perplexity Keys"):
         for i, key in enumerate(st.session_state.get("perplexity_api_keys", [])):
-            is_valid = test_api_key(key, API_HOST_PERPLEXITY)  [])):
             is_valid = test_api_key(key, API_HOST_PERPLEXITY)
             st.write(f"Key {i+1}: {'Valid' if is_valid else 'Invalid'}")
 
