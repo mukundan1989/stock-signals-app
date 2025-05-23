@@ -102,7 +102,7 @@ def update_global_perplexity_keys(keys):
     GLOBAL_PERPLEXITY_KEYS = keys
 
 # Streamlit UI
-st.title("Seeking Alpha News Fetcher")
+st.title("News Fetcher")
 st.write("Fetch news articles for symbols listed in 'symbollist.txt' and process them.")
 
 # Output directory configuration
