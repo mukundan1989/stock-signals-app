@@ -32,7 +32,7 @@ if "delay_between_calls" not in st.session_state:
     st.session_state["delay_between_calls"] = 0.5  # Default to a shorter delay
 
 # Streamlit UI
-st.title("Seeking Alpha News Fetcher")
+st.title("News Fetcher")
 st.write("Fetch news articles for symbols listed in 'symbollist.txt' and process them.")
 
 # API Key Input
