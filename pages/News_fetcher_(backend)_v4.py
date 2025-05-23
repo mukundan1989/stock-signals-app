@@ -551,7 +551,7 @@ with col1:
                     f.write("AAPL\nMSFT\nGOOG")
                 symbols = ["AAPL", "MSFT", "GOOG"]
             
-            num_workers = min(max_workers, len(valid_keys))
+            num_workers = min(max_workers, len(valid_keys), (len(all_articles) + st.session_state['stocks_per_key_perplexity'] - 1) // st.session_state['stocks_per_key_perplexity'])
             st.write(f"Using {num_workers} parallel workers for fetching articles")
             
             status_queue = Queue()
