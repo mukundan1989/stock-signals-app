@@ -679,17 +679,15 @@ with col2:
                 os.makedirs(dirs["articles"], exist_ok=True)
                 csv_files = [f for f in os.listdir(dirs["articles"]) if f.endswith("_news_data.csv")]
                 
-                num_workers = min(max_workers, len(valid_keys))
-                st.write(f"Using {num_workers} parallel workers for fetching content")
-                
-                status_queue = Queue()
-                result_queue = Queue()
-                error_queue = Queue()
-                
+                # NEW WORKER CALCULATION LOGIC
+                articles_per_key = st.session_state["stocks_per_key_perplexity"]
                 all_articles = []
+                symbol_to_file = {}
+                
                 for csv_file in csv_files:
                     symbol = csv_file.replace("_news_data.csv", "")
                     file_path = os.path.join(dirs["articles"], csv_file)
+                    symbol_to_file[symbol] = file_path
                     
                     df = pd.read_csv(file_path)
                     
@@ -700,15 +698,34 @@ with col2:
                             publish_date = row['Publish Date']
                             all_articles.append((article_id, symbol, title, publish_date))
                 
+                # Calculate optimal worker count
+                keys_needed = min(len(valid_keys), (len(all_articles) + articles_per_key - 1) // articles_per_key)
+                num_workers = min(max_workers, keys_needed)
+                num_workers = max(1, num_workers)  # Ensure at least 1 worker
+                
+                st.write(f"Using {num_workers} workers ({keys_needed} keys needed for {len(all_articles)} articles at {articles_per_key} per key)")
+                
+                # NEW TASK DISTRIBUTION LOGIC
+                articles_per_worker = articles_per_key
+                article_batches = []
+                for i in range(num_workers):
+                    start_idx = i * articles_per_worker
+                    end_idx = (i + 1) * articles_per_worker
+                    article_batches.append(all_articles[start_idx:end_idx])
+                
+                st.write(f"Work distribution: {[len(batch) for batch in article_batches]} batches")
+                
+                status_queue = Queue()
+                result_queue = Queue()
+                error_queue = Queue()
+                
                 progress_bar = st.progress(0)
                 status_area = st.empty()
                 eta_display = st.empty()
                 
-                article_batches = divide_into_chunks(all_articles, num_workers)
-                
                 with concurrent.futures.ThreadPoolExecutor(max_workers=num_workers) as executor:
                     futures = []
-                    for i in range(min(num_workers, len(article_batches))):
+                    for i in range(num_workers):
                         if i < len(article_batches) and article_batches[i]:
                             for article_id, symbol, title, publish_date in article_batches[i]:
                                 future = executor.submit(
@@ -717,64 +734,7 @@ with col2:
                                     status_queue, result_queue, error_queue
                                 )
                                 futures.append((future, article_id, symbol))
-                                time.sleep(0.1)
-                    
-                    processed_count = 0
-                    total_count = len(all_articles)
-                    start_time = time.time()
-                    
-                    while processed_count < total_count:
-                        status_messages = []
-                        while not status_queue.empty():
-                            status = status_queue.get()
-                            st.session_state["process_status"].append(status)
-                            status_messages.append(status)
-                        
-                        if status_messages:
-                            status_area.text("\n".join(status_messages[-5:]))
-                        
-                        while not result_queue.empty():
-                            article_id, symbol, summary = result_queue.get()
-                            processed_count += 1
-                            
-                            progress_bar.progress(processed_count / total_count)
-                            
-                            if processed_count > 0:
-                                elapsed_time = time.time() - start_time
-                                articles_per_second = processed_count / elapsed_time
-                                remaining_articles = total_count - processed_count
-                                eta_seconds = remaining_articles / articles_per_second if articles_per_second > 0 else 0
-                                
-                                if eta_seconds < 60:
-                                    eta_text = f"{eta_seconds:.0f} seconds"
-                                elif eta_seconds < 3600:
-                                    eta_text = f"{eta_seconds/60:.1f} minutes"
-                                else:
-                                    eta_text = f"{eta_seconds/3600:.1f} hours"
-                                
-                                eta_display.text(f"Progress: {processed_count}/{total_count} articles | ETA: {eta_text}")
-                        
-                        while not error_queue.empty():
-                            symbol, timestamp, reason = error_queue.get()
-                            st.session_state["failed_symbols"][symbol] = {
-                                "timestamp": timestamp,
-                                "reason": reason
-                            }
-                        
-                        for future, article_id, symbol in list(futures):
-                            if future.done():
-                                futures.remove((future, article_id, symbol))
-                                try:
-                                    future.result()
-                                except Exception as e:
-                                    st.error(f"Error in worker thread for article {article_id}: {e}")
-                                    processed_count += 1
-                        
-                        if not futures and processed_count < total_count:
-                            st.error(f"All workers finished but only processed {processed_count}/{total_count} articles")
-                            break
-                        
-                        time.sleep(0.1)
+                                time.sleep(st.session_state["delay_between_calls"])
                 
                 elapsed_time = time.time() - start_time
                 st.session_state["content_fetched"] = True
