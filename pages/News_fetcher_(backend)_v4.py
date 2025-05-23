@@ -102,7 +102,7 @@ def update_global_perplexity_keys(keys):
     GLOBAL_PERPLEXITY_KEYS = keys
 
 # Streamlit UI
-st.title("News Fetcher")
+st.title("Seeking Alpha News Fetcher")
 st.write("Fetch news articles for symbols listed in 'symbollist.txt' and process them.")
 
 # Output directory configuration
@@ -257,7 +257,7 @@ with col2:
 with st.expander("Advanced Settings"):
     summary_prompt_template = st.text_area(
         "Summary Prompt Template",
-        value="Do you know about '{title}' news published on {date}? Sumarize it within 150 words. Do not judge, or have bias. Report as it is.",
+        value="Do you know about '{title}' news published on {date}? Please provide a detailed summary of this news, including key details, implications, and context.",
         help="Template for the prompt sent to Perplexity API. Use {title} and {date} as placeholders."
     )
     
@@ -587,9 +587,9 @@ def debug_summary_update(article_id, symbol, summary, df):
 # Date input boxes
 col1, col2 = st.columns(2)
 with col1:
-    from_date = st.date_input("From Date", value=datetime(2025, 4, 1))
+    from_date = st.date_input("From Date", value=datetime(2023, 10, 1))
 with col2:
-    to_date = st.date_input("To Date", value=datetime(2025, 4, 30))
+    to_date = st.date_input("To Date", value=datetime(2023, 10, 31))
 
 # Convert dates to timestamps
 since_timestamp = int(datetime.combine(from_date, datetime.min.time()).timestamp())
