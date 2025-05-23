@@ -13,7 +13,6 @@ import threading
 import concurrent.futures
 from queue import Queue
 from typing import List, Dict, Any, Tuple, Set
-import random
 
 # CRITICAL FIX: Define global variables at the module level
 # These will be used as fallbacks if session state fails
@@ -408,100 +407,6 @@ def test_api_key(api_key, api_host):
     except:
         return False
 
-# OPTIMIZED: Improved function to divide tasks more evenly
-def improved_divide_into_chunks(items, num_chunks):
-    """Divide a list into exactly num_chunks chunks, ensuring no empty chunks"""
-    if not items:
-        return []
-    
-    # Make a copy to avoid modifying the original
-    items_copy = items.copy()
-    
-    # Shuffle the items to ensure random distribution
-    random.shuffle(items_copy)
-    
-    # Create exactly num_chunks chunks
-    result = [[] for _ in range(num_chunks)]
-    
-    # Distribute items using round-robin approach
-    for i, item in enumerate(items_copy):
-        chunk_index = i % num_chunks
-        result[chunk_index].append(item)
-    
-    return result
-
-# OPTIMIZED: Improved worker utilization
-def optimize_worker_utilization(items, valid_keys, max_workers, item_type="symbols"):
-    """Determine optimal number of workers and distribute tasks evenly"""
-    # Calculate how many workers we can use based on available keys and max_workers
-    available_workers = min(max_workers, len(valid_keys))
-    
-    # Ensure we don't create more workers than we have items
-    optimal_workers = min(available_workers, len(items))
-    
-    # Distribute items evenly among workers
-    item_batches = improved_divide_into_chunks(items, optimal_workers)
-    
-    # Log the distribution for debugging
-    worker_loads = [len(batch) for batch in item_batches]
-    st.session_state["process_status"].append(
-        f"Worker Optimization: Using {optimal_workers} workers for {len(items)} {item_type}"
-    )
-    st.session_state["process_status"].append(
-        f"Worker Distribution: {worker_loads} ({item_type} per worker)"
-    )
-    
-    return optimal_workers, item_batches
-
-# OPTIMIZED: Improved task submission logic
-def submit_symbol_tasks_to_executor(executor, num_workers, symbol_batches, since_timestamp, until_timestamp, 
-                                   status_queue, result_queue, error_queue):
-    """Submit symbol tasks to executor ensuring maximum utilization"""
-    futures = []
-    
-    # Ensure we have the right number of batches
-    assert len(symbol_batches) == num_workers, f"Number of batches ({len(symbol_batches)}) must match number of workers ({num_workers})"
-    
-    # Submit tasks for each worker
-    for worker_id in range(num_workers):
-        batch = symbol_batches[worker_id]
-        for symbol in batch:
-            future = executor.submit(
-                fetch_articles_for_symbol,
-                worker_id + 1,  # Worker IDs start at 1
-                symbol,
-                since_timestamp, until_timestamp,
-                status_queue, result_queue, error_queue
-            )
-            futures.append((future, symbol))
-    
-    return futures
-
-# OPTIMIZED: Improved task submission for articles
-def submit_article_tasks_to_executor(executor, num_workers, article_batches, 
-                                   status_queue, result_queue, error_queue):
-    """Submit article tasks to executor ensuring maximum utilization"""
-    futures = []
-    
-    # Ensure we have the right number of batches
-    assert len(article_batches) == num_workers, f"Number of batches ({len(article_batches)}) must match number of workers ({num_workers})"
-    
-    # Submit tasks for each worker
-    for worker_id in range(num_workers):
-        batch = article_batches[worker_id]
-        for article_id, symbol, title, publish_date in batch:
-            future = executor.submit(
-                fetch_content_for_article,
-                worker_id + 1,  # Worker IDs start at 1
-                article_id, symbol, title, publish_date,
-                status_queue, result_queue, error_queue
-            )
-            futures.append((future, article_id, symbol))
-            # Add a small delay to prevent overwhelming the API
-            time.sleep(0.05)  # Reduced delay
-    
-    return futures
-
 # CHANGE: Updated fetch articles function to use Seeking Alpha API keys
 def fetch_articles_for_symbol(worker_id: int, symbol: str, since_timestamp: int, until_timestamp: int, 
                              status_queue: Queue, result_queue: Queue, error_queue: Queue):
@@ -775,6 +680,22 @@ with col2:
 since_timestamp = int(datetime.combine(from_date, datetime.min.time()).timestamp())
 until_timestamp = int(datetime.combine(to_date, datetime.min.time()).timestamp())
 
+# Function to divide a list into approximately equal chunks
+def divide_into_chunks(items, num_chunks):
+    """Divide a list into approximately equal chunks"""
+    if not items:
+        return []
+    
+    avg = len(items) / float(num_chunks)
+    result = []
+    last = 0.0
+    
+    while last < len(items):
+        result.append(items[int(last):int(last + avg)])
+        last += avg
+        
+    return result
+
 # Buttons
 col1, col2, col3 = st.columns(3)
 with col1:
@@ -810,13 +731,17 @@ with col1:
                     f.write("AAPL\nMSFT\nGOOG")
                 symbols = ["AAPL", "MSFT", "GOOG"]
             
-            # OPTIMIZED: Use improved worker utilization
-            num_workers, symbol_batches = optimize_worker_utilization(symbols, valid_keys, max_workers, "symbols")
+            # Determine number of workers (limited by MAX_WORKERS and available keys)
+            num_workers = min(max_workers, len(valid_keys))
+            st.write(f"Using {num_workers} parallel workers for fetching articles")
             
             # Create queues for thread communication
             status_queue = Queue()
             result_queue = Queue()
             error_queue = Queue()  # New queue for error reporting
+            
+            # Divide symbols among workers
+            symbol_batches = divide_into_chunks(symbols, num_workers)
             
             # Create progress indicators
             progress_bar = st.progress(0)
@@ -824,12 +749,17 @@ with col1:
             
             # Use ThreadPoolExecutor for proper parallel execution
             with concurrent.futures.ThreadPoolExecutor(max_workers=num_workers) as executor:
-                # OPTIMIZED: Submit tasks using improved function
-                futures = submit_symbol_tasks_to_executor(
-                    executor, num_workers, symbol_batches,
-                    since_timestamp, until_timestamp,
-                    status_queue, result_queue, error_queue
-                )
+                # Submit tasks to the executor
+                futures = []
+                for i in range(min(num_workers, len(symbol_batches))):
+                    if i < len(symbol_batches) and symbol_batches[i]:  # Check if this batch has symbols
+                        for symbol in symbol_batches[i]:
+                            future = executor.submit(
+                                fetch_articles_for_symbol,
+                                i+1, symbol, since_timestamp, until_timestamp,
+                                status_queue, result_queue, error_queue
+                            )
+                            futures.append((future, symbol))
                 
                 # Process results as they come in
                 results = {}
@@ -932,7 +862,7 @@ with col1:
             st.success("Articles fetched successfully! You can now fetch content summaries.")
 
 with col2:
-    # UPDATED: Completely rewritten fetch content button handler with optimizations
+    # UPDATED: Completely rewritten fetch content button handler
     if st.button("Fetch Content", disabled=not st.session_state["articles_fetched"]):
         # CRITICAL FIX: Test API keys before proceeding
         valid_keys = []
@@ -957,6 +887,15 @@ with col2:
                 
                 csv_files = [f for f in os.listdir(dirs["articles"]) if f.endswith("_news_data.csv")]
                 
+                # Determine number of workers (limited by MAX_WORKERS and available keys)
+                num_workers = min(max_workers, len(valid_keys))
+                st.write(f"Using {num_workers} parallel workers for fetching content")
+                
+                # Create queues for thread communication
+                status_queue = Queue()
+                result_queue = Queue()
+                error_queue = Queue()  # New queue for error reporting
+                
                 # Collect all articles that need summaries
                 all_articles = []
                 symbol_to_file = {}
@@ -976,18 +915,13 @@ with col2:
                             publish_date = row['Publish Date']
                             all_articles.append((article_id, symbol, title, publish_date))
                 
-                # OPTIMIZED: Use improved worker utilization for articles
-                num_workers, article_batches = optimize_worker_utilization(all_articles, valid_keys, max_workers, "articles")
-                
-                # Create queues for thread communication
-                status_queue = Queue()
-                result_queue = Queue()
-                error_queue = Queue()  # New queue for error reporting
-                
                 # Create progress indicators
                 progress_bar = st.progress(0)
                 status_area = st.empty()
                 eta_display = st.empty()
+                
+                # Divide articles among workers
+                article_batches = divide_into_chunks(all_articles, num_workers)
                 
                 # Load all DataFrames
                 dataframes = {}
@@ -996,11 +930,19 @@ with col2:
                 
                 # Use ThreadPoolExecutor for proper parallel execution
                 with concurrent.futures.ThreadPoolExecutor(max_workers=num_workers) as executor:
-                    # OPTIMIZED: Submit tasks using improved function
-                    futures = submit_article_tasks_to_executor(
-                        executor, num_workers, article_batches,
-                        status_queue, result_queue, error_queue
-                    )
+                    # Submit tasks to the executor
+                    futures = []
+                    for i in range(min(num_workers, len(article_batches))):
+                        if i < len(article_batches) and article_batches[i]:  # Check if this batch has articles
+                            for article_id, symbol, title, publish_date in article_batches[i]:
+                                future = executor.submit(
+                                    fetch_content_for_article,
+                                    i+1, article_id, symbol, title, publish_date,
+                                    status_queue, result_queue, error_queue
+                                )
+                                futures.append((future, article_id, symbol))
+                                # Add a small delay to prevent overwhelming the API
+                                time.sleep(0.1)
                     
                     # Process results as they come in
                     processed_count = 0
