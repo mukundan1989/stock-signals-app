@@ -1,7 +1,3 @@
-Edwards Lifesciences
-Targa Resources
-Cheniere Partners
-W. R. Berkley
 ADM
 AMH
 Affirm
@@ -14,62 +10,19 @@ Bentley Systems
 Best Buy
 Builders FirstSource
 CNA
-Carlyle Group
-Carnival
 Casey’s
-Cboe
-CenterPoint Energy
-Church & Dwight
+Cheniere Partners
 DICK’S
-Darden Restaurants
 Domino’s
-Dover
-DuPont
-Dynatrace
-Edison International
-Equity Residential
+Edwards Lifesciences
 Estée Lauder
-Expand Energy
-Fifth Third
-First Citizens Bank
-First Solar
-FirstEnergy
-Fortive
-GLPI
-GoDaddy
-Graco
-HP
 Healthpeak
-Hologic
-IQVIA
-Insmed
-International Paper
-Iron Mountain
-J.B. Hunt
-Keysight
-Kimco Realty
-LPL Financial
-Las Vegas Sands
-M&T Bank
-Markel
-Masco
 Mettler-Toledo
-MongoDB
-Monolithic Power
 NiSource
-Nucor
-PPG
 Packaging Corp
 Pilgrim’s Pride
-Pure Storage
-RPM
-Regency Centers
-Rivian
 SBA Communications
-STERIS
-Snap
-State Street
-Tapestry
+Targa Resources
 Trade Desk
 Twilio
 Tyler Technologies
@@ -79,4 +32,5 @@ Unum
 Veralto
 VeriSign
 W. P. Carey
+W. R. Berkley
 Western Midstream
