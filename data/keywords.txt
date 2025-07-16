@@ -1,50 +1,70 @@
-AIG
-Kimberly-Clark
-Freeport-McMoRan
-Kroger
-Truist
-Fastenal
-FICO
-Sempra
-PACCAR
-Ross Stores
-Dominion Energy
-Crown Castle
-Kenvue
-Marvell
-Ameriprise
-Coinbase
-General Motors (GM)
-Axon
-MSCI
-Target
-Edwards Lifesciences
-PSEG
-Nasdaq
-Verisk
-L3Harris
-Corteva
-Roblox
-Phillips 66
-Con Edison
-Xcel Energy
-Hess
-Flutter
-Discover
-Yum Brands
-Diamondback Energy
-Marathon Petroleum
-Quanta Services
-FIS
-Vistra
-Otis
-Occidental
-Cummins
-United Rentals
-Coupang
-Baker Hughes
-Ford
-Targa Resources
-Electronic Arts (EA)
-PG&E
-Take-Two
+D.R. Horton
+Cloudflare
+Robinhood
+AMETEK
+Entergy
+Corning
+Prudential
+Kraft Heinz
+Veeva
+Sysco
+CBRE
+Valero
+WEC Energy
+VICI
+Cognizant
+Hershey
+Constellation Brands
+The Hartford
+Brown & Brown
+Block
+IDEXX Labs
+CoStar
+Old Dominion
+Ferguson
+Cardinal Health
+Vulcan Materials
+Humana
+General Mills
+Datadog
+ResMed
+Zscaler
+Gartner
+eBay
+EQT
+Alnylam
+Centene
+Extra Space Storage
+Martin Marietta
+HEICO
+Texas Pacific Land
+Ventas
+Cheniere Partners
+Live Nation
+Ares Management
+Wabtec
+Agilent
+Ingersoll Rand
+American Water
+AvalonBay
+Tradeweb
+GE HealthCare
+Kellanova
+Carvana
+HubSpot
+Vertiv
+DTE Energy
+Equifax
+Broadridge
+Lennar
+Raymond James
+Rollins
+Dexcom
+Xylem
+Tractor Supply
+Ameren
+ANSYS
+Delta Air Lines
+PPL
+Rockwell Automation
+W. R. Berkley
