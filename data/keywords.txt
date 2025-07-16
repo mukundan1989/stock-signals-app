@@ -1,195 +1,82 @@
-M&T Bank
-Church & Dwight
-Equity Residential
-Nucor
-IQVIA
-DuPont
-Monolithic Power
-Atmos Energy
-Expand Energy
-Iron Mountain
-Trade Desk
-SBA Communications
-Tyler Technologies
-State Street
-LPL Financial
-International Paper
-GoDaddy
-CenterPoint Energy
-FirstEnergy
-Darden Restaurants
-Keysight
-Carnival
-VeriSign
-Las Vegas Sands
-First Citizens Bank
+Edwards Lifesciences
+Targa Resources
+Cheniere Partners
+W. R. Berkley
 ADM
-Fifth Third
-Cboe
-PPG
-Markel
-HP
-Fortive
-Veralto
-Edison International
-Dover
-STERIS
-Zoom
-CMS Energy
-Tyson Foods
-AngloGold Ashanti
-Corpay
-United Airlines
-Teledyne
-Erie Insurance
-Samsara
-NVR
-Eversource
-Fox
-Mettler-Toledo
-Venture Global
-Microchip Technology
-Cincinnati Financial
-Invitation Homes
-Dollar General
-Formula One
-McCormick
-Natera
-CDW
-Huntington Bank
-Warner Bros. Discovery
-HPE
-Dow
-Coterra Energy
-Lennox
-Toast
-Devon Energy
-Estée Lauder
-Zimmer Biomet
-Expedia
-Halliburton
-NRG Energy
-Watsco
-PulteGroup
-T. Rowe Price
-Waters
-SS&C
-Weyerhaeuser
-Supermicro
-Synchrony
-IFF
-NiSource
-MAA
-LyondellBasell
-Quest Diagnostics
-Labcorp
-Hubbell
-Summit Therapeutics
-CoreWeave
-RB Global
-Ubiquiti
-Loews
-Leidos
-Steel Dynamics
-Essex
-Molina Healthcare
-GlobalFoundries
-Reddit
-Interactive Brokers
-Biogen
-Regions Bank
-Insulet
-Northern Trust
-PTC
-EMCOR
-Clorox
-Williams-Sonoma
-Pinterest
-Global Payments
-Casey’s
-Dollar Tree
-Okta
-FNF
-Hormel
-NetApp
-DraftKings
-Packaging Corp
-Nutanix
-Principal Financial
-Ulta Beauty
-FactSet
-Guidewire
-Deckers
-Snap-on
-Domino’s
-Brown-Forman
-Cooper Companies
-KeyBank
-Genuine Parts
-Sun Communities
-Evergy
-Sprouts
-Alliant Energy
-BJ’s
-Carlisle
-Citizens Bank
-News Corp
-Corebridge
-DocuSign
-Warner Music
-Zillow
-Gen Digital
-F5
-Baxter
-DICK’S
-Duolingo
-Expeditors
-Reliance
-Onsemi
-West Pharma
-Chewy
-Western Midstream
-Jabil
-Booz Allen
-Equitable
-Jacobs
-US Foods
-Trimble
-Omnicom
-Burlington
-TransUnion
-Southwest
-Royalty Pharma
-Kimco Realty
-First Solar
-UDR
 AMH
-Bentley Systems
-W. P. Carey
-Pure Storage
-GLPI
-Avery Dennison
 Affirm
 Alexandria RE
-Unum
+Atmos Energy
+Avery Dennison
+BJ’s
 Ball Corp
-Snap
-Builders FirstSource
-RPM
-Graco
-Insmed
-Tapestry
-Rivian
-Healthpeak
+Bentley Systems
 Best Buy
-Masco
-Regency Centers
-Twilio
+Builders FirstSource
 CNA
 Carlyle Group
-MongoDB
-Hologic
+Carnival
+Casey’s
+Cboe
+CenterPoint Energy
+Church & Dwight
+DICK’S
+Darden Restaurants
+Domino’s
+Dover
+DuPont
 Dynatrace
-Pilgrim’s Pride
+Edison International
+Equity Residential
+Estée Lauder
+Expand Energy
+Fifth Third
+First Citizens Bank
+First Solar
+FirstEnergy
+Fortive
+GLPI
+GoDaddy
+Graco
+HP
+Healthpeak
+Hologic
+IQVIA
+Insmed
+International Paper
+Iron Mountain
 J.B. Hunt
+Keysight
+Kimco Realty
+LPL Financial
+Las Vegas Sands
+M&T Bank
+Markel
+Masco
+Mettler-Toledo
+MongoDB
+Monolithic Power
+NiSource
+Nucor
+PPG
+Packaging Corp
+Pilgrim’s Pride
+Pure Storage
+RPM
+Regency Centers
+Rivian
+SBA Communications
+STERIS
+Snap
+State Street
+Tapestry
+Trade Desk
+Twilio
+Tyler Technologies
+UDR
 United Therapeutics
+Unum
+Veralto
+VeriSign
+W. P. Carey
+Western Midstream
