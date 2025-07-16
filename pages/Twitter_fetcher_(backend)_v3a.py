@@ -119,10 +119,11 @@ def ensure_directories():
         os.makedirs(st.session_state["output_dir"], exist_ok=True)
         dirs = {
             "main": st.session_state["output_dir"],
-            "json": os.path.join(st.session_state["output_dir"], "json_output"),
-            "csv": os.path.join(st.session_state["output_dir"], "csv_output"),
+            "json": os.path.join(st.session_state["output_dir"], "json_output"), # Temporary individual segment JSONs
+            "csv": os.path.join(st.session_state["output_dir"], "csv_output"), # Temporary individual segment CSVs (less used now)
             "logs": os.path.join(st.session_state["output_dir"], "logs"),
-            "combined": os.path.join(st.session_state["output_dir"], "combined_output")
+            "combined_json": os.path.join(st.session_state["output_dir"], "combined_json_output"), # Combined JSONs
+            "final_csv": os.path.join(st.session_state["output_dir"], "final_csv_output") # Final CSVs for download
         }
         for dir_path in dirs.values():
             os.makedirs(dir_path, exist_ok=True)
@@ -134,14 +135,16 @@ def ensure_directories():
             "json": os.path.join(st.session_state["output_dir"], "json_output"),
             "csv": os.path.join(st.session_state["output_dir"], "csv_output"),
             "logs": os.path.join(st.session_state["output_dir"], "logs"),
-            "combined": os.path.join(st.session_state["output_dir"], "combined_output")
+            "combined_json": os.path.join(st.session_state["output_dir"], "combined_json_output"),
+            "final_csv": os.path.join(st.session_state["output_dir"], "final_csv_output")
         }
 
 st.session_state["directories"] = ensure_directories()
 dirs = st.session_state["directories"]
-JSON_OUTPUT_DIR = dirs["json"]
-CSV_OUTPUT_DIR = dirs["csv"]
-COMBINED_OUTPUT_DIR = dirs["combined"]
+JSON_OUTPUT_DIR = dirs["json"] # Temporary individual segment JSONs
+CSV_OUTPUT_DIR = dirs["csv"] # Temporary individual segment CSVs
+COMBINED_JSON_OUTPUT_DIR = dirs["combined_json"] # Combined JSONs
+FINAL_CSV_OUTPUT_DIR = dirs["final_csv"] # Final CSVs for download
 
 def generate_combined_keywords(base_keywords):
     combined = {}
@@ -268,14 +271,18 @@ def fetch_data_parallel(companies, start_date, end_date, max_workers=MAX_WORKERS
         st.error("API key is missing!")
         return
     
-    # Clear previous data
+    # Clear previous data in relevant output directories
     if os.path.exists(JSON_OUTPUT_DIR):
         shutil.rmtree(JSON_OUTPUT_DIR)
     os.makedirs(JSON_OUTPUT_DIR, exist_ok=True)
     
-    if os.path.exists(COMBINED_OUTPUT_DIR):
-        shutil.rmtree(COMBINED_OUTPUT_DIR)
-    os.makedirs(COMBINED_OUTPUT_DIR, exist_ok=True)
+    if os.path.exists(COMBINED_JSON_OUTPUT_DIR):
+        shutil.rmtree(COMBINED_JSON_OUTPUT_DIR)
+    os.makedirs(COMBINED_JSON_OUTPUT_DIR, exist_ok=True)
+
+    if os.path.exists(FINAL_CSV_OUTPUT_DIR): # Clear final CSVs from previous runs
+        shutil.rmtree(FINAL_CSV_OUTPUT_DIR)
+    os.makedirs(FINAL_CSV_OUTPUT_DIR, exist_ok=True)
     
     # Reset status table
     st.session_state["status_table"] = []
@@ -296,7 +303,7 @@ def fetch_data_parallel(companies, start_date, end_date, max_workers=MAX_WORKERS
     else:
         date_segments = [(start_date, end_date)]
     
-    all_results = {}
+    all_results = {} # To store results across all segments for combination
     for segment_index, (segment_start, segment_end) in enumerate(date_segments):
         if use_date_segmentation:
             segment_status.text(f"Processing segment {segment_index + 1}/{len(date_segments)}: {segment_start} to {segment_end}")
@@ -330,7 +337,7 @@ def fetch_data_parallel(companies, start_date, end_date, max_workers=MAX_WORKERS
                         futures.append((future, company))
                         time.sleep(0.2)
             
-            segment_results = {}
+            segment_results = {} # Results for the current segment
             processed_count = 0
             total_count = len(companies)
             start_time = time.time()
@@ -358,6 +365,7 @@ def fetch_data_parallel(companies, start_date, end_date, max_workers=MAX_WORKERS
                         segment_results[company] = company_results
                         st.session_state["processed_companies"].add(company)
                         
+                        # Save individual segment JSONs (these are temporary)
                         for keyword, data in company_results.items():
                             try:
                                 sanitized_keyword = keyword.replace(" ", "_").replace("/", "_").replace("+", "_")
@@ -368,16 +376,24 @@ def fetch_data_parallel(companies, start_date, end_date, max_workers=MAX_WORKERS
                                 display_keyword = keyword.replace("+", " ")
                                 keyword_type = "Base" if keyword == company else "Combined"
                                 
-                                st.session_state["status_table"].append({
-                                    "Company": company,
-                                    "Keyword": display_keyword,
-                                    "Type": keyword_type,
-                                    "Tweet Extract JSON": "✅",
-                                    "CSV Output": "❌",
-                                    "Date Range": f"{segment_start.strftime('%Y-%m-%d')} to {segment_end.strftime('%Y-%m-%d')}",
-                                    "Segment": seg_id,
-                                    "Section": tweet_section
-                                })
+                                # Update status table entry (initially for segment)
+                                found_entry = False
+                                for entry in st.session_state["status_table"]:
+                                    if entry["Company"] == company and entry["Keyword"] == display_keyword and entry["Segment"] == seg_id:
+                                        entry["Tweet Extract JSON"] = "✅"
+                                        found_entry = True
+                                        break
+                                if not found_entry:
+                                    st.session_state["status_table"].append({
+                                        "Company": company,
+                                        "Keyword": display_keyword,
+                                        "Type": keyword_type,
+                                        "Tweet Extract JSON": "✅",
+                                        "CSV Output": "❌", # Will be updated after combination
+                                        "Date Range": f"{segment_start.strftime('%Y-%m-%d')} to {segment_end.strftime('%Y-%m-%d')}",
+                                        "Segment": seg_id,
+                                        "Section": tweet_section
+                                    })
                             except Exception as e:
                                 st.error(f"Error saving tweets for {keyword.replace('+', ' ')}: {e}")
                     
@@ -409,14 +425,16 @@ def fetch_data_parallel(companies, start_date, end_date, max_workers=MAX_WORKERS
                     if future.done():
                         futures.remove((future, company))
                         try:
-                            future.result()
+                            future.result() # Check for exceptions from the worker
                         except Exception as e:
                             st.error(f"Error in worker thread for {company}: {e}")
-                            if company not in segment_results:
-                                processed_count += 1
+                            # If a worker failed, ensure it's marked as processed to avoid infinite loop
+                            if company not in st.session_state["processed_companies"]:
+                                processed_count += 1 # Increment processed_count for failed companies too
+                                st.session_state["processed_companies"].add(company) # Mark as processed
                 
                 if not futures and processed_count < total_count:
-                    st.error(f"All workers finished but only processed {processed_count}/{total_count} companies")
+                    st.error(f"All workers finished but only processed {processed_count}/{total_count} companies. Check 'Failed Companies' for details.")
                     break
                 
                 time.sleep(0.1)
@@ -424,11 +442,12 @@ def fetch_data_parallel(companies, start_date, end_date, max_workers=MAX_WORKERS
         eta_display.empty()
         status_area.empty()
         
-        for company, company_results in segment_results.items():
+        # Aggregate results for combination after each segment
+        for company, company_segment_results in segment_results.items():
             if company not in all_results:
                 all_results[company] = {}
             
-            for keyword, data in company_results.items():
+            for keyword, data in company_segment_results.items():
                 if keyword not in all_results[company]:
                     all_results[company][keyword] = []
                 
@@ -441,11 +460,55 @@ def fetch_data_parallel(companies, start_date, end_date, max_workers=MAX_WORKERS
         segment_status.text("All segments processed. Combining results...")
         combine_segmented_results(all_results, tweet_section)
         segment_status.text("Results combined successfully!")
-    
+    else: # If no segmentation, just save the results directly to combined_json_output
+        for company, company_data in all_results.items():
+            for keyword, tweets in company_data.items():
+                try:
+                    combined_data = {
+                        "results": tweets,
+                        "meta": {
+                            "combined_from_segments": False,
+                            "total_tweets": len(tweets),
+                            "combination_date": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                            "section": tweet_section,
+                            "original_tweets_count": len(tweets),
+                            "duplicate_tweets_removed": 0 # No duplicates if not segmented
+                        }
+                    }
+                    sanitized_keyword = keyword.replace(" ", "_").replace("/", "_").replace("+", "_")
+                    output_file = os.path.join(COMBINED_JSON_OUTPUT_DIR, f"{sanitized_keyword}_combined.json")
+                    with open(output_file, "w", encoding="utf-8") as outfile:
+                        json.dump(combined_data, outfile)
+                    
+                    display_keyword = keyword.replace("+", " ")
+                    keyword_type = "Base" if keyword == company else "Combined"
+                    
+                    # Update status table entry for non-segmented fetch
+                    for entry in st.session_state["status_table"]:
+                        if entry["Company"] == company and entry["Keyword"] == display_keyword and entry["Segment"] == segment_id:
+                            entry["Segment"] = "Combined" # Mark as combined even if it was a single segment
+                            break
+                    else: # If not found (e.g., single company fetch), add it
+                        st.session_state["status_table"].append({
+                            "Company": company,
+                            "Keyword": display_keyword,
+                            "Type": keyword_type,
+                            "Tweet Extract JSON": "✅",
+                            "CSV Output": "❌",
+                            "Date Range": f"{start_date.strftime('%Y-%m-%d')} to {end_date.strftime('%Y-%m-%d')}",
+                            "Segment": "Combined",
+                            "Section": tweet_section
+                        })
+                except Exception as e:
+                    st.error(f"Error saving non-segmented results for {keyword.replace('+', ' ')}: {e}")
+
     # Clean up individual JSON files after combining
     if os.path.exists(JSON_OUTPUT_DIR):
         shutil.rmtree(JSON_OUTPUT_DIR)
-        os.makedirs(JSON_OUTPUT_DIR, exist_ok=True)
+        os.makedirs(JSON_OUTPUT_DIR, exist_ok=True) # Recreate empty directory
+
+    # Automatically convert to CSV after fetching and combining
+    convert_json_to_csv()
     
     return all_results
 
@@ -475,19 +538,35 @@ def combine_segmented_results(all_results, tweet_section="latest"):
                     }
                     
                     sanitized_keyword = keyword.replace(" ", "_").replace("/", "_").replace("+", "_")
-                    output_file = os.path.join(COMBINED_OUTPUT_DIR, f"{sanitized_keyword}_combined.json")
+                    output_file = os.path.join(COMBINED_JSON_OUTPUT_DIR, f"{sanitized_keyword}_combined.json")
                     with open(output_file, "w", encoding="utf-8") as outfile:
                         json.dump(combined_data, outfile)
                     
                     display_keyword = keyword.replace("+", " ")
                     keyword_type = "Base" if keyword == company else "Combined"
                     
-                    # Update status table entry
+                    # Update status table entry to reflect combination
+                    # Find all entries for this company and keyword and update their segment to "Combined"
+                    updated_existing = False
                     for entry in st.session_state["status_table"]:
                         if entry["Company"] == company and entry["Keyword"] == display_keyword:
                             entry["Segment"] = "Combined"
-                            break
+                            entry["Tweet Extract JSON"] = "✅" # Ensure this is marked if combination happened
+                            updated_existing = True
+                            # No break here, as there might be multiple segment entries for the same keyword
                     
+                    if not updated_existing: # If no prior entry (e.g., single segment fetch, but still combined)
+                        st.session_state["status_table"].append({
+                            "Company": company,
+                            "Keyword": display_keyword,
+                            "Type": keyword_type,
+                            "Tweet Extract JSON": "✅",
+                            "CSV Output": "❌",
+                            "Date Range": "Combined", # Date range is now combined
+                            "Segment": "Combined",
+                            "Section": tweet_section
+                        })
+
                     st.session_state["process_status"].append(
                         f"Combined {len(unique_tweets)} unique tweets for {display_keyword} "
                         f"(removed {len(tweets) - len(unique_tweets)} duplicates)"
@@ -496,21 +575,26 @@ def combine_segmented_results(all_results, tweet_section="latest"):
                 except Exception as e:
                     st.error(f"Error combining results for {keyword.replace('+', ' ')}: {e}")
         
-        st.success(f"Combined results saved to {COMBINED_OUTPUT_DIR}")
+        st.success(f"Combined results saved to {COMBINED_JSON_OUTPUT_DIR}")
     except Exception as e:
         st.error(f"Error combining segmented results: {e}")
 
 def convert_json_to_csv():
     """Convert all combined JSON files to CSV and update status"""
-    if not os.path.exists(COMBINED_OUTPUT_DIR):
+    if not os.path.exists(COMBINED_JSON_OUTPUT_DIR):
         st.warning("No combined JSON files found. Please fetch tweets first.")
         return
     
-    json_files = [f for f in os.listdir(COMBINED_OUTPUT_DIR) if f.endswith(".json")]
+    json_files = [f for f in os.listdir(COMBINED_JSON_OUTPUT_DIR) if f.endswith(".json")]
     if not json_files:
-        st.warning("No JSON files found in the combined output directory.")
+        st.warning("No JSON files found in the combined JSON output directory.")
         return
     
+    # Clear previous CSVs in the final download directory
+    if os.path.exists(FINAL_CSV_OUTPUT_DIR):
+        shutil.rmtree(FINAL_CSV_OUTPUT_DIR)
+    os.makedirs(FINAL_CSV_OUTPUT_DIR, exist_ok=True)
+
     progress_bar = st.progress(0)
     status_area = st.empty()
     
@@ -518,11 +602,11 @@ def convert_json_to_csv():
         try:
             status_area.text(f"Converting {json_file} to CSV...")
             
-            json_file_path = os.path.join(COMBINED_OUTPUT_DIR, json_file)
+            json_file_path = os.path.join(COMBINED_JSON_OUTPUT_DIR, json_file)
             csv_file_name = f"{os.path.splitext(json_file)[0]}.csv"
-            csv_file_path = os.path.join(COMBINED_OUTPUT_DIR, csv_file_name)
+            csv_file_path = os.path.join(FINAL_CSV_OUTPUT_DIR, csv_file_name) # Save to final CSV dir
             
-            with open(json_file_path, "r") as file:
+            with open(json_file_path, "r", encoding="utf-8") as file:
                 data = json.load(file)
             
             records = []
@@ -543,7 +627,11 @@ def convert_json_to_csv():
                 records.append(flat_item)
             
             df = pd.DataFrame(records)
-            df.to_csv(csv_file_path, index=False)
+            if not df.empty: # Only save if DataFrame is not empty
+                df.to_csv(csv_file_path, index=False, encoding="utf-8")
+            else:
+                st.warning(f"No data to convert for {json_file}, skipping CSV creation.")
+                continue # Skip updating status if no CSV was created
             
             # Extract keyword from filename
             keyword = os.path.splitext(json_file)[0].replace("_combined", "").replace("_", " ")
@@ -551,7 +639,7 @@ def convert_json_to_csv():
             # Update status table
             with status_lock:
                 for entry in st.session_state["status_table"]:
-                    if entry["Keyword"] == keyword:
+                    if entry["Keyword"] == keyword and entry["Segment"] == "Combined": # Ensure we update the combined entry
                         entry["CSV Output"] = "✅"
                         break
             
@@ -566,19 +654,19 @@ def convert_json_to_csv():
 def combine_company_csvs(company_name, use_combined=True):
     dataframes = []
     
-    if use_combined and os.path.exists(COMBINED_OUTPUT_DIR):
+    if use_combined and os.path.exists(FINAL_CSV_OUTPUT_DIR): # Look in final CSV output dir
         company_prefix = company_name.replace(" ", "_")
         csv_files = [
-            f for f in os.listdir(COMBINED_OUTPUT_DIR) 
+            f for f in os.listdir(FINAL_CSV_OUTPUT_DIR) 
             if f.startswith(company_prefix) and f.endswith(".csv")
         ]
         
         if csv_files:
             for csv_file in csv_files:
                 try:
-                    file_path = os.path.join(COMBINED_OUTPUT_DIR, csv_file)
+                    file_path = os.path.join(FINAL_CSV_OUTPUT_DIR, csv_file)
                     if os.path.getsize(file_path) > 0:
-                        df = pd.read_csv(file_path)
+                        df = pd.read_csv(file_path, encoding="utf-8")
                         if not df.empty:
                             dataframes.append(df)
                 except Exception as e:
@@ -595,19 +683,23 @@ def clear_temp():
             shutil.rmtree(JSON_OUTPUT_DIR)
             os.makedirs(JSON_OUTPUT_DIR, exist_ok=True)
 
-        if os.path.exists(CSV_OUTPUT_DIR):
+        if os.path.exists(CSV_OUTPUT_DIR): # This is less used now, but keep for consistency
             shutil.rmtree(CSV_OUTPUT_DIR)
             os.makedirs(CSV_OUTPUT_DIR, exist_ok=True)
             
-        if os.path.exists(COMBINED_OUTPUT_DIR):
-            shutil.rmtree(COMBINED_OUTPUT_DIR)
-            os.makedirs(COMBINED_OUTPUT_DIR, exist_ok=True)
+        if os.path.exists(COMBINED_JSON_OUTPUT_DIR):
+            shutil.rmtree(COMBINED_JSON_OUTPUT_DIR)
+            os.makedirs(COMBINED_JSON_OUTPUT_DIR, exist_ok=True)
+
+        if os.path.exists(FINAL_CSV_OUTPUT_DIR): # Clear final CSVs
+            shutil.rmtree(FINAL_CSV_OUTPUT_DIR)
+            os.makedirs(FINAL_CSV_OUTPUT_DIR, exist_ok=True)
 
         st.session_state["status_table"] = []
         st.session_state["process_status"] = []
         st.session_state["failed_companies"] = {}
         st.session_state["processed_companies"] = set()
-        st.success("Temporary files cleared successfully!")
+        st.success("Temporary and final output files cleared successfully!")
     except Exception as e:
         st.error(f"Error clearing temporary files: {e}")
 
@@ -706,18 +798,18 @@ if st.session_state["use_date_segmentation"]:
     if len(segments) > 5:
         st.write(f"  ... and {len(segments) - 5} more segments")
     
-    tweets_per_segment = 5 * TWEETS_PER_REQUEST
+    tweets_per_segment = TWEETS_PER_REQUEST # This is the limit per API call
     potential_tweets = len(segments) * tweets_per_segment
-    st.write(f"Potential maximum tweets per company: {potential_tweets} ({tweets_per_segment} per segment × {len(segments)} segments)")
+    st.write(f"Potential maximum tweets per keyword per company: {potential_tweets} ({tweets_per_segment} per segment × {len(segments)} segments)")
 
 # Load base keywords
 base_keywords = []
 if os.path.exists(KEYWORDS_FILE):
-    with open(KEYWORDS_FILE, "r") as file:
+    with open(KEYWORDS_FILE, "r", encoding="utf-8") as file:
         base_keywords = [line.strip() for line in file if line.strip()]
 else:
     os.makedirs(os.path.dirname(KEYWORDS_FILE), exist_ok=True)
-    with open(KEYWORDS_FILE, "w") as file:
+    with open(KEYWORDS_FILE, "w", encoding="utf-8") as file:
         file.write("AAPL\nMSFT\nGOOG\nAMZN\nFB")
     base_keywords = ["AAPL", "MSFT", "GOOG", "AMZN", "FB"]
     st.info(f"Created sample keywords file at {KEYWORDS_FILE}")
@@ -734,8 +826,8 @@ if base_keywords:
     )
     
     combined_csv = combine_company_csvs(st.session_state["selected_company"], use_combined=True)
-    if combined_csv is not None:
-        csv_data = combined_csv.to_csv(index=False)
+    if combined_csv is not None and not combined_csv.empty:
+        csv_data = combined_csv.to_csv(index=False, encoding="utf-8")
         st.download_button(
             label=f"Download ALL {st.session_state['selected_company']} Data (Combined)",
             data=csv_data,
@@ -743,6 +835,8 @@ if base_keywords:
             mime="text/csv",
             key=f"combined_{st.session_state['selected_company']}"
         )
+    else:
+        st.info(f"No combined CSV data available for {st.session_state['selected_company']} yet.")
     
     st.subheader(f"Combination Keywords for: {st.session_state['selected_company']}")
     
@@ -786,7 +880,7 @@ with col2:
         convert_json_to_csv()
 
 with col3:
-    if st.button("Clear Temp"):
+    if st.button("Clear All Output"): # Renamed from Clear Temp for clarity
         clear_temp()
 
 # Display failed companies
@@ -803,7 +897,7 @@ if st.session_state["failed_companies"]:
             })
         
         failed_df = pd.DataFrame(failed_data)
-        st.dataframe(failed_df)
+        st.dataframe(failed_df, hide_index=True)
         
         if st.button("Clear Failed Companies List"):
             st.session_state["failed_companies"] = {}
@@ -837,7 +931,16 @@ with st.expander("Storage Information"):
         total_size = 0
         file_count = 0
         
-        for dir_name, dir_path in dirs.items():
+        # Define directories to display
+        display_dirs = {
+            "json": "Temporary JSON Output (Individual Segments)",
+            "combined_json": "Combined JSON Output",
+            "final_csv": "Final CSV Output (for Download)",
+            "logs": "Logs"
+        }
+
+        for dir_key, dir_display_name in display_dirs.items():
+            dir_path = dirs[dir_key]
             if os.path.exists(dir_path):
                 files = os.listdir(dir_path)
                 dir_size = sum(os.path.getsize(os.path.join(dir_path, f)) for f in files if os.path.isfile(os.path.join(dir_path, f)))
@@ -852,17 +955,6 @@ with st.expander("Storage Information"):
                 else:
                     dir_size_str = f"{dir_size/(1024*1024):.2f} MB"
                 
-                if dir_name == "json":
-                    dir_display_name = "Twitter JSON Output"
-                elif dir_name == "csv":
-                    dir_display_name = "Twitter CSV Output"
-                elif dir_name == "logs":
-                    dir_display_name = "Twitter Logs"
-                elif dir_name == "combined":
-                    dir_display_name = "Twitter Combined Output"
-                else:
-                    dir_display_name = f"Twitter {dir_name.capitalize()}"
-                
                 st.write(f"### {dir_display_name}: {dir_path}")
                 st.write(f"- Contains {dir_file_count} files")
                 st.write(f"- Size: {dir_size_str}")
@@ -874,17 +966,6 @@ with st.expander("Storage Information"):
                     if len(files) > 5:
                         st.write(f"  - ... and {len(files) - 5} more")
             else:
-                if dir_name == "json":
-                    dir_display_name = "Twitter JSON Output"
-                elif dir_name == "csv":
-                    dir_display_name = "Twitter CSV Output"
-                elif dir_name == "logs":
-                    dir_display_name = "Twitter Logs"
-                elif dir_name == "combined":
-                    dir_display_name = "Twitter Combined Output"
-                else:
-                    dir_display_name = f"Twitter {dir_name.capitalize()}"
-                
                 st.write(f"### {dir_display_name}: {dir_path}")
                 st.write("- Directory does not exist")
         
@@ -902,28 +983,33 @@ with st.expander("Storage Information"):
         st.write("These files are stored in directories on your system. To access them:")
         st.write("1. Use the download buttons provided in the app")
         st.write("2. Navigate to the output directory on your system")
-        st.write("3. The combined results are in the 'combined_output' directory")
+        st.write("3. The final CSV results are in the 'final_csv_output' directory")
         
     except Exception as e:
         st.error(f"Error displaying storage information: {e}")
 
 # CSV Download Section
-if os.path.exists(COMBINED_OUTPUT_DIR):
-    csv_files = [f for f in os.listdir(COMBINED_OUTPUT_DIR) if f.endswith(".csv")]
+if os.path.exists(FINAL_CSV_OUTPUT_DIR):
+    csv_files = [f for f in os.listdir(FINAL_CSV_OUTPUT_DIR) if f.endswith(".csv")]
     if csv_files:
         with st.expander("Download Combined CSV Files"):
             st.write("These files contain all tweets combined:")
             cols = st.columns(3)
             for i, csv_file in enumerate(csv_files):
                 with cols[i % 3]:
-                    with open(os.path.join(COMBINED_OUTPUT_DIR, csv_file), "r") as f:
-                        st.download_button(
-                            label=f"Download {csv_file.replace('_', ' ').replace('.csv', '').replace('combined', 'All')}",
-                            data=f.read(),
-                            file_name=csv_file,
-                            mime="text/csv"
-                        )
+                    try:
+                        file_path = os.path.join(FINAL_CSV_OUTPUT_DIR, csv_file)
+                        with open(file_path, "r", encoding="utf-8") as f:
+                            st.download_button(
+                                label=f"Download {csv_file.replace('_', ' ').replace('.csv', '').replace('combined', 'All')}",
+                                data=f.read(),
+                                file_name=csv_file,
+                                mime="text/csv",
+                                key=f"download_final_csv_{csv_file}" # Unique key for each button
+                            )
+                    except Exception as e:
+                        st.error(f"Could not prepare {csv_file} for download: {e}")
     else:
-        st.warning("No CSV files found in combined output directory")
+        st.warning("No CSV files found in final output directory. Fetch data and convert to CSV first.")
 else:
-    st.warning("Combined output directory does not exist")
+    st.warning("Final CSV output directory does not exist.")
