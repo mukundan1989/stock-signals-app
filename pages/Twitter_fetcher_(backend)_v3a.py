@@ -5,7 +5,7 @@ import http.client
 import pandas as pd
 import shutil
 import time
-import threading
+# threading removed - using only concurrent.futures
 import concurrent.futures
 from queue import Queue
 from datetime import datetime, timedelta, date
@@ -87,8 +87,7 @@ if "tweet_section" not in st.session_state:
 if "api_keys" not in st.session_state:
     st.session_state["api_keys"] = []
 
-# Thread-safe locks
-status_lock = threading.Lock()
+# No longer need locks since workers only use queues
 
 # Streamlit UI
 st.title("Twitter Data Fetcher - Company Based")
@@ -198,7 +197,7 @@ def fetch_tweets_for_keyword(keyword, start_date, end_date, api_key, tweet_secti
 
 def process_company_worker(worker_id: int, companies: List[str], start_date, end_date, 
                           api_key: str, segment_size_days: int, status_queue: Queue, 
-                          result_queue: Queue, tweet_section: str = "latest"):
+                          result_queue: Queue, output_dirs: dict, tweet_section: str = "latest"):
     """Process multiple companies with one API key"""
     try:
         for company in companies:
@@ -206,8 +205,6 @@ def process_company_worker(worker_id: int, companies: List[str], start_date, end
             all_company_tweets = []
             keywords = generate_company_keywords(company)
             
-            with status_lock:
-                st.session_state["process_status"].append(f"Worker {worker_id}: Starting company {company}")
             status_queue.put(f"Worker {worker_id}: Processing company: {company}")
             
             # Get date segments
@@ -262,7 +259,7 @@ def process_company_worker(worker_id: int, companies: List[str], start_date, end
                 final_tweets = list(unique_tweets.values())
                 
                 # Save company JSON
-                company_json_path = os.path.join(dirs["company_json"], f"{company.replace(' ', '_')}.json")
+                company_json_path = os.path.join(output_dirs["company_json"], f"{company.replace(' ', '_')}.json")
                 try:
                     with open(company_json_path, "w", encoding="utf-8") as f:
                         json.dump({"company": company, "total_tweets": len(final_tweets), "results": final_tweets}, f, indent=2)
@@ -349,6 +346,7 @@ def fetch_data_parallel(companies, start_date, end_date, api_keys, segment_size_
                     segment_size_days,
                     status_queue,
                     result_queue,
+                    dirs,
                     tweet_section
                 )
                 futures.append(future)
@@ -360,8 +358,7 @@ def fetch_data_parallel(companies, start_date, end_date, api_keys, segment_size_
             # Update status
             while not status_queue.empty():
                 status_msg = status_queue.get()
-                with status_lock:
-                    st.session_state["process_status"].append(f"{datetime.now().strftime('%H:%M:%S')} - {status_msg}")
+                st.session_state["process_status"].append(f"{datetime.now().strftime('%H:%M:%S')} - {status_msg}")
             
             # Check results
             while not result_queue.empty():
