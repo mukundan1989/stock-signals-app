@@ -111,8 +111,10 @@ def ensure_directories():
             "final_output": os.path.join(st.session_state["output_dir"], "final_output"),
             "logs": os.path.join(st.session_state["output_dir"], "logs")
         }
-        for dir_path in dirs.values():
+        for dir_name, dir_path in dirs.items():
             os.makedirs(dir_path, exist_ok=True)
+            if not os.path.exists(dir_path):
+                raise Exception(f"Failed to create directory: {dir_path}")
         return dirs
     except Exception as e:
         st.error(f"Error creating directories: {e}")
@@ -261,11 +263,20 @@ def process_company_worker(worker_id: int, companies: List[str], start_date, end
                 
                 # Save company JSON
                 company_json_path = os.path.join(dirs["company_json"], f"{company.replace(' ', '_')}.json")
-                with open(company_json_path, "w", encoding="utf-8") as f:
-                    json.dump({"company": company, "total_tweets": len(final_tweets), "results": final_tweets}, f, indent=2)
+                try:
+                    with open(company_json_path, "w", encoding="utf-8") as f:
+                        json.dump({"company": company, "total_tweets": len(final_tweets), "results": final_tweets}, f, indent=2)
+                    status_queue.put(f"Worker {worker_id}: 💾 Saved {company}.json with {len(final_tweets)} tweets")
+                except Exception as e:
+                    status_queue.put(f"Worker {worker_id}: ❌ Error saving {company}.json: {e}")
+                    company_success = False
                 
-                status_queue.put(f"Worker {worker_id}: ✅ Company {company} completed - {len(final_tweets)} unique tweets")
-                result_queue.put(("success", company, len(final_tweets)))
+                if company_success:
+                    status_queue.put(f"Worker {worker_id}: ✅ Company {company} completed - {len(final_tweets)} unique tweets")
+                    result_queue.put(("success", company, len(final_tweets)))
+                else:
+                    status_queue.put(f"Worker {worker_id}: ❌ Company {company} failed during save")
+                    result_queue.put(("failed", company, 0))
                 
             else:
                 status_queue.put(f"Worker {worker_id}: ❌ Company {company} failed")
@@ -383,6 +394,13 @@ def fetch_data_parallel(companies, start_date, end_date, api_keys, segment_size_
     
     st.success(f"✅ Fetching completed! {len(st.session_state['completed_companies'])} successful, {len(st.session_state['failed_companies'])} failed")
     
+    # Show what was created
+    if os.path.exists(dirs["company_json"]):
+        json_files = [f for f in os.listdir(dirs["company_json"]) if f.endswith(".json")]
+        st.info(f"📁 Created {len(json_files)} JSON files in: {dirs['company_json']}")
+        if json_files:
+            st.write("JSON files:", ", ".join(json_files[:5]) + ("..." if len(json_files) > 5 else ""))
+    
     # Convert to CSV and create master file
     convert_json_to_csv()
     create_master_csv()
@@ -390,10 +408,19 @@ def fetch_data_parallel(companies, start_date, end_date, api_keys, segment_size_
 
 def convert_json_to_csv():
     """Convert company JSON files to CSV"""
+    if not dirs or "company_json" not in dirs:
+        st.error("Directory structure not initialized properly")
+        return
+        
+    if not os.path.exists(dirs["company_json"]):
+        st.warning("Company JSON directory does not exist")
+        return
+        
     json_files = [f for f in os.listdir(dirs["company_json"]) if f.endswith(".json")]
     
     if not json_files:
         st.warning("No JSON files to convert")
+        st.info(f"Checked directory: {dirs['company_json']}")
         return
     
     progress_bar = st.progress(0)
@@ -567,7 +594,7 @@ if st.button("🚀 Start Fetching Data", type="primary"):
         st.warning("⚠️ Please check: valid date range, companies loaded, and API keys provided!")
 
 # Additional action buttons
-col1, col2, col3 = st.columns(3)
+col1, col2, col3, col4 = st.columns(4)
 
 with col1:
     if st.button("📊 Convert JSON to CSV"):
@@ -578,6 +605,20 @@ with col2:
         create_master_csv()
 
 with col3:
+    if st.button("🔍 Debug Files"):
+        st.write("**Directory Status:**")
+        for dir_name, dir_path in dirs.items():
+            if os.path.exists(dir_path):
+                files = [f for f in os.listdir(dir_path) if os.path.isfile(os.path.join(dir_path, f))]
+                st.write(f"✅ {dir_name}: {len(files)} files")
+                if files and len(files) <= 10:
+                    st.write(f"   Files: {', '.join(files)}")
+                elif files:
+                    st.write(f"   Sample files: {', '.join(files[:5])}...")
+            else:
+                st.write(f"❌ {dir_name}: Directory missing")
+
+with col4:
     if st.button("🗑️ Clear All Data"):
         for dir_path in [dirs["company_json"], dirs["company_csv"], dirs["final_output"]]:
             if os.path.exists(dir_path):
