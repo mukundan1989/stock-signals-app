@@ -1,30 +1,50 @@
-American Electric Power
-Becton Dickinson
-Monster Beverage
-Emerson Electric
-Cencora
-Autodesk
-BNY Mellon
-Paychex
-Realty Income
-CSX
-Public Storage
-Royal Caribbean
-Cheniere Energy
-Carrier Global
-MPLX
-Allstate
-ONEOK
-Digital Realty
-Hilton
-Howmet Aerospace
-Norfolk Southern
-FedEx
-MetLife
-Simon Property Group
-Grainger
-Charter
-Keurig Dr Pepper
-Snowflake
-Schlumberger
-Exelon
+AIG
+Kimberly-Clark
+Freeport-McMoRan
+Kroger
+Truist
+Fastenal
+FICO
+Sempra
+PACCAR
+Ross Stores
+Dominion Energy
+Crown Castle
+Kenvue
+Marvell
+Ameriprise
+Coinbase
+General Motors (GM)
+Axon
+MSCI
+Target
+Edwards Lifesciences
+PSEG
+Nasdaq
+Verisk
+L3Harris
+Corteva
+Roblox
+Phillips 66
+Con Edison
+Xcel Energy
+Hess
+Flutter
+Discover
+Yum Brands
+Diamondback Energy
+Marathon Petroleum
+Quanta Services
+FIS
+Vistra
+Otis
+Occidental
+Cummins
+United Rentals
+Coupang
+Baker Hughes
+Ford
+Targa Resources
+Electronic Arts (EA)
+PG&E
+Take-Two
