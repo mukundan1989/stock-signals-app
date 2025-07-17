@@ -1,7 +1,3 @@
-ADM
-AMH
-Affirm
-Alexandria RE
 BJ’s
 Casey’s
 Cheniere Partners
@@ -16,14 +12,6 @@ Packaging Corp
 Pilgrim’s Pride
 SBA Communications
 Targa Resources
-Trade Desk
-Twilio
-Tyler Technologies
-UDR
-United Therapeutics
-Unum
 Veralto
-VeriSign
-W. P. Carey
 W. R. Berkley
 Western Midstream
