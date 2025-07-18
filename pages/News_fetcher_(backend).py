@@ -452,7 +452,7 @@ def process_content_worker(worker_id: int, article_batch: List[Dict], api_key: s
             result = fetch_article_content(article_id, api_key)
             
             if result["error"]:
-                status_queue.put(f"Worker {worker_id}: ❌ Content failed for {article_id}: {result['error']}")
+                status_queue.put(f"Worker {worker_id}: Content failed for {article_id}: {result['error']}")
                 article['content'] = f"Error: {result['error']}"
                 article['content_status'] = "failed"
             else:
@@ -464,8 +464,8 @@ def process_content_worker(worker_id: int, article_batch: List[Dict], api_key: s
             
     except Exception as e:
         status_queue.put(f"Worker {worker_id}: Fatal error: {e}")
-                 for article in article_batch:
-             result_queue.put(("article_failed", article['symbol'], article))
+        for article in article_batch:
+            result_queue.put(("article_failed", article['symbol'], article))
 
 def process_content_cleaning_worker(worker_id: int, csv_files: List[str], status_queue: Queue, 
                                    result_queue: Queue, dirs: dict):
