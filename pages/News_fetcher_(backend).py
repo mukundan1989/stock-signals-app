@@ -11,6 +11,15 @@ import platform
 import concurrent.futures
 from queue import Queue
 from typing import List, Dict, Any, Tuple, Set
+import re
+from bs4 import BeautifulSoup
+from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
+from transformers import pipeline
+import warnings
+warnings.filterwarnings("ignore")
+
+# Required packages for this enhanced version:
+# pip install beautifulsoup4 vaderSentiment transformers torch streamlit pandas
 
 # Default paths based on OS
 def get_default_output_dir():
@@ -41,10 +50,20 @@ def get_previous_month_range():
 
 # Configuration
 API_HOST_SEEKING_ALPHA = "seeking-alpha.p.rapidapi.com"
+API_HOST_GPT = "gpt-4o.p.rapidapi.com"
 DEFAULT_API_KEY = "4eab47a1bfmsh51c8a20cf14a71fp13947bjsnbff888983296"
 SYMBOL_FILE = "data/symbollist.txt"
 MAX_WORKERS = 4
 ARTICLES_PER_REQUEST = 40  # Max from API
+
+# Initialize sentiment analyzer and summarizer
+@st.cache_resource
+def load_sentiment_analyzer():
+    return SentimentIntensityAnalyzer()
+
+@st.cache_resource  
+def load_summarizer():
+    return pipeline("summarization", model="facebook/bart-large-cnn")
 
 # Initialize session state
 if "output_dir" not in st.session_state:
@@ -65,6 +84,14 @@ if "ids_fetched" not in st.session_state:
     st.session_state["ids_fetched"] = False
 if "content_fetched" not in st.session_state:
     st.session_state["content_fetched"] = False
+if "content_cleaned" not in st.session_state:
+    st.session_state["content_cleaned"] = False
+if "python_sentiment_done" not in st.session_state:
+    st.session_state["python_sentiment_done"] = False
+if "content_summarized" not in st.session_state:
+    st.session_state["content_summarized"] = False
+if "chatgpt_sentiment_done" not in st.session_state:
+    st.session_state["chatgpt_sentiment_done"] = False
 if "collected_article_summary" not in st.session_state:
     st.session_state["collected_article_summary"] = {}
 
@@ -191,6 +218,186 @@ def fetch_article_content(article_id, api_key):
     except Exception as e:
         return {"content": "", "error": str(e)}
 
+def clean_html_content(html_content):
+    """Clean HTML content and extract just the article text"""
+    try:
+        if not html_content or pd.isna(html_content):
+            return ""
+        
+        # Parse HTML
+        soup = BeautifulSoup(html_content, 'html.parser')
+        
+        # Remove script and style elements
+        for script in soup(["script", "style", "nav", "header", "footer", "aside"]):
+            script.decompose()
+        
+        # Get text content
+        text = soup.get_text()
+        
+        # Find content boundaries - stop at "more-link"
+        if "more-link" in text.lower():
+            text = text.split("more-link")[0]
+        
+        # Clean up whitespace and formatting
+        lines = (line.strip() for line in text.splitlines())
+        cleaned_lines = []
+        
+        for line in lines:
+            if line and len(line) > 10:  # Skip very short lines (likely navigation/UI elements)
+                # Remove URLs
+                line = re.sub(r'http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\\(\\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+', '', line)
+                # Remove email addresses
+                line = re.sub(r'\S+@\S+', '', line)
+                # Clean extra whitespace
+                line = re.sub(r'\s+', ' ', line).strip()
+                if line:
+                    cleaned_lines.append(line)
+        
+        # Join and clean final text
+        clean_text = ' '.join(cleaned_lines)
+        
+        # Remove common UI text patterns
+        ui_patterns = [
+            r'subscribe.*?newsletter', r'sign up.*?alerts', r'follow.*?twitter',
+            r'share.*?facebook', r'download.*?app', r'view.*?comments',
+            r'read.*?more', r'click.*?here', r'terms.*?service'
+        ]
+        
+        for pattern in ui_patterns:
+            clean_text = re.sub(pattern, '', clean_text, flags=re.IGNORECASE)
+        
+        # Final cleanup
+        clean_text = re.sub(r'\s+', ' ', clean_text).strip()
+        
+        return clean_text if len(clean_text) > 50 else ""  # Return empty if too short
+        
+    except Exception as e:
+        return f"Error cleaning content: {e}"
+
+def analyze_sentiment_python(text):
+    """Analyze sentiment using VADER"""
+    try:
+        if not text or len(text) < 10:
+            return "neutral"
+        
+        analyzer = load_sentiment_analyzer()
+        scores = analyzer.polarity_scores(text)
+        
+        # Use compound score for classification
+        if scores['compound'] >= 0.05:
+            return 'positive'
+        elif scores['compound'] <= -0.05:
+            return 'negative'
+        else:
+            return 'neutral'
+            
+    except Exception as e:
+        return f"error: {e}"
+
+def summarize_content(text, max_words=150):
+    """Summarize content using transformers"""
+    try:
+        if not text or len(text) < 10:
+            return ""
+        
+        word_count = len(text.split())
+        
+        # If already short enough, return as-is
+        if word_count <= max_words:
+            return text
+        
+        summarizer = load_summarizer()
+        
+        # Calculate target length for transformer
+        # BART works better with character limits
+        max_length = min(142, max(50, word_count // 4))  # Leave room for 150 word limit
+        min_length = max(30, max_length // 2)
+        
+        # Split very long text into chunks if needed
+        if len(text) > 4000:  # BART has token limits
+            text = text[:4000]
+        
+        summary = summarizer(text, max_length=max_length, min_length=min_length, do_sample=False)
+        summarized_text = summary[0]['summary_text']
+        
+        # Ensure it's within word limit
+        summary_words = summarized_text.split()
+        if len(summary_words) > max_words:
+            summarized_text = ' '.join(summary_words[:max_words])
+        
+        return summarized_text
+        
+    except Exception as e:
+        return f"Error summarizing: {e}"
+
+def analyze_sentiment_chatgpt(text, symbol, api_key):
+    """Analyze sentiment using ChatGPT"""
+    try:
+        if not text or len(text) < 10:
+            return "neutral"
+        
+        conn = http.client.HTTPSConnection(API_HOST_GPT)
+        
+        prompt = f"As a financial analyst, determine the sentiment of this news article about {symbol}. Be objective and avoid positive bias. Respond with only one word: positive, negative, or neutral. Article: {text}"
+        
+        payload = {
+            "model": "gpt-4o",
+            "messages": [
+                {
+                    "role": "user",
+                    "content": prompt
+                }
+            ],
+            "max_tokens": 10,
+            "temperature": 0
+        }
+        
+        headers = {
+            'x-rapidapi-key': api_key,
+            'x-rapidapi-host': API_HOST_GPT,
+            'Content-Type': "application/json"
+        }
+        
+        conn.request("POST", "/chat/completions", json.dumps(payload), headers)
+        res = conn.getresponse()
+        data_bytes = res.read()
+        conn.close()
+        
+        if not data_bytes:
+            return "error: empty response"
+        
+        data = json.loads(data_bytes.decode("utf-8"))
+        
+        if 'choices' in data and len(data['choices']) > 0:
+            sentiment = data['choices'][0]['message']['content'].strip().lower()
+            
+            # Clean response to get just the sentiment word
+            sentiment = re.sub(r'[^\w\s]', '', sentiment)
+            
+            if 'positive' in sentiment:
+                return 'positive'
+            elif 'negative' in sentiment:
+                return 'negative'
+            elif 'neutral' in sentiment:
+                return 'neutral'
+            else:
+                return sentiment  # Return raw response if unclear
+        else:
+            return "error: no response content"
+            
+    except Exception as e:
+        return f"error: {e}"
+
+def compare_sentiments(py_sentiment, gpt_sentiment):
+    """Compare Python and ChatGPT sentiments"""
+    if py_sentiment in ['positive', 'negative', 'neutral'] and gpt_sentiment in ['positive', 'negative', 'neutral']:
+        if py_sentiment == gpt_sentiment:
+            return f"agree_{py_sentiment}"
+        else:
+            return f"disagree_{py_sentiment}_vs_{gpt_sentiment}"
+    else:
+        return "error_in_comparison"
+
 def process_symbol_ids_worker(worker_id: int, symbols: List[str], since_timestamp, until_timestamp, 
                              api_key: str, status_queue: Queue, result_queue: Queue, output_dirs: dict):
     """Worker to process article ID collection for multiple symbols"""
@@ -257,8 +464,170 @@ def process_content_worker(worker_id: int, article_batch: List[Dict], api_key: s
             
     except Exception as e:
         status_queue.put(f"Worker {worker_id}: Fatal error: {e}")
-        for article in article_batch:
-            result_queue.put(("article_failed", article['symbol'], article))
+                 for article in article_batch:
+             result_queue.put(("article_failed", article['symbol'], article))
+
+def process_content_cleaning_worker(worker_id: int, csv_files: List[str], status_queue: Queue, 
+                                   result_queue: Queue, dirs: dict):
+    """Worker to clean HTML content from CSV files"""
+    try:
+        for csv_file in csv_files:
+            symbol = csv_file.replace("_news_complete.csv", "")
+            csv_path = os.path.join(dirs["symbol_csv"], csv_file)
+            
+            status_queue.put(f"Worker {worker_id}: Cleaning content for {symbol}")
+            
+            # Read CSV
+            df = pd.read_csv(csv_path, encoding="utf-8")
+            
+            # Clean HTML content
+            extracted_content = []
+            for idx, row in df.iterrows():
+                content = row.get('Content', '')
+                cleaned = clean_html_content(content)
+                extracted_content.append(cleaned)
+                
+                if (idx + 1) % 10 == 0:
+                    status_queue.put(f"Worker {worker_id}: {symbol} - Cleaned {idx + 1}/{len(df)} articles")
+            
+            # Add new column
+            df['ExtractedContent'] = extracted_content
+            
+            # Save updated CSV
+            df.to_csv(csv_path, index=False, encoding="utf-8")
+            
+            status_queue.put(f"Worker {worker_id}: ✅ {symbol} content cleaning completed")
+            result_queue.put(("cleaned", symbol, len(df)))
+            
+    except Exception as e:
+        status_queue.put(f"Worker {worker_id}: Error cleaning content: {e}")
+        for csv_file in csv_files:
+            symbol = csv_file.replace("_news_complete.csv", "")
+            result_queue.put(("failed", symbol, 0))
+
+def process_python_sentiment_worker(worker_id: int, csv_files: List[str], status_queue: Queue,
+                                   result_queue: Queue, dirs: dict):
+    """Worker to analyze sentiment using Python/VADER"""
+    try:
+        for csv_file in csv_files:
+            symbol = csv_file.replace("_news_complete.csv", "")
+            csv_path = os.path.join(dirs["symbol_csv"], csv_file)
+            
+            status_queue.put(f"Worker {worker_id}: Analyzing Python sentiment for {symbol}")
+            
+            # Read CSV
+            df = pd.read_csv(csv_path, encoding="utf-8")
+            
+            # Analyze sentiment
+            py_sentiments = []
+            for idx, row in df.iterrows():
+                extracted_content = row.get('ExtractedContent', '')
+                sentiment = analyze_sentiment_python(extracted_content)
+                py_sentiments.append(sentiment)
+                
+                if (idx + 1) % 10 == 0:
+                    status_queue.put(f"Worker {worker_id}: {symbol} - Analyzed {idx + 1}/{len(df)} articles")
+            
+            # Add new column
+            df['PySentiment'] = py_sentiments
+            
+            # Save updated CSV
+            df.to_csv(csv_path, index=False, encoding="utf-8")
+            
+            status_queue.put(f"Worker {worker_id}: ✅ {symbol} Python sentiment completed")
+            result_queue.put(("sentiment_done", symbol, len(df)))
+            
+    except Exception as e:
+        status_queue.put(f"Worker {worker_id}: Error with Python sentiment: {e}")
+        for csv_file in csv_files:
+            symbol = csv_file.replace("_news_complete.csv", "")
+            result_queue.put(("failed", symbol, 0))
+
+def process_summarization_worker(worker_id: int, csv_files: List[str], status_queue: Queue,
+                                result_queue: Queue, dirs: dict):
+    """Worker to summarize content using transformers"""
+    try:
+        for csv_file in csv_files:
+            symbol = csv_file.replace("_news_complete.csv", "")
+            csv_path = os.path.join(dirs["symbol_csv"], csv_file)
+            
+            status_queue.put(f"Worker {worker_id}: Summarizing content for {symbol}")
+            
+            # Read CSV
+            df = pd.read_csv(csv_path, encoding="utf-8")
+            
+            # Summarize content
+            summaries = []
+            for idx, row in df.iterrows():
+                extracted_content = row.get('ExtractedContent', '')
+                summary = summarize_content(extracted_content)
+                summaries.append(summary)
+                
+                if (idx + 1) % 5 == 0:  # Update less frequently for summarization
+                    status_queue.put(f"Worker {worker_id}: {symbol} - Summarized {idx + 1}/{len(df)} articles")
+            
+            # Add new column
+            df['SummarizedContent'] = summaries
+            
+            # Save updated CSV
+            df.to_csv(csv_path, index=False, encoding="utf-8")
+            
+            status_queue.put(f"Worker {worker_id}: ✅ {symbol} summarization completed")
+            result_queue.put(("summarized", symbol, len(df)))
+            
+    except Exception as e:
+        status_queue.put(f"Worker {worker_id}: Error with summarization: {e}")
+        for csv_file in csv_files:
+            symbol = csv_file.replace("_news_complete.csv", "")
+            result_queue.put(("failed", symbol, 0))
+
+def process_chatgpt_sentiment_worker(worker_id: int, csv_files: List[str], api_key: str, 
+                                    status_queue: Queue, result_queue: Queue, dirs: dict):
+    """Worker to analyze sentiment using ChatGPT"""
+    try:
+        for csv_file in csv_files:
+            symbol = csv_file.replace("_news_complete.csv", "")
+            csv_path = os.path.join(dirs["symbol_csv"], csv_file)
+            
+            status_queue.put(f"Worker {worker_id}: Analyzing ChatGPT sentiment for {symbol}")
+            
+            # Read CSV
+            df = pd.read_csv(csv_path, encoding="utf-8")
+            
+            # Analyze sentiment with ChatGPT
+            gpt_sentiments = []
+            comparisons = []
+            
+            for idx, row in df.iterrows():
+                summarized_content = row.get('SummarizedContent', '')
+                py_sentiment = row.get('PySentiment', 'neutral')
+                
+                gpt_sentiment = analyze_sentiment_chatgpt(summarized_content, symbol, api_key)
+                comparison = compare_sentiments(py_sentiment, gpt_sentiment)
+                
+                gpt_sentiments.append(gpt_sentiment)
+                comparisons.append(comparison)
+                
+                if (idx + 1) % 5 == 0:
+                    status_queue.put(f"Worker {worker_id}: {symbol} - GPT analyzed {idx + 1}/{len(df)} articles")
+                
+                time.sleep(0.5)  # Rate limiting for ChatGPT API
+            
+            # Add new columns
+            df['ChatGPTSentiment'] = gpt_sentiments
+            df['SentimentComparison'] = comparisons
+            
+            # Save final CSV
+            df.to_csv(csv_path, index=False, encoding="utf-8")
+            
+            status_queue.put(f"Worker {worker_id}: ✅ {symbol} ChatGPT sentiment completed")
+            result_queue.put(("gpt_sentiment_done", symbol, len(df)))
+            
+    except Exception as e:
+        status_queue.put(f"Worker {worker_id}: Error with ChatGPT sentiment: {e}")
+        for csv_file in csv_files:
+            symbol = csv_file.replace("_news_complete.csv", "")
+            result_queue.put(("failed", symbol, 0))
 
 def fetch_article_ids_parallel(symbols, since_timestamp, until_timestamp, api_keys):
     """Phase 1: Collect article IDs for all symbols"""
@@ -497,6 +866,282 @@ def fetch_content_parallel(api_keys):
     st.success(f"✅ Phase 2 Complete! Content fetched for {total_processed} articles")
     return True
 
+def process_content_cleaning_parallel():
+    """Phase 3: Clean HTML content from all CSV files"""
+    csv_files = [f for f in os.listdir(dirs["symbol_csv"]) if f.endswith("_news_complete.csv")]
+    
+    if not csv_files:
+        st.error("No CSV files found. Please run Phase 2 first.")
+        return False
+    
+    st.write(f"🔄 Starting Phase 3: Cleaning HTML content for {len(csv_files)} symbols")
+    
+    # Distribute files among workers
+    num_workers = min(MAX_WORKERS, len(csv_files))
+    files_per_worker = len(csv_files) // num_workers
+    file_assignments = []
+    
+    for i in range(num_workers):
+        start_idx = i * files_per_worker
+        if i == num_workers - 1:
+            end_idx = len(csv_files)
+        else:
+            end_idx = (i + 1) * files_per_worker
+        file_assignments.append(csv_files[start_idx:end_idx])
+    
+    # Progress tracking
+    progress_bar = st.progress(0)
+    status_container = st.empty()
+    
+    # Start workers
+    status_queue = Queue()
+    result_queue = Queue()
+    
+    completed_symbols = 0
+    total_symbols = len(csv_files)
+    
+    with concurrent.futures.ThreadPoolExecutor(max_workers=num_workers) as executor:
+        futures = []
+        for worker_id, file_batch in enumerate(file_assignments):
+            if file_batch:
+                future = executor.submit(
+                    process_content_cleaning_worker,
+                    worker_id + 1,
+                    file_batch,
+                    status_queue,
+                    result_queue,
+                    dirs
+                )
+                futures.append(future)
+        
+        # Monitor progress
+        while completed_symbols < total_symbols:
+            while not status_queue.empty():
+                status_msg = status_queue.get()
+                st.session_state["process_status"].append(f"{datetime.now().strftime('%H:%M:%S')} - {status_msg}")
+            
+            while not result_queue.empty():
+                result_type, symbol, count = result_queue.get()
+                completed_symbols += 1
+                progress_bar.progress(completed_symbols / total_symbols)
+            
+            status_container.write(f"Cleaning Progress: {completed_symbols}/{total_symbols} symbols processed")
+            time.sleep(1)
+        
+        concurrent.futures.wait(futures)
+    
+    st.success(f"✅ Phase 3 Complete! Content cleaned for {completed_symbols} symbols")
+    return True
+
+def process_python_sentiment_parallel():
+    """Phase 4: Analyze sentiment using Python/VADER"""
+    csv_files = [f for f in os.listdir(dirs["symbol_csv"]) if f.endswith("_news_complete.csv")]
+    
+    if not csv_files:
+        st.error("No CSV files found. Please run previous phases first.")
+        return False
+    
+    st.write(f"🔄 Starting Phase 4: Python sentiment analysis for {len(csv_files)} symbols")
+    
+    # Distribute files among workers
+    num_workers = min(MAX_WORKERS, len(csv_files))
+    files_per_worker = len(csv_files) // num_workers
+    file_assignments = []
+    
+    for i in range(num_workers):
+        start_idx = i * files_per_worker
+        if i == num_workers - 1:
+            end_idx = len(csv_files)
+        else:
+            end_idx = (i + 1) * files_per_worker
+        file_assignments.append(csv_files[start_idx:end_idx])
+    
+    # Progress tracking
+    progress_bar = st.progress(0)
+    status_container = st.empty()
+    
+    # Start workers
+    status_queue = Queue()
+    result_queue = Queue()
+    
+    completed_symbols = 0
+    total_symbols = len(csv_files)
+    
+    with concurrent.futures.ThreadPoolExecutor(max_workers=num_workers) as executor:
+        futures = []
+        for worker_id, file_batch in enumerate(file_assignments):
+            if file_batch:
+                future = executor.submit(
+                    process_python_sentiment_worker,
+                    worker_id + 1,
+                    file_batch,
+                    status_queue,
+                    result_queue,
+                    dirs
+                )
+                futures.append(future)
+        
+        # Monitor progress
+        while completed_symbols < total_symbols:
+            while not status_queue.empty():
+                status_msg = status_queue.get()
+                st.session_state["process_status"].append(f"{datetime.now().strftime('%H:%M:%S')} - {status_msg}")
+            
+            while not result_queue.empty():
+                result_type, symbol, count = result_queue.get()
+                completed_symbols += 1
+                progress_bar.progress(completed_symbols / total_symbols)
+            
+            status_container.write(f"Python Sentiment Progress: {completed_symbols}/{total_symbols} symbols processed")
+            time.sleep(1)
+        
+        concurrent.futures.wait(futures)
+    
+    st.success(f"✅ Phase 4 Complete! Python sentiment analyzed for {completed_symbols} symbols")
+    return True
+
+def process_summarization_parallel():
+    """Phase 5: Summarize content using transformers"""
+    csv_files = [f for f in os.listdir(dirs["symbol_csv"]) if f.endswith("_news_complete.csv")]
+    
+    if not csv_files:
+        st.error("No CSV files found. Please run previous phases first.")
+        return False
+    
+    st.write(f"🔄 Starting Phase 5: Content summarization for {len(csv_files)} symbols")
+    
+    # Distribute files among workers (fewer workers for heavy AI processing)
+    num_workers = min(2, len(csv_files))  # Limit workers for transformer models
+    files_per_worker = len(csv_files) // num_workers
+    file_assignments = []
+    
+    for i in range(num_workers):
+        start_idx = i * files_per_worker
+        if i == num_workers - 1:
+            end_idx = len(csv_files)
+        else:
+            end_idx = (i + 1) * files_per_worker
+        file_assignments.append(csv_files[start_idx:end_idx])
+    
+    # Progress tracking
+    progress_bar = st.progress(0)
+    status_container = st.empty()
+    
+    # Start workers
+    status_queue = Queue()
+    result_queue = Queue()
+    
+    completed_symbols = 0
+    total_symbols = len(csv_files)
+    
+    with concurrent.futures.ThreadPoolExecutor(max_workers=num_workers) as executor:
+        futures = []
+        for worker_id, file_batch in enumerate(file_assignments):
+            if file_batch:
+                future = executor.submit(
+                    process_summarization_worker,
+                    worker_id + 1,
+                    file_batch,
+                    status_queue,
+                    result_queue,
+                    dirs
+                )
+                futures.append(future)
+        
+        # Monitor progress
+        while completed_symbols < total_symbols:
+            while not status_queue.empty():
+                status_msg = status_queue.get()
+                st.session_state["process_status"].append(f"{datetime.now().strftime('%H:%M:%S')} - {status_msg}")
+            
+            while not result_queue.empty():
+                result_type, symbol, count = result_queue.get()
+                completed_symbols += 1
+                progress_bar.progress(completed_symbols / total_symbols)
+            
+            status_container.write(f"Summarization Progress: {completed_symbols}/{total_symbols} symbols processed")
+            time.sleep(1)
+        
+        concurrent.futures.wait(futures)
+    
+    st.success(f"✅ Phase 5 Complete! Content summarized for {completed_symbols} symbols")
+    return True
+
+def process_chatgpt_sentiment_parallel(api_keys):
+    """Phase 6: Analyze sentiment using ChatGPT"""
+    csv_files = [f for f in os.listdir(dirs["symbol_csv"]) if f.endswith("_news_complete.csv")]
+    
+    if not csv_files:
+        st.error("No CSV files found. Please run previous phases first.")
+        return False
+    
+    if not api_keys:
+        st.error("No API keys provided for ChatGPT!")
+        return False
+    
+    st.write(f"🔄 Starting Phase 6: ChatGPT sentiment analysis for {len(csv_files)} symbols")
+    
+    # Distribute files among available API keys
+    num_workers = min(len(api_keys), len(csv_files))
+    files_per_worker = len(csv_files) // num_workers
+    file_assignments = []
+    
+    for i in range(num_workers):
+        start_idx = i * files_per_worker
+        if i == num_workers - 1:
+            end_idx = len(csv_files)
+        else:
+            end_idx = (i + 1) * files_per_worker
+        file_assignments.append(csv_files[start_idx:end_idx])
+    
+    # Progress tracking
+    progress_bar = st.progress(0)
+    status_container = st.empty()
+    
+    # Start workers
+    status_queue = Queue()
+    result_queue = Queue()
+    
+    completed_symbols = 0
+    total_symbols = len(csv_files)
+    
+    with concurrent.futures.ThreadPoolExecutor(max_workers=num_workers) as executor:
+        futures = []
+        for worker_id, (file_batch, api_key) in enumerate(zip(file_assignments, api_keys)):
+            if file_batch:
+                future = executor.submit(
+                    process_chatgpt_sentiment_worker,
+                    worker_id + 1,
+                    file_batch,
+                    api_key,
+                    status_queue,
+                    result_queue,
+                    dirs
+                )
+                futures.append(future)
+        
+        # Monitor progress
+        while completed_symbols < total_symbols:
+            while not status_queue.empty():
+                status_msg = status_queue.get()
+                st.session_state["process_status"].append(f"{datetime.now().strftime('%H:%M:%S')} - {status_msg}")
+            
+            while not result_queue.empty():
+                result_type, symbol, count = result_queue.get()
+                completed_symbols += 1
+                progress_bar.progress(completed_symbols / total_symbols)
+            
+            status_container.write(f"ChatGPT Sentiment Progress: {completed_symbols}/{total_symbols} symbols processed")
+            time.sleep(1)
+        
+        concurrent.futures.wait(futures)
+    
+    # Update master CSV after all processing
+    create_master_csv()
+    
+    st.success(f"✅ Phase 6 Complete! ChatGPT sentiment analyzed for {completed_symbols} symbols")
+    return True
+
 def create_master_csv():
     """Create master CSV with all symbols"""
     csv_files = [f for f in os.listdir(dirs["symbol_csv"]) if f.endswith(".csv")]
@@ -602,14 +1247,13 @@ if st.button("🚀 Fetch Complete News Data", type="primary"):
         )
         
         if phase1_success:
-            # Show summary and countdown
+            # Show Phase 1 summary and countdown
             total_articles = sum(st.session_state["collected_article_summary"].values())
-            successful_symbols = len(st.session_state["completed_symbols"])
             
             st.write("## 📊 Phase 1 Summary:")
             for symbol, count in st.session_state["collected_article_summary"].items():
                 st.write(f"- **{symbol}**: {count} articles")
-            st.write(f"- **Total**: {total_articles} articles ready for content fetching")
+            st.write(f"- **Total**: {total_articles} articles ready for processing")
             
             if total_articles > 0:
                 # 15-second countdown with stop option
@@ -618,21 +1262,20 @@ if st.button("🚀 Fetch Complete News Data", type="primary"):
                 
                 user_stopped = False
                 for i in range(15, 0, -1):
-                    countdown_placeholder.info(f"⏱️ Proceeding to fetch content in {i} seconds...")
+                    countdown_placeholder.info(f"⏱️ Proceeding to Phase 2 (Content Fetching) in {i} seconds...")
                     
                     with stop_button_placeholder:
-                        if st.button("🛑 Stop Here (Only Article IDs)", key=f"stop_{i}"):
+                        if st.button("🛑 Stop Here (Only Article IDs)", key=f"stop_phase1_{i}"):
                             user_stopped = True
                             break
                     
                     time.sleep(1)
                 
-                # Clear countdown display
                 countdown_placeholder.empty()
                 stop_button_placeholder.empty()
                 
                 if user_stopped:
-                    st.warning("⏹️ Process stopped by user. Article IDs have been collected and saved.")
+                    st.warning("⏹️ Process stopped by user. Article IDs have been collected.")
                     st.session_state["ids_fetched"] = True
                 else:
                     # Phase 2: Fetch Content
@@ -642,6 +1285,120 @@ if st.button("🚀 Fetch Complete News Data", type="primary"):
                     if phase2_success:
                         st.session_state["ids_fetched"] = True
                         st.session_state["content_fetched"] = True
+                        
+                        # Phase 2 to 3 countdown
+                        countdown_placeholder = st.empty()
+                        stop_button_placeholder = st.empty()
+                        
+                        user_stopped = False
+                        for i in range(15, 0, -1):
+                            countdown_placeholder.info(f"⏱️ Proceeding to Phase 3 (HTML Cleaning) in {i} seconds...")
+                            
+                            with stop_button_placeholder:
+                                if st.button("🛑 Stop Here (Only Raw Content)", key=f"stop_phase2_{i}"):
+                                    user_stopped = True
+                                    break
+                            
+                            time.sleep(1)
+                        
+                        countdown_placeholder.empty()
+                        stop_button_placeholder.empty()
+                        
+                        if user_stopped:
+                            st.warning("⏹️ Process stopped by user. Raw content has been fetched.")
+                        else:
+                            # Phase 3: Clean Content
+                            st.info("🔄 Starting Phase 3: Cleaning HTML content...")
+                            phase3_success = process_content_cleaning_parallel()
+                            
+                            if phase3_success:
+                                st.session_state["content_cleaned"] = True
+                                
+                                # Phase 3 to 4 countdown
+                                countdown_placeholder = st.empty()
+                                stop_button_placeholder = st.empty()
+                                
+                                user_stopped = False
+                                for i in range(15, 0, -1):
+                                    countdown_placeholder.info(f"⏱️ Proceeding to Phase 4 (Python Sentiment) in {i} seconds...")
+                                    
+                                    with stop_button_placeholder:
+                                        if st.button("🛑 Stop Here (Only Cleaned Content)", key=f"stop_phase3_{i}"):
+                                            user_stopped = True
+                                            break
+                                    
+                                    time.sleep(1)
+                                
+                                countdown_placeholder.empty()
+                                stop_button_placeholder.empty()
+                                
+                                if user_stopped:
+                                    st.warning("⏹️ Process stopped by user. Content has been cleaned.")
+                                else:
+                                    # Phase 4: Python Sentiment Analysis
+                                    st.info("🔄 Starting Phase 4: Python sentiment analysis...")
+                                    phase4_success = process_python_sentiment_parallel()
+                                    
+                                    if phase4_success:
+                                        st.session_state["python_sentiment_done"] = True
+                                        
+                                        # Phase 4 to 5 countdown
+                                        countdown_placeholder = st.empty()
+                                        stop_button_placeholder = st.empty()
+                                        
+                                        user_stopped = False
+                                        for i in range(15, 0, -1):
+                                            countdown_placeholder.info(f"⏱️ Proceeding to Phase 5 (Summarization) in {i} seconds...")
+                                            
+                                            with stop_button_placeholder:
+                                                if st.button("🛑 Stop Here (Only Python Sentiment)", key=f"stop_phase4_{i}"):
+                                                    user_stopped = True
+                                                    break
+                                            
+                                            time.sleep(1)
+                                        
+                                        countdown_placeholder.empty()
+                                        stop_button_placeholder.empty()
+                                        
+                                        if user_stopped:
+                                            st.warning("⏹️ Process stopped by user. Python sentiment analysis completed.")
+                                        else:
+                                            # Phase 5: Summarization
+                                            st.info("🔄 Starting Phase 5: Content summarization...")
+                                            phase5_success = process_summarization_parallel()
+                                            
+                                            if phase5_success:
+                                                st.session_state["content_summarized"] = True
+                                                
+                                                # Phase 5 to 6 countdown
+                                                countdown_placeholder = st.empty()
+                                                stop_button_placeholder = st.empty()
+                                                
+                                                user_stopped = False
+                                                for i in range(15, 0, -1):
+                                                    countdown_placeholder.info(f"⏱️ Proceeding to Phase 6 (ChatGPT Sentiment) in {i} seconds...")
+                                                    
+                                                    with stop_button_placeholder:
+                                                        if st.button("🛑 Stop Here (Only Summarized)", key=f"stop_phase5_{i}"):
+                                                            user_stopped = True
+                                                            break
+                                                    
+                                                    time.sleep(1)
+                                                
+                                                countdown_placeholder.empty()
+                                                stop_button_placeholder.empty()
+                                                
+                                                if user_stopped:
+                                                    st.warning("⏹️ Process stopped by user. Content summarization completed.")
+                                                else:
+                                                    # Phase 6: ChatGPT Sentiment Analysis
+                                                    st.info("🔄 Starting Phase 6: ChatGPT sentiment analysis...")
+                                                    phase6_success = process_chatgpt_sentiment_parallel(st.session_state["api_keys"])
+                                                    
+                                                    if phase6_success:
+                                                        st.session_state["chatgpt_sentiment_done"] = True
+                                                        st.balloons()
+                                                        st.success("🎉 All 6 phases completed successfully! Complete sentiment analysis pipeline finished.")
             else:
                 st.warning("No articles collected. Please check your date range and symbols.")
     else:
@@ -672,6 +1429,10 @@ with col3:
         st.session_state["collected_article_summary"] = {}
         st.session_state["ids_fetched"] = False
         st.session_state["content_fetched"] = False
+        st.session_state["content_cleaned"] = False
+        st.session_state["python_sentiment_done"] = False
+        st.session_state["content_summarized"] = False
+        st.session_state["chatgpt_sentiment_done"] = False
         st.success("🗑️ All data cleared!")
 
 # Display results
