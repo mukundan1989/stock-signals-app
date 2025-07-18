@@ -879,7 +879,15 @@ def fetch_content_parallel(api_keys):
     
     # Create master CSV
     create_master_csv()
-    save_failed_symbols_list()
+    # Save failed symbols to a file
+    if st.session_state["failed_symbols"]:
+        failed_path = os.path.join(dirs["final_output"], "Failed_Symbols.txt")
+        with open(failed_path, "w", encoding="utf-8") as f:
+            f.write("Failed Symbols:\n")
+            f.write("==============\n\n")
+            for symbol in st.session_state["failed_symbols"]:
+                f.write(f"{symbol}\n")
+        st.info(f"📝 Saved {len(st.session_state['failed_symbols'])} failed symbols to Failed_Symbols.txt")
     
     st.success(f"✅ Phase 2 Complete! Content fetched for {total_processed} articles")
     return True
