@@ -1359,29 +1359,41 @@ if st.button("🧮 Generate Sentiment Table"):
     import collections
     result_rows = []
     csv_dir = dirs["symbol_csv"]
-    csv_files = [f for f in os.listdir(csv_dir) if f.endswith("_news_complete.csv")]
-    for csv_file in csv_files:
-        symbol = csv_file.replace("_news_complete.csv", "")
-        csv_path = os.path.join(csv_dir, csv_file)
-        try:
-            df = pd.read_csv(csv_path, encoding="utf-8")
-            if sentiment_model not in df.columns:
-                result_rows.append({"Symbol": symbol, "Sentiment": "N/A (no data)"})
-                continue
-            sentiments = df[sentiment_model].dropna().str.lower().tolist()
-            counts = collections.Counter(sentiments)
-            if not counts:
-                result_rows.append({"Symbol": symbol, "Sentiment": "N/A (no data)"})
-                continue
-            max_count = max(counts.values())
-            most_common = [k for k, v in counts.items() if v == max_count]
-            if len(most_common) == 1:
-                overall = most_common[0]
-            else:
-                overall = "neutral"
-            result_rows.append({"Symbol": symbol, "Sentiment": overall})
-        except Exception as e:
-            result_rows.append({"Symbol": symbol, "Sentiment": f"Error: {e}"})
+    csv_files = {f.replace("_news_complete.csv", ""): f for f in os.listdir(csv_dir) if f.endswith("_news_complete.csv")}
+    # Use the full symbol list for reporting
+    for symbol in symbols:
+        csv_file = csv_files.get(symbol)
+        if csv_file:
+            csv_path = os.path.join(csv_dir, csv_file)
+            try:
+                df = pd.read_csv(csv_path, encoding="utf-8")
+                if sentiment_model not in df.columns:
+                    result_rows.append({"Symbol": symbol, "Sentiment": "neutral"})
+                    continue
+                sentiments = df[sentiment_model].dropna().str.lower().tolist()
+                counts = collections.Counter(sentiments)
+                total = sum(counts.values())
+                if not counts or total == 0:
+                    result_rows.append({"Symbol": symbol, "Sentiment": "neutral"})
+                    continue
+                pos_pct = counts.get("positive", 0) / total
+                neg_pct = counts.get("negative", 0) / total
+                # Classify: positive if > 70%, negative if >= 30%, else neutral
+                if pos_pct > 0.7:
+                    overall = "positive"
+                elif neg_pct >= 0.3:
+                    overall = "negative"
+                else:
+                    overall = "neutral"
+                # If exactly 70% positive and 30% negative, neutral
+                if abs(pos_pct - 0.7) < 1e-6 and abs(neg_pct - 0.3) < 1e-6:
+                    overall = "neutral"
+                result_rows.append({"Symbol": symbol, "Sentiment": overall})
+            except Exception as e:
+                result_rows.append({"Symbol": symbol, "Sentiment": f"Error: {e}"})
+        else:
+            # No CSV file for this symbol
+            result_rows.append({"Symbol": symbol, "Sentiment": "neutral"})
     if result_rows:
         st.write("### Overall Sentiment by Symbol")
         st.dataframe(pd.DataFrame(result_rows))
