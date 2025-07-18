@@ -11,8 +11,6 @@ seaborn
 requests
 PyGithub
 google-search-results
-
-# Enhanced News Fetcher Dependencies
 beautifulsoup4==4.12.2
 vaderSentiment==3.3.2
 transformers==4.35.2
