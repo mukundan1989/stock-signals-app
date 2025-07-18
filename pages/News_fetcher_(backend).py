@@ -1322,208 +1322,84 @@ if symbols:
             symbols_for_this_chatgpt = symbols_per_chatgpt + (1 if i < remaining_chatgpt else 0)
             st.write(f"- ChatGPT Key {i+1}: {symbols_for_this_chatgpt} symbols")
 
-# Main processing button
-st.subheader("Data Fetching")
+# --- Phase Selector UI ---
+phase_options = [
+    "Phase 1: Fetch Article IDs",
+    "Phase 2: Fetch Content",
+    "Phase 3: Clean HTML Content",
+    "Phase 4: Python Sentiment",
+    "Phase 5: Summarization",
+    "Phase 6: ChatGPT Sentiment"
+]
+selected_phase = st.selectbox("Start or resume from phase:", phase_options)
 
-if st.button("🚀 Fetch Complete News Data", type="primary"):
-    if from_date <= to_date and symbols and st.session_state["api_keys"]:
-        # Phase 1: Fetch Article IDs
-        phase1_success = fetch_article_ids_parallel(
-            symbols,
-            since_timestamp,
-            until_timestamp,
-            st.session_state["api_keys"]
-        )
-        
-        if phase1_success:
-            # Show Phase 1 summary and countdown
-            total_articles = sum(st.session_state["collected_article_summary"].values())
-            
-            st.write("## 📊 Phase 1 Summary:")
-            for symbol, count in st.session_state["collected_article_summary"].items():
-                st.write(f"- **{symbol}**: {count} articles")
-            st.write(f"- **Total**: {total_articles} articles ready for processing")
-            
-            if total_articles > 0:
-                # 15-second countdown with stop option
-                countdown_placeholder = st.empty()
-                stop_button_placeholder = st.empty()
-                
-                user_stopped = False
-                for i in range(15, 0, -1):
-                    countdown_placeholder.info(f"⏱️ Proceeding to Phase 2 (Content Fetching) in {i} seconds...")
-                    
-                    with stop_button_placeholder:
-                        if st.button("🛑 Stop Here (Only Article IDs)", key=f"stop_phase1_{i}"):
-                            user_stopped = True
-                            break
-                    
-                    time.sleep(1)
-                
-                countdown_placeholder.empty()
-                stop_button_placeholder.empty()
-                
-                if user_stopped:
-                    st.warning("⏹️ Process stopped by user. Article IDs have been collected.")
-                    st.session_state["ids_fetched"] = True
-                else:
-                    # Phase 2: Fetch Content
-                    st.info("🔄 Starting Phase 2: Fetching article content...")
-                    phase2_success = fetch_content_parallel(st.session_state["api_keys"])
-                    
-                    if phase2_success:
-                        st.session_state["ids_fetched"] = True
-                        st.session_state["content_fetched"] = True
-                        
-                        # Phase 2 to 3 countdown
-                        countdown_placeholder = st.empty()
-                        stop_button_placeholder = st.empty()
-                        
-                        user_stopped = False
-                        for i in range(15, 0, -1):
-                            countdown_placeholder.info(f"⏱️ Proceeding to Phase 3 (HTML Cleaning) in {i} seconds...")
-                            
-                            with stop_button_placeholder:
-                                if st.button("🛑 Stop Here (Only Raw Content)", key=f"stop_phase2_{i}"):
-                                    user_stopped = True
-                                    break
-                            
-                            time.sleep(1)
-                        
-                        countdown_placeholder.empty()
-                        stop_button_placeholder.empty()
-                        
-                        if user_stopped:
-                            st.warning("⏹️ Process stopped by user. Raw content has been fetched.")
-                        else:
-                            # Phase 3: Clean Content
-                            st.info("🔄 Starting Phase 3: Cleaning HTML content...")
-                            phase3_success = process_content_cleaning_parallel()
-                            
-                            if phase3_success:
-                                st.session_state["content_cleaned"] = True
-                                
-                                # Phase 3 to 4 countdown
-                                countdown_placeholder = st.empty()
-                                stop_button_placeholder = st.empty()
-                                
-                                user_stopped = False
-                                for i in range(15, 0, -1):
-                                    countdown_placeholder.info(f"⏱️ Proceeding to Phase 4 (Python Sentiment) in {i} seconds...")
-                                    
-                                    with stop_button_placeholder:
-                                        if st.button("🛑 Stop Here (Only Cleaned Content)", key=f"stop_phase3_{i}"):
-                                            user_stopped = True
-                                            break
-                                    
-                                    time.sleep(1)
-                                
-                                countdown_placeholder.empty()
-                                stop_button_placeholder.empty()
-                                
-                                if user_stopped:
-                                    st.warning("⏹️ Process stopped by user. Content has been cleaned.")
-                                else:
-                                    # Phase 4: Python Sentiment Analysis
-                                    st.info("🔄 Starting Phase 4: Python sentiment analysis...")
-                                    phase4_success = process_python_sentiment_parallel()
-                                    
-                                    if phase4_success:
-                                        st.session_state["python_sentiment_done"] = True
-                                        
-                                        # Phase 4 to 5 countdown
-                                        countdown_placeholder = st.empty()
-                                        stop_button_placeholder = st.empty()
-                                        
-                                        user_stopped = False
-                                        for i in range(15, 0, -1):
-                                            countdown_placeholder.info(f"⏱️ Proceeding to Phase 5 (Summarization) in {i} seconds...")
-                                            
-                                            with stop_button_placeholder:
-                                                if st.button("🛑 Stop Here (Only Python Sentiment)", key=f"stop_phase4_{i}"):
-                                                    user_stopped = True
-                                                    break
-                                            
-                                            time.sleep(1)
-                                        
-                                        countdown_placeholder.empty()
-                                        stop_button_placeholder.empty()
-                                        
-                                        if user_stopped:
-                                            st.warning("⏹️ Process stopped by user. Python sentiment analysis completed.")
-                                        else:
-                                            # Phase 5: Summarization
-                                            st.info("🔄 Starting Phase 5: Content summarization...")
-                                            phase5_success = process_summarization_parallel()
-                                            
-                                            if phase5_success:
-                                                st.session_state["content_summarized"] = True
-                                                
-                                                # Phase 5 to 6 countdown
-                                                countdown_placeholder = st.empty()
-                                                stop_button_placeholder = st.empty()
-                                                
-                                                user_stopped = False
-                                                for i in range(15, 0, -1):
-                                                    countdown_placeholder.info(f"⏱️ Proceeding to Phase 6 (ChatGPT Sentiment) in {i} seconds...")
-                                                    
-                                                    with stop_button_placeholder:
-                                                        if st.button("🛑 Stop Here (Only Summarized)", key=f"stop_phase5_{i}"):
-                                                            user_stopped = True
-                                                            break
-                                                    
-                                                    time.sleep(1)
-                                                
-                                                countdown_placeholder.empty()
-                                                stop_button_placeholder.empty()
-                                                
-                                                if user_stopped:
-                                                    st.warning("⏹️ Process stopped by user. Content summarization completed.")
-                                                else:
-                                                    # Phase 6: ChatGPT Sentiment Analysis
-                                                    st.info("🔄 Starting Phase 6: ChatGPT sentiment analysis...")
-                                                    phase6_success = process_chatgpt_sentiment_parallel(st.session_state["chatgpt_api_keys"])
-                                                    
-                                                    if phase6_success:
-                                                        st.session_state["chatgpt_sentiment_done"] = True
-                                                        st.balloons()
-                                                        st.success("🎉 All 6 phases completed successfully! Complete sentiment analysis pipeline finished.")
-            else:
-                st.warning("No articles collected. Please check your date range and symbols.")
-    else:
-        st.warning("⚠️ Please check: valid date range, symbols loaded, and API keys provided!")
-
-# Manual phase buttons (for recovery/testing)
-col1, col2, col3 = st.columns(3)
-
-with col1:
-    if st.button("📋 Fetch IDs Only"):
-        if from_date <= to_date and symbols and st.session_state["api_keys"]:
-            fetch_article_ids_parallel(symbols, since_timestamp, until_timestamp, st.session_state["api_keys"])
-
-with col2:
-    if st.button("📰 Fetch Content Only", disabled=not st.session_state["ids_fetched"]):
+if st.button("▶️ Run Selected Phase", type="primary"):
+    if selected_phase == phase_options[0]:
+        fetch_article_ids_parallel(symbols, since_timestamp, until_timestamp, st.session_state["api_keys"])
+    elif selected_phase == phase_options[1]:
         fetch_content_parallel(st.session_state["api_keys"])
+    elif selected_phase == phase_options[2]:
+        process_content_cleaning_parallel()
+    elif selected_phase == phase_options[3]:
+        process_python_sentiment_parallel()
+    elif selected_phase == phase_options[4]:
+        process_summarization_parallel()
+    elif selected_phase == phase_options[5]:
+        process_chatgpt_sentiment_parallel(st.session_state["chatgpt_api_keys"])
 
-with col3:
-    if st.button("🗑️ Clear All Data"):
-        for dir_path in [dirs["symbol_json"], dirs["symbol_csv"], dirs["final_output"]]:
-            if os.path.exists(dir_path):
-                shutil.rmtree(dir_path)
-            os.makedirs(dir_path, exist_ok=True)
-        st.session_state["status_table"] = []
-        st.session_state["process_status"] = []
-        st.session_state["failed_symbols"] = set()
-        st.session_state["completed_symbols"] = set()
-        st.session_state["collected_article_summary"] = {}
-        st.session_state["ids_fetched"] = False
-        st.session_state["content_fetched"] = False
-        st.session_state["content_cleaned"] = False
-        st.session_state["python_sentiment_done"] = False
-        st.session_state["content_summarized"] = False
-        st.session_state["chatgpt_sentiment_done"] = False
-        st.session_state["failed_keywords"] = []
-        st.success("🗑️ All data cleared!")
+# --- Download Section for All Key Files ---
+if os.path.exists(dirs["final_output"]):
+    files = os.listdir(dirs["final_output"])
+    if files:
+        st.subheader("📥 Download Results")
+        # Master CSV download
+        master_file = "Master_All_Symbols_News.csv"
+        if master_file in files:
+            with open(os.path.join(dirs["final_output"], master_file), "rb") as f:
+                st.download_button(
+                    label="📊 Download Master CSV (All Symbols)",
+                    data=f.read(),
+                    file_name=master_file,
+                    mime="text/csv",
+                    type="primary"
+                )
+        # Failed symbols download
+        failed_symbols_file = "Failed_Symbols.txt"
+        if failed_symbols_file in files:
+            with open(os.path.join(dirs["final_output"], failed_symbols_file), "rb") as f:
+                st.download_button(
+                    label="❌ Download Failed Symbols List",
+                    data=f.read(),
+                    file_name=failed_symbols_file,
+                    mime="text/plain"
+                )
+        # Failed keywords download
+        failed_keywords_file = "Failed_Keywords.txt"
+        if failed_keywords_file in files:
+            with open(os.path.join(dirs["final_output"], failed_keywords_file), "rb") as f:
+                st.download_button(
+                    label="📝 Download Failed Keywords List",
+                    data=f.read(),
+                    file_name=failed_keywords_file,
+                    mime="text/plain"
+                )
+# Individual symbol downloads
+if os.path.exists(dirs["symbol_csv"]):
+    csv_files = [f for f in os.listdir(dirs["symbol_csv"]) if f.endswith(".csv")]
+    if csv_files:
+        with st.expander("📁 Download Individual Symbol Files"):
+            cols = st.columns(3)
+            for i, csv_file in enumerate(csv_files):
+                with cols[i % 3]:
+                    symbol_name = csv_file.replace("_news_complete.csv", "")
+                    with open(os.path.join(dirs["symbol_csv"], csv_file), "rb") as f:
+                        st.download_button(
+                            label=f"📄 {symbol_name}",
+                            data=f.read(),
+                            file_name=csv_file,
+                            mime="text/csv",
+                            key=f"download_{csv_file}"
+                        )
 
 # Display results
 if st.session_state["status_table"]:
@@ -1546,52 +1422,6 @@ if st.session_state["process_status"]:
     with st.expander("📝 Process Log", expanded=False):
         for status in st.session_state["process_status"][-50:]:
             st.text(status)
-
-# Download section
-if os.path.exists(dirs["final_output"]):
-    files = os.listdir(dirs["final_output"])
-    if files:
-        st.subheader("📥 Download Results")
-        
-        # Master CSV download
-        master_file = "Master_All_Symbols_News.csv"
-        if master_file in files:
-            with open(os.path.join(dirs["final_output"], master_file), "rb") as f:
-                st.download_button(
-                    label="📊 Download Master CSV (All Symbols)",
-                    data=f.read(),
-                    file_name=master_file,
-                    mime="text/csv",
-                    type="primary"
-                )
-        
-        # Individual symbol downloads
-        csv_files = [f for f in os.listdir(dirs["symbol_csv"]) if f.endswith(".csv")]
-        if csv_files:
-            with st.expander("📁 Download Individual Symbol Files"):
-                cols = st.columns(3)
-                for i, csv_file in enumerate(csv_files):
-                    with cols[i % 3]:
-                        symbol_name = csv_file.replace("_news_complete.csv", "")
-                        with open(os.path.join(dirs["symbol_csv"], csv_file), "rb") as f:
-                            st.download_button(
-                                label=f"📄 {symbol_name}",
-                                data=f.read(),
-                                file_name=csv_file,
-                                mime="text/csv",
-                                key=f"download_{csv_file}"
-                            )
-        
-        # Failed keywords download
-        failed_file = "Failed_Keywords.txt"
-        if failed_file in files:
-            with open(os.path.join(dirs["final_output"], failed_file), "rb") as f:
-                st.download_button(
-                    label="📝 Download Failed Keywords List",
-                    data=f.read(),
-                    file_name=failed_file,
-                    mime="text/plain"
-                )
 
 # Storage information
 with st.expander("💾 Storage Information"):
