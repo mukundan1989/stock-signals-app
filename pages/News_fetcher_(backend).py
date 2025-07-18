@@ -94,6 +94,10 @@ if "chatgpt_sentiment_done" not in st.session_state:
     st.session_state["chatgpt_sentiment_done"] = False
 if "collected_article_summary" not in st.session_state:
     st.session_state["collected_article_summary"] = {}
+if "chatgpt_api_keys" not in st.session_state:
+    st.session_state["chatgpt_api_keys"] = []
+if "failed_keywords" not in st.session_state:
+    st.session_state["failed_keywords"] = []
 
 # UI
 st.title("News Data Fetcher - Seeking Alpha")
@@ -409,6 +413,7 @@ def process_symbol_ids_worker(worker_id: int, symbols: List[str], since_timestam
             
             if result["error"]:
                 status_queue.put(f"Worker {worker_id}: ❌ {symbol} failed - {result['error']}")
+                add_failure_record("Phase 1 - Article IDs", symbol, symbol, result["error"])
                 result_queue.put(("failed", symbol, 0))
             else:
                 articles = result["articles"]
@@ -597,12 +602,20 @@ def process_chatgpt_sentiment_worker(worker_id: int, csv_files: List[str], api_k
             # Analyze sentiment with ChatGPT
             gpt_sentiments = []
             comparisons = []
+            failed_articles = 0
             
             for idx, row in df.iterrows():
                 summarized_content = row.get('SummarizedContent', '')
                 py_sentiment = row.get('PySentiment', 'neutral')
+                article_id = row.get('ID', f'article_{idx}')
                 
                 gpt_sentiment = analyze_sentiment_chatgpt(summarized_content, symbol, api_key)
+                
+                # Track failures with detailed reasons
+                if gpt_sentiment.startswith('error:'):
+                    add_failure_record("Phase 6 - ChatGPT Sentiment", symbol, f"Article {article_id}", gpt_sentiment)
+                    failed_articles += 1
+                
                 comparison = compare_sentiments(py_sentiment, gpt_sentiment)
                 
                 gpt_sentiments.append(gpt_sentiment)
@@ -620,13 +633,18 @@ def process_chatgpt_sentiment_worker(worker_id: int, csv_files: List[str], api_k
             # Save final CSV
             df.to_csv(csv_path, index=False, encoding="utf-8")
             
-            status_queue.put(f"Worker {worker_id}: ✅ {symbol} ChatGPT sentiment completed")
+            if failed_articles > 0:
+                status_queue.put(f"Worker {worker_id}: ⚠️ {symbol} completed with {failed_articles} ChatGPT failures")
+            else:
+                status_queue.put(f"Worker {worker_id}: ✅ {symbol} ChatGPT sentiment completed")
+            
             result_queue.put(("gpt_sentiment_done", symbol, len(df)))
             
     except Exception as e:
         status_queue.put(f"Worker {worker_id}: Error with ChatGPT sentiment: {e}")
         for csv_file in csv_files:
             symbol = csv_file.replace("_news_complete.csv", "")
+            add_failure_record("Phase 6 - ChatGPT Sentiment", symbol, "Entire symbol", str(e))
             result_queue.put(("failed", symbol, 0))
 
 def fetch_article_ids_parallel(symbols, since_timestamp, until_timestamp, api_keys):
@@ -1067,7 +1085,7 @@ def process_summarization_parallel():
     st.success(f"✅ Phase 5 Complete! Content summarized for {completed_symbols} symbols")
     return True
 
-def process_chatgpt_sentiment_parallel(api_keys):
+def process_chatgpt_sentiment_parallel(chatgpt_api_keys):
     """Phase 6: Analyze sentiment using ChatGPT"""
     csv_files = [f for f in os.listdir(dirs["symbol_csv"]) if f.endswith("_news_complete.csv")]
     
@@ -1075,14 +1093,15 @@ def process_chatgpt_sentiment_parallel(api_keys):
         st.error("No CSV files found. Please run previous phases first.")
         return False
     
-    if not api_keys:
-        st.error("No API keys provided for ChatGPT!")
+    if not chatgpt_api_keys:
+        st.error("No ChatGPT API keys provided! Please enter ChatGPT API keys.")
         return False
     
     st.write(f"🔄 Starting Phase 6: ChatGPT sentiment analysis for {len(csv_files)} symbols")
+    st.write(f"🤖 Using {len(chatgpt_api_keys)} ChatGPT API keys")
     
-    # Distribute files among available API keys
-    num_workers = min(len(api_keys), len(csv_files))
+    # Distribute files among available ChatGPT API keys
+    num_workers = min(len(chatgpt_api_keys), len(csv_files))
     files_per_worker = len(csv_files) // num_workers
     file_assignments = []
     
@@ -1107,7 +1126,7 @@ def process_chatgpt_sentiment_parallel(api_keys):
     
     with concurrent.futures.ThreadPoolExecutor(max_workers=num_workers) as executor:
         futures = []
-        for worker_id, (file_batch, api_key) in enumerate(zip(file_assignments, api_keys)):
+        for worker_id, (file_batch, api_key) in enumerate(zip(file_assignments, chatgpt_api_keys)):
             if file_batch:
                 future = executor.submit(
                     process_chatgpt_sentiment_worker,
@@ -1136,8 +1155,9 @@ def process_chatgpt_sentiment_parallel(api_keys):
         
         concurrent.futures.wait(futures)
     
-    # Update master CSV after all processing
+    # Update master CSV and save failure list after all processing
     create_master_csv()
+    save_failed_keywords_list()
     
     st.success(f"✅ Phase 6 Complete! ChatGPT sentiment analyzed for {completed_symbols} symbols")
     return True
@@ -1167,16 +1187,45 @@ def create_master_csv():
         master_df.to_csv(master_path, index=False, encoding="utf-8")
         st.success(f"✅ Created master CSV with {len(master_df)} total articles")
 
-def save_failed_symbols_list():
-    """Save list of failed symbols"""
-    if st.session_state["failed_symbols"]:
-        failed_path = os.path.join(dirs["final_output"], "Failed_Symbols.txt")
+def save_failed_keywords_list():
+    """Save detailed list of failed keywords with reasons"""
+    if st.session_state["failed_keywords"]:
+        failed_path = os.path.join(dirs["final_output"], "Failed_Keywords.txt")
         with open(failed_path, "w", encoding="utf-8") as f:
-            f.write("Failed Symbols:\n")
-            f.write("================\n\n")
-            for symbol in sorted(st.session_state["failed_symbols"]):
-                f.write(f"- {symbol}\n")
-        st.info(f"📝 Saved {len(st.session_state['failed_symbols'])} failed symbols to Failed_Symbols.txt")
+            f.write("Failed Keywords with Reasons:\n")
+            f.write("============================\n\n")
+            
+            # Group by phase
+            phases = {}
+            for failure in st.session_state["failed_keywords"]:
+                phase = failure["phase"]
+                if phase not in phases:
+                    phases[phase] = []
+                phases[phase].append(failure)
+            
+            for phase, failures in phases.items():
+                f.write(f"Phase {phase}:\n")
+                f.write("-" * 40 + "\n")
+                for failure in failures:
+                    f.write(f"Symbol: {failure['symbol']}\n")
+                    f.write(f"Keyword: {failure['keyword']}\n")
+                    f.write(f"Reason: {failure['reason']}\n")
+                    f.write(f"Timestamp: {failure['timestamp']}\n")
+                    f.write("\n")
+                f.write("\n")
+        
+        st.info(f"📝 Saved {len(st.session_state['failed_keywords'])} failed keywords to Failed_Keywords.txt")
+
+def add_failure_record(phase, symbol, keyword, reason):
+    """Add a failure record to the tracking list"""
+    failure_record = {
+        "phase": phase,
+        "symbol": symbol,
+        "keyword": keyword,
+        "reason": reason,
+        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    }
+    st.session_state["failed_keywords"].append(failure_record)
 
 # UI Configuration
 col1, col2 = st.columns(2)
@@ -1193,18 +1242,40 @@ until_timestamp = int(datetime.combine(to_date, datetime.min.time()).timestamp()
 
 # API Keys input
 st.subheader("API Keys Configuration")
-api_keys_text = st.text_area(
-    "Enter Seeking Alpha API Keys (one per line)",
-    help="Enter multiple RapidAPI Seeking Alpha keys, one per line. Symbols will be distributed among these keys.",
-    height=100
-)
 
-if api_keys_text.strip():
-    st.session_state["api_keys"] = [key.strip() for key in api_keys_text.strip().split('\n') if key.strip()]
-else:
-    st.session_state["api_keys"] = [DEFAULT_API_KEY] if DEFAULT_API_KEY else []
+col1, col2 = st.columns(2)
 
-st.write(f"📊 **{len(st.session_state['api_keys'])} API keys configured**")
+with col1:
+    st.write("**Seeking Alpha API Keys**")
+    api_keys_text = st.text_area(
+        "Enter Seeking Alpha API Keys (one per line)",
+        help="Enter multiple RapidAPI Seeking Alpha keys, one per line. Symbols will be distributed among these keys.",
+        height=100,
+        key="seeking_alpha_keys"
+    )
+
+    if api_keys_text.strip():
+        st.session_state["api_keys"] = [key.strip() for key in api_keys_text.strip().split('\n') if key.strip()]
+    else:
+        st.session_state["api_keys"] = [DEFAULT_API_KEY] if DEFAULT_API_KEY else []
+
+    st.write(f"📊 **{len(st.session_state['api_keys'])} Seeking Alpha keys configured**")
+
+with col2:
+    st.write("**ChatGPT API Keys**")
+    chatgpt_keys_text = st.text_area(
+        "Enter ChatGPT API Keys (one per line)",
+        help="Enter multiple RapidAPI ChatGPT keys, one per line. Used for Phase 6 sentiment analysis.",
+        height=100,
+        key="chatgpt_keys"
+    )
+
+    if chatgpt_keys_text.strip():
+        st.session_state["chatgpt_api_keys"] = [key.strip() for key in chatgpt_keys_text.strip().split('\n') if key.strip()]
+    else:
+        st.session_state["chatgpt_api_keys"] = []
+
+    st.write(f"🤖 **{len(st.session_state['chatgpt_api_keys'])} ChatGPT keys configured**")
 
 # Load symbols
 symbols = []
@@ -1228,10 +1299,20 @@ if symbols:
         symbols_per_worker = len(symbols) // num_workers
         remaining = len(symbols) % num_workers
         
-        st.write("**Work Distribution:**")
+        st.write("**Seeking Alpha Work Distribution:**")
         for i in range(num_workers):
             symbols_for_this_worker = symbols_per_worker + (1 if i < remaining else 0)
-            st.write(f"- API Key {i+1}: {symbols_for_this_worker} symbols")
+            st.write(f"- Seeking Alpha Key {i+1}: {symbols_for_this_worker} symbols")
+    
+    if st.session_state["chatgpt_api_keys"]:
+        chatgpt_workers = min(len(st.session_state["chatgpt_api_keys"]), len(symbols))
+        symbols_per_chatgpt = len(symbols) // chatgpt_workers
+        remaining_chatgpt = len(symbols) % chatgpt_workers
+        
+        st.write("**ChatGPT Work Distribution (Phase 6):**")
+        for i in range(chatgpt_workers):
+            symbols_for_this_chatgpt = symbols_per_chatgpt + (1 if i < remaining_chatgpt else 0)
+            st.write(f"- ChatGPT Key {i+1}: {symbols_for_this_chatgpt} symbols")
 
 # Main processing button
 st.subheader("Data Fetching")
@@ -1393,7 +1474,7 @@ if st.button("🚀 Fetch Complete News Data", type="primary"):
                                                 else:
                                                     # Phase 6: ChatGPT Sentiment Analysis
                                                     st.info("🔄 Starting Phase 6: ChatGPT sentiment analysis...")
-                                                    phase6_success = process_chatgpt_sentiment_parallel(st.session_state["api_keys"])
+                                                    phase6_success = process_chatgpt_sentiment_parallel(st.session_state["chatgpt_api_keys"])
                                                     
                                                     if phase6_success:
                                                         st.session_state["chatgpt_sentiment_done"] = True
@@ -1433,6 +1514,7 @@ with col3:
         st.session_state["python_sentiment_done"] = False
         st.session_state["content_summarized"] = False
         st.session_state["chatgpt_sentiment_done"] = False
+        st.session_state["failed_keywords"] = []
         st.success("🗑️ All data cleared!")
 
 # Display results
@@ -1492,12 +1574,12 @@ if os.path.exists(dirs["final_output"]):
                                 key=f"download_{csv_file}"
                             )
         
-        # Failed symbols download
-        failed_file = "Failed_Symbols.txt"
+        # Failed keywords download
+        failed_file = "Failed_Keywords.txt"
         if failed_file in files:
             with open(os.path.join(dirs["final_output"], failed_file), "rb") as f:
                 st.download_button(
-                    label="📝 Download Failed Symbols List",
+                    label="📝 Download Failed Keywords List",
                     data=f.read(),
                     file_name=failed_file,
                     mime="text/plain"
