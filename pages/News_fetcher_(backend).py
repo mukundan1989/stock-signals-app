@@ -1347,6 +1347,47 @@ if st.button("▶️ Run Selected Phase", type="primary"):
     elif selected_phase == phase_options[5]:
         process_chatgpt_sentiment_parallel(st.session_state["chatgpt_api_keys"])
 
+# --- Overall Sentiment Table Section ---
+st.subheader("📈 Generate Overall Sentiment Table")
+sentiment_model = st.radio(
+    "Select sentiment model:",
+    ("PySentiment", "ChatGPTSentiment"),
+    horizontal=True
+)
+
+if st.button("🧮 Generate Sentiment Table"):
+    import collections
+    result_rows = []
+    csv_dir = dirs["symbol_csv"]
+    csv_files = [f for f in os.listdir(csv_dir) if f.endswith("_news_complete.csv")]
+    for csv_file in csv_files:
+        symbol = csv_file.replace("_news_complete.csv", "")
+        csv_path = os.path.join(csv_dir, csv_file)
+        try:
+            df = pd.read_csv(csv_path, encoding="utf-8")
+            if sentiment_model not in df.columns:
+                result_rows.append({"Symbol": symbol, "Sentiment": "N/A (no data)"})
+                continue
+            sentiments = df[sentiment_model].dropna().str.lower().tolist()
+            counts = collections.Counter(sentiments)
+            if not counts:
+                result_rows.append({"Symbol": symbol, "Sentiment": "N/A (no data)"})
+                continue
+            max_count = max(counts.values())
+            most_common = [k for k, v in counts.items() if v == max_count]
+            if len(most_common) == 1:
+                overall = most_common[0]
+            else:
+                overall = "neutral"
+            result_rows.append({"Symbol": symbol, "Sentiment": overall})
+        except Exception as e:
+            result_rows.append({"Symbol": symbol, "Sentiment": f"Error: {e}"})
+    if result_rows:
+        st.write("### Overall Sentiment by Symbol")
+        st.dataframe(pd.DataFrame(result_rows))
+    else:
+        st.info("No sentiment data available to summarize.")
+
 # --- Download Section for All Key Files ---
 if os.path.exists(dirs["final_output"]):
     files = os.listdir(dirs["final_output"])
