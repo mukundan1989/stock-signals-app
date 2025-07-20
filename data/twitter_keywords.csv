@@ -1,0 +1,346 @@
+symbol,compname
+AEP,American Electric Power
+BDX,Becton Dickinson
+MNST,Monster Beverage
+EMR,Emerson Electric
+COR,Cencora
+ADSK,Autodesk
+BK,BNY Mellon
+PAYX,Paychex
+O,Realty Income
+CSX,CSX
+PSA,Public Storage
+RCL,Royal Caribbean
+LNG,Cheniere Energy
+CARR,Carrier Global
+MPLX,MPLX
+ALL,Allstate
+OKE,ONEOK
+DLR,Digital Realty
+HLT,Hilton
+HWM,Howmet Aerospace
+NSC,Norfolk Southern
+FDX,FedEx
+MET,MetLife
+SPG,Simon Property Group
+GWW,Grainger
+CHTR,Charter
+KDP,Keurig Dr Pepper
+SNOW,Snowflake
+SLB,Schlumberger
+EXC,Exelon
+AIG,AIG
+KMB,Kimberly-Clark
+FCX,Freeport-McMoRan
+KR,Kroger
+TFC,Truist
+FAST,Fastenal
+FICO,FICO
+SRE,Sempra
+PCAR,PACCAR
+ROST,Ross Stores
+D,Dominion Energy
+CCI,Crown Castle
+KVUE,Kenvue
+MRVL,Marvell
+AMP,Ameriprise
+COIN,Coinbase
+GM,General Motors (GM)
+AXON,Axon
+MSCI,MSCI
+TGT,Target
+EW,Edwards Lifesciences
+PEG,PSEG
+NDAQ,Nasdaq
+VRSK,Verisk
+LHX,L3Harris
+CTVA,Corteva
+RBLX,Roblox
+PSX,Phillips 66
+ED,Con Edison
+XEL,Xcel Energy
+HES,Hess
+FLUT,Flutter
+DFS,Discover
+YUM,Yum Brands
+FANG,Diamondback Energy
+MPC,Marathon Petroleum
+PWR,Quanta Services
+FIS,FIS
+VST,Vistra
+OTIS,Otis
+OXY,Occidental
+CMI,Cummins
+URI,United Rentals
+CPNG,Coupang
+BKR,Baker Hughes
+F,Ford
+TRGP,Targa Resources
+EA,Electronic Arts (EA)
+PCG,PG&E
+TTWO,Take-Two
+DHI,DR Horton
+NET,Cloudflare
+HOOD,Robinhood
+AME,AMETEK
+ETR,Entergy
+GLW,Corning
+PRU,Prudential
+KHC,Kraft Heinz
+VEEV,Veeva
+SYY,Sysco
+CBRE,CBRE
+VLO,Valero
+WEC,WEC Energy
+VICI,VICI
+CTSH,Cognizant
+HSY,Hershey
+STZ,Constellation Brands
+HIG,The Hartford
+BRO,Brown & Brown
+XYZ,Block
+IDXX,IDEXX Labs
+CSGP,CoStar
+ODFL,Old Dominion
+FERG,Ferguson
+CAH,Cardinal Health
+VMC,Vulcan Materials
+HUM,Humana
+GIS,General Mills
+DDOG,Datadog
+RMD,ResMed
+ZS,Zscaler
+IT,Gartner
+EBAY,eBay
+EQT,EQT
+ALNY,Alnylam
+CNC,Centene
+EXR,Extra Space Storage
+MLM,Martin Marietta
+HEI,HEICO
+TPL,Texas Pacific Land
+VTR,Ventas
+CQP,Cheniere Partners
+LYV,Live Nation
+ARES,Ares Management
+WAB,Wabtec
+A,Agilent
+IR,Ingersoll Rand
+AWK,American Water
+AVB,AvalonBay
+TW,Tradeweb
+GEHC,GE HealthCare
+K,Kellanova
+CVNA,Carvana
+HUBS,HubSpot
+VRT,Vertiv
+DTE,DTE Energy
+EFX,Equifax
+BR,Broadridge
+LEN,Lennar
+RJF,Raymond James
+ROL,Rollins
+DXCM,Dexcom
+XYL,Xylem
+TSCO,Tractor Supply
+AEE,Ameren
+ANSS,ANSYS
+DAL,Delta Air Lines
+PPL,PPL
+ROK,Rockwell Automation
+WRB,W R Berkley
+MTB,M&T Bank
+CHD,Church & Dwight
+EQR,Equity Residential
+NUE,Nucor
+IQV,IQVIA
+DD,DuPont
+MPWR,Monolithic Power
+ATO,Atmos Energy
+EXE,Expand Energy
+IRM,Iron Mountain
+TTD,Trade Desk
+SBAC,SBA Communications
+TYL,Tyler Technologies
+STT,State Street
+LPLA,LPL Financial
+IP,International Paper
+GDDY,GoDaddy
+CNP,CenterPoint Energy
+FE,FirstEnergy
+DRI,Darden Restaurants
+KEYS,Keysight
+CCL,Carnival
+VRSN,VeriSign
+LVS,Las Vegas Sands
+FCNC.A,First Citizens Bank
+ADM,ADM
+FITB,Fifth Third
+CBOE,Cboe
+PPG,PPG
+MKL,Markel
+HPQ,HP
+FTV,Fortive
+VLTO,Veralto
+EIX,Edison International
+DOV,Dover
+STE,STERIS
+ZM,Zoom
+CMS,CMS Energy
+TSN,Tyson Foods
+AU,AngloGold Ashanti
+CPAY,Corpay
+UAL,United Airlines
+TDY,Teledyne
+ERIE,Erie Insurance
+IOT,Samsara
+NVR,NVR
+ES,Eversource
+FOXA,Fox
+MTD,Mettler-Toledo
+VG,Venture Global
+MCHP,Microchip Technology
+CINF,Cincinnati Financial
+INVH,Invitation Homes
+DG,Dollar General
+FWON.K,Formula One
+MKC,McCormick
+NTRA,Natera
+CDW,CDW
+HBAN,Huntington Bank
+WBD,Warner Bros Discovery
+HPE,HPE
+DOW,Dow
+CTRA,Coterra Energy
+LII,Lennox
+TOST,Toast
+DVN,Devon Energy
+EL,Estée Lauder
+ZBH,Zimmer Biomet
+EXPE,Expedia
+HAL,Halliburton
+NRG,NRG Energy
+WSO,Watsco
+PHM,PulteGroup
+TROW,T Rowe Price
+WAT,Waters
+SSNC,SS&C
+WY,Weyerhaeuser
+SMCI,Supermicro
+SYF,Synchrony
+IFF,IFF
+NI,NiSource
+MAA,MAA
+LYB,LyondellBasell
+DGX,Quest Diagnostics
+LH,Labcorp
+HUBB,Hubbell
+SMMT,Summit Therapeutics
+CRWV,CoreWeave
+RBA,RB Global
+UI,Ubiquiti
+L,Loews
+LDOS,Leidos
+STLD,Steel Dynamics
+ESS,Essex
+MOH,Molina Healthcare
+GFS,GlobalFoundries
+RDDT,Reddit
+IBKR,Interactive Brokers
+BIIB,Biogen
+RF,Regions Bank
+PODD,Insulet
+NTRS,Northern Trust
+PTC,PTC
+EME,EMCOR
+CLX,Clorox
+WSM,Williams-Sonoma
+PINS,Pinterest
+GPN,Global Payments
+CASY,Casey’s
+DLTR,Dollar Tree
+OKTA,Okta
+FNF,FNF
+HRL,Hormel
+NTAP,NetApp
+DKNG,DraftKings
+PKG,Packaging Corp
+NTNX,Nutanix
+PFG,Principal Financial
+ULTA,Ulta Beauty
+FDS,FactSet
+GWRE,Guidewire
+DECK,Deckers
+SNA,Snap-on
+DPZ,Domino’s
+BF.B,Brown-Forman
+COO,Cooper Companies
+KEY,KeyBank
+GPC,Genuine Parts
+SUI,Sun Communities
+EVRG,Evergy
+SFM,Sprouts
+LNT,Alliant Energy
+BJ,BJ’s
+CSL,Carlisle
+CFG,Citizens Bank
+NWSA,News Corp
+CRBG,Corebridge
+DOCU,DocuSign
+WMG,Warner Music
+ZG,Zillow
+GEN,Gen Digital
+FFIV,F5
+BAX,Baxter
+DKS,DICK’S
+DUOL,Duolingo
+EXPD,Expeditors
+RS,Reliance
+ON,Onsemi
+WST,West Pharma
+CHWY,Chewy
+WES,Western Midstream
+JBL,Jabil
+BAH,Booz Allen
+EQH,Equitable
+J,Jacobs
+USFD,US Foods
+TRMB,Trimble
+OMC,Omnicom
+BURL,Burlington
+TRU,TransUnion
+LUV,Southwest
+RPRX,Royalty Pharma
+KIM,Kimco Realty
+FSLR,First Solar
+UDR,UDR
+AMH,AMH
+BSY,Bentley Systems
+WPC,W P Carey
+PSTG,Pure Storage
+GLPI,GLPI
+AVY,Avery Dennison
+AFRM,Affirm
+ARE,Alexandria RE
+UNM,Unum
+BALL,Ball Corp
+SNAP,Snap
+BLDR,Builders FirstSource
+RPM,RPM
+GGG,Graco
+INSM,Insmed
+TPR,Tapestry
+RIVN,Rivian
+DOC,Healthpeak
+BBY,Best Buy
+MAS,Masco
+REG,Regency Centers
+TWLO,Twilio
+CNA,CNA
+CG,Carlyle Group
+MDB,MongoDB
+HOLX,Hologic
+DT,Dynatrace
+PPC,Pilgrim’s Pride
+JBHT,JB Hunt
+UTHR,United Therapeutics
