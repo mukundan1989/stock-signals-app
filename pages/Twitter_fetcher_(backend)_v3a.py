@@ -14,6 +14,7 @@ import platform
 from typing import List, Dict, Any, Tuple, Set
 import csv
 from transformers import pipeline
+import glob
 
 # Custom CSS
 st.markdown(
@@ -794,6 +795,79 @@ if os.path.exists(dirs["final_output"]):
                     file_name=failed_file,
                     mime="text/plain"
                 )
+
+# Add Tweet Analyse button and logic
+if st.button("Tweet Analyse"):
+    st.info("Starting tweet sentiment analysis. This may take a while for large datasets.")
+    sentiment_pipeline = pipeline(
+        "sentiment-analysis",
+        model="cardiffnlp/twitter-roberta-base-sentiment-latest"
+    )
+    csv_dir = dirs["company_csv"]
+    good_csv_files = glob.glob(os.path.join(csv_dir, "*_good_tweets.csv"))
+    summary_rows = []
+    progress = st.progress(0)
+    total_files = len(good_csv_files)
+    for idx, csv_file in enumerate(good_csv_files):
+        try:
+            df = pd.read_csv(csv_file)
+            # Remove duplicates by tweet_id if present, else by text
+            if "tweet_id" in df.columns:
+                df = df.drop_duplicates(subset=["tweet_id"])
+            else:
+                df = df.drop_duplicates(subset=["text"])
+            # Run sentiment in batches
+            texts = df["text"].astype(str).tolist()
+            sentiments = []
+            batch_size = 32
+            for i in range(0, len(texts), batch_size):
+                batch = texts[i:i+batch_size]
+                try:
+                    results = sentiment_pipeline(batch)
+                    sentiments.extend([r["label"].lower() for r in results])
+                except Exception as e:
+                    sentiments.extend(["error"] * len(batch))
+            df["PySentiment"] = sentiments
+            # Save analyzed file
+            analyzed_path = csv_file.replace("_good_tweets.csv", "_good_tweets_analyzed.csv")
+            df.to_csv(analyzed_path, index=False)
+            # For summary: get symbol from filename or DataFrame
+            symbol = df["symbol"].iloc[0] if "symbol" in df.columns else os.path.basename(csv_file).split("_")[0]
+            n_tweets = len(df)
+            pos = sum(df["PySentiment"] == "positive")
+            neg = sum(df["PySentiment"] == "negative")
+            neu = sum(df["PySentiment"] == "neutral")
+            # Majority sentiment logic
+            if neu >= pos and neu >= neg:
+                majority = "neutral"
+            elif pos == neg:
+                majority = "neutral"
+            elif pos > neg:
+                majority = "positive"
+            else:
+                majority = "negative"
+            summary_rows.append({
+                "symbol": symbol,
+                "no of tweets": n_tweets,
+                "sentiment": majority
+            })
+        except Exception as e:
+            st.error(f"Error analyzing {csv_file}: {e}")
+        progress.progress((idx + 1) / total_files)
+    progress.empty()
+    # Show summary table
+    if summary_rows:
+        summary_df = pd.DataFrame(summary_rows)
+        st.subheader("Overall Sentiment Summary")
+        st.dataframe(summary_df, hide_index=True)
+        # Download button
+        csv_bytes = summary_df.to_csv(index=False).encode()
+        st.download_button(
+            label="Download Sentiment Summary CSV",
+            data=csv_bytes,
+            file_name="tweet_sentiment_summary.csv",
+            mime="text/csv"
+        )
 
 # Storage information
 with st.expander("💾 Storage Information"):
