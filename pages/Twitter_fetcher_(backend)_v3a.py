@@ -689,27 +689,27 @@ if os.path.exists(KEYWORDS_FILE):
                 "Keyword 5": keywords[4],
             })
         preview_df = pd.DataFrame(preview_rows)
+        st.info("If you edit twitter_keyboards.csv, please reload the app to see the updated preview and ensure correct fetching.")
         with st.expander("🔍 Preview: Keywords to be Fetched (Company-wise)", expanded=False):
             st.dataframe(preview_df, hide_index=True)
 
 # Display results
-if st.session_state["status_table"]:
+if st.session_state.get("status_table"):
     st.subheader("📊 Company Processing Status")
     status_df = pd.DataFrame(st.session_state["status_table"])
     st.dataframe(status_df, hide_index=True)
-    
     # Summary metrics
     col1, col2, col3 = st.columns(3)
     with col1:
-        st.metric("✅ Successful", len(st.session_state["completed_companies"]))
+        st.metric("✅ Successful", len(st.session_state.get("completed_companies", set())))
     with col2:
-        st.metric("❌ Failed", len(st.session_state["failed_companies"]))
+        st.metric("❌ Failed", len(st.session_state.get("failed_companies", set())))
     with col3:
         total_tweets = sum([row["Tweets"] for row in st.session_state["status_table"] if row["Tweets"] > 0])
         st.metric("🐦 Total Tweets", total_tweets)
 
 # Process status
-if st.session_state["process_status"]:
+if st.session_state.get("process_status"):
     with st.expander("📝 Process Log", expanded=False):
         for status in st.session_state["process_status"][-50:]:  # Show last 50 messages
             st.text(status)
