@@ -238,11 +238,66 @@ def fetch_tweets_for_keyword(keyword, start_date, end_date, api_key, tweet_secti
     except Exception as e:
         return {"results": [], "error": str(e)}
 
+# Add Streamlit input for ChatGPT RapidAPI key
+st.subheader("ChatGPT RapidAPI Key")
+chatgpt_api_key = st.text_input(
+    "Enter your ChatGPT RapidAPI Key",
+    type="password",
+    help="Get your key from RapidAPI and paste it here."
+)
+
+# Helper function to call ChatGPT API for tweet relevance and sentiment
+
+def chatgpt_classify_tweet(tweet_text, company_name, symbol, api_key):
+    prompt = f"""
+You are an expert social media analyst.  
+Given the following tweet and company information, answer these questions:
+1. Is this tweet about the company? (Answer only \"yes\" or \"no\")
+2. If yes, what is the sentiment of the tweet about the company? (Answer only \"positive\", \"negative\", or \"neutral\")
+
+Company: {company_name} ({symbol})  
+Tweet: {tweet_text}
+
+Respond in this JSON format:  
+{{\"about_company\": \"yes/no\", \"sentiment\": \"positive/negative/neutral\"}}
+"""
+    payload = json.dumps({
+        "model": "gpt-4o",
+        "messages": [
+            {"role": "user", "content": prompt}
+        ]
+    })
+    headers = {
+        'x-rapidapi-key': api_key,
+        'x-rapidapi-host': "gpt-4o.p.rapidapi.com",
+        'Content-Type': "application/json"
+    }
+    try:
+        conn = http.client.HTTPSConnection("gpt-4o.p.rapidapi.com")
+        conn.request("POST", "/chat/completions", payload, headers)
+        res = conn.getresponse()
+        data = res.read()
+        conn.close()
+        response = data.decode("utf-8")
+        # Try to extract JSON from response
+        try:
+            # Sometimes the model may return text before/after JSON, so extract JSON substring
+            start = response.find('{')
+            end = response.rfind('}') + 1
+            json_str = response[start:end]
+            result = json.loads(json_str)
+            return result
+        except Exception as e:
+            return {"about_company": "error", "sentiment": "error", "raw": response}
+    except Exception as e:
+        return {"about_company": "error", "sentiment": "error", "raw": str(e)}
+
+# Update process_company_worker to use ChatGPT API for filtering and sentiment
+
 def process_company_worker(worker_id: int, companies: List[str], start_date, end_date, 
                           api_key: str, segment_size_days: int, status_queue: Queue, 
                           result_queue: Queue, output_dirs: dict, tweet_section: str = "latest",
-                          classifier=None):
-    """Process multiple companies with one API key"""
+                          chatgpt_api_key=None):
     try:
         for company in companies:
             print(f"[Worker {worker_id}] Starting company: {company['compname']}")
@@ -250,53 +305,44 @@ def process_company_worker(worker_id: int, companies: List[str], start_date, end
             all_company_tweets = []
             keywords = generate_company_keywords(company['symbol'], company['compname'])
             status_queue.put(f"Worker {worker_id}: Processing company: {company['compname']}")
-            
-            # Get date segments
             date_segments = split_date_range(start_date, end_date, segment_size_days)
-            
-            # Process each keyword for this company
             for keyword_idx, keyword in enumerate(keywords):
                 print(f"[Worker {worker_id}] Fetching keyword {keyword} for {company['compname']}")
                 keyword_tweets = []
                 keyword_success = True
-                
                 status_queue.put(f"Worker {worker_id}: {company['compname']} - Keyword {keyword_idx+1}/5: {keyword.replace('+', ' ')}")
-                
-                # Fetch tweets for each date segment
                 for segment_start, segment_end in date_segments:
                     try:
                         result = fetch_tweets_for_keyword(keyword, segment_start, segment_end, api_key, tweet_section)
-                        
                         if "error" in result:
                             status_queue.put(f"Worker {worker_id}: Error for {keyword}: {result['error']}")
                             keyword_success = False
                             break
-                        
                         tweets = result.get("results", [])
                         keyword_tweets.extend(tweets)
-                        
                         status_queue.put(f"Worker {worker_id}: {company['compname']} - {keyword.replace('+', ' ')} ({segment_start} to {segment_end}): {len(tweets)} tweets")
-                        time.sleep(0.5)  # Rate limiting
-                        
+                        time.sleep(0.5)
                     except Exception as e:
                         print(f"[Worker {worker_id}] Error fetching tweets: {e}")
                         status_queue.put(f"Worker {worker_id}: Error fetching {keyword} for {segment_start}-{segment_end}: {e}")
                         keyword_success = False
                         break
-                
                 if not keyword_success:
                     company_success = False
                     status_queue.put(f"Worker {worker_id}: Company {company['compname']} FAILED due to keyword {keyword}")
                     break
-                
-                # Add all tweets from this keyword to company collection
                 all_company_tweets.extend(keyword_tweets)
-            
-            print(f"[Worker {worker_id}] Finished fetching for {company['compname']}, now filtering...")
-            # Proceed with zero-shot filtering automatically
-            good, bad = filter_tweets_zero_shot(all_company_tweets, company['compname'], classifier)
-            print(f"[Worker {worker_id}] Filtering done for {company['compname']}. Good: {len(good)}, Bad: {len(bad)}")
-            # Save good tweets as CSV
+            print(f"[Worker {worker_id}] Finished fetching for {company['compname']}, now filtering with ChatGPT...")
+            good, bad = [], []
+            for tweet in all_company_tweets:
+                tweet_text = tweet.get('text', '')
+                result = chatgpt_classify_tweet(tweet_text, company['compname'], company['symbol'], chatgpt_api_key)
+                if result.get('about_company', '').strip().lower() == 'yes':
+                    tweet['PySentiment'] = result.get('sentiment', 'error')
+                    good.append(tweet)
+                else:
+                    bad.append(tweet)
+            print(f"[Worker {worker_id}] ChatGPT filtering done for {company['compname']}. Good: {len(good)}, Bad: {len(bad)}")
             good_tweets_path = os.path.join(output_dirs["company_csv"], f"{company['compname'].replace(' ', '_')}_good_tweets.csv")
             try:
                 df_good = pd.DataFrame(good)
@@ -306,7 +352,6 @@ def process_company_worker(worker_id: int, companies: List[str], start_date, end
                 print(f"[Worker {worker_id}] Error saving good tweets: {e}")
                 status_queue.put(f"Worker {worker_id}: ❌ Error saving {company['compname']}_good_tweets.csv: {e}")
                 company_success = False
-            # Save bad tweets as CSV
             bad_tweets_path = os.path.join(output_dirs["company_csv"], f"{company['compname'].replace(' ', '_')}_bad_tweets.csv")
             try:
                 df_bad = pd.DataFrame(bad)
@@ -322,7 +367,6 @@ def process_company_worker(worker_id: int, companies: List[str], start_date, end
             else:
                 status_queue.put(f"Worker {worker_id}: ❌ Company {company['compname']} failed during save")
                 result_queue.put(("failed", company['compname'], 0))
-                
     except Exception as e:
         print(f"[Worker {worker_id}] Fatal error: {e}")
         status_queue.put(f"Worker {worker_id}: Fatal error: {e}")
@@ -337,6 +381,10 @@ def fetch_data_parallel(companies, start_date, end_date, api_keys, segment_size_
     
     if not api_keys:
         st.error("No API keys provided!")
+        return
+    
+    if not chatgpt_api_key:
+        st.error("No ChatGPT RapidAPI key provided!")
         return
     
     # Clear previous data
@@ -393,7 +441,7 @@ def fetch_data_parallel(companies, start_date, end_date, api_keys, segment_size_
                     result_queue,
                     dirs,
                     tweet_section,
-                    classifier  # pass classifier
+                    chatgpt_api_key  # pass ChatGPT API key
                 )
                 futures.append(future)
         
