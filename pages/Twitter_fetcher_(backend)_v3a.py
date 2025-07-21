@@ -90,6 +90,13 @@ if "tweet_section" not in st.session_state:
 if "api_keys" not in st.session_state:
     st.session_state["api_keys"] = []
 
+# Initialize zero-shot classifier pipeline ONCE in the main thread
+@st.cache_resource(show_spinner=False)
+def get_zero_shot_classifier():
+    return pipeline("zero-shot-classification", model="facebook/bart-large-mnli")
+
+classifier = get_zero_shot_classifier()
+
 # No longer need locks since workers only use queues
 
 # Streamlit UI
@@ -153,15 +160,11 @@ def generate_company_keywords(symbol, compname):
     ]
 
 # 5. Zero-shot classifier setup (load once)
-@st.cache_resource(show_spinner=False)
-def get_zero_shot_classifier():
-    return pipeline("zero-shot-classification", model="facebook/bart-large-mnli")
-
-classifier = get_zero_shot_classifier()
+# classifier = get_zero_shot_classifier() # Moved to main thread
 
 # 6. Filtering function
 
-def filter_tweets_zero_shot(tweets, compname):
+def filter_tweets_zero_shot(tweets, compname, classifier):
     good, bad = [], []
     labels = [f"about {compname}", f"not about {compname}"]
     for tweet in tweets:
@@ -237,14 +240,15 @@ def fetch_tweets_for_keyword(keyword, start_date, end_date, api_key, tweet_secti
 
 def process_company_worker(worker_id: int, companies: List[str], start_date, end_date, 
                           api_key: str, segment_size_days: int, status_queue: Queue, 
-                          result_queue: Queue, output_dirs: dict, tweet_section: str = "latest"):
+                          result_queue: Queue, output_dirs: dict, tweet_section: str = "latest",
+                          classifier=None):
     """Process multiple companies with one API key"""
     try:
         for company in companies:
+            print(f"[Worker {worker_id}] Starting company: {company['compname']}")
             company_success = True
             all_company_tweets = []
             keywords = generate_company_keywords(company['symbol'], company['compname'])
-            
             status_queue.put(f"Worker {worker_id}: Processing company: {company['compname']}")
             
             # Get date segments
@@ -252,6 +256,7 @@ def process_company_worker(worker_id: int, companies: List[str], start_date, end
             
             # Process each keyword for this company
             for keyword_idx, keyword in enumerate(keywords):
+                print(f"[Worker {worker_id}] Fetching keyword {keyword} for {company['compname']}")
                 keyword_tweets = []
                 keyword_success = True
                 
@@ -274,6 +279,7 @@ def process_company_worker(worker_id: int, companies: List[str], start_date, end
                         time.sleep(0.5)  # Rate limiting
                         
                     except Exception as e:
+                        print(f"[Worker {worker_id}] Error fetching tweets: {e}")
                         status_queue.put(f"Worker {worker_id}: Error fetching {keyword} for {segment_start}-{segment_end}: {e}")
                         keyword_success = False
                         break
@@ -286,8 +292,10 @@ def process_company_worker(worker_id: int, companies: List[str], start_date, end
                 # Add all tweets from this keyword to company collection
                 all_company_tweets.extend(keyword_tweets)
             
+            print(f"[Worker {worker_id}] Finished fetching for {company['compname']}, now filtering...")
             # Proceed with zero-shot filtering automatically
-            good, bad = filter_tweets_zero_shot(all_company_tweets, company['compname'])
+            good, bad = filter_tweets_zero_shot(all_company_tweets, company['compname'], classifier)
+            print(f"[Worker {worker_id}] Filtering done for {company['compname']}. Good: {len(good)}, Bad: {len(bad)}")
             # Save good tweets as CSV
             good_tweets_path = os.path.join(output_dirs["company_csv"], f"{company['compname'].replace(' ', '_')}_good_tweets.csv")
             try:
@@ -295,6 +303,7 @@ def process_company_worker(worker_id: int, companies: List[str], start_date, end
                 df_good.to_csv(good_tweets_path, index=False)
                 status_queue.put(f"Worker {worker_id}: 💾 Saved {company['compname']}_good_tweets.csv with {len(good)} good tweets")
             except Exception as e:
+                print(f"[Worker {worker_id}] Error saving good tweets: {e}")
                 status_queue.put(f"Worker {worker_id}: ❌ Error saving {company['compname']}_good_tweets.csv: {e}")
                 company_success = False
             # Save bad tweets as CSV
@@ -304,6 +313,7 @@ def process_company_worker(worker_id: int, companies: List[str], start_date, end
                 df_bad.to_csv(bad_tweets_path, index=False)
                 status_queue.put(f"Worker {worker_id}: 💾 Saved {company['compname']}_bad_tweets.csv with {len(bad)} bad tweets")
             except Exception as e:
+                print(f"[Worker {worker_id}] Error saving bad tweets: {e}")
                 status_queue.put(f"Worker {worker_id}: ❌ Error saving {company['compname']}_bad_tweets.csv: {e}")
                 company_success = False
             if company_success:
@@ -314,6 +324,7 @@ def process_company_worker(worker_id: int, companies: List[str], start_date, end
                 result_queue.put(("failed", company['compname'], 0))
                 
     except Exception as e:
+        print(f"[Worker {worker_id}] Fatal error: {e}")
         status_queue.put(f"Worker {worker_id}: Fatal error: {e}")
         for company in companies:
             result_queue.put(("failed", company['compname'], 0))
@@ -381,7 +392,8 @@ def fetch_data_parallel(companies, start_date, end_date, api_keys, segment_size_
                     status_queue,
                     result_queue,
                     dirs,
-                    tweet_section
+                    tweet_section,
+                    classifier  # pass classifier
                 )
                 futures.append(future)
         
