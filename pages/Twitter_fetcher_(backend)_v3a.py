@@ -12,6 +12,8 @@ from datetime import datetime, timedelta, date
 import calendar
 import platform
 from typing import List, Dict, Any, Tuple, Set
+import csv
+from transformers import pipeline
 
 # Custom CSS
 st.markdown(
@@ -63,7 +65,7 @@ def get_previous_month_range():
 # Configuration
 API_HOST = "twitter154.p.rapidapi.com"
 DEFAULT_API_KEY = "3cf0736f79mshe60115701a871c4p19c558jsncccfd9521243"
-KEYWORDS_FILE = "data/keywords.txt"
+KEYWORDS_FILE = "data/twitter_keyboards.csv"
 MAX_WORKERS = 4
 TWEETS_PER_REQUEST = 20
 
@@ -122,16 +124,53 @@ def ensure_directories():
 st.session_state["directories"] = ensure_directories()
 dirs = st.session_state["directories"]
 
-def generate_company_keywords(company_name):
-    """Generate 5 keywords for a company"""
-    base_name = company_name.strip()
+# 1. Add import for zero-shot classification
+# 2. Update KEYWORDS_FILE to point to the new CSV
+# 3. Helper to read companies from CSV
+import csv
+
+def read_companies_from_csv(csv_path):
+    companies = []
+    with open(csv_path, newline='', encoding='utf-8') as csvfile:
+        reader = csv.DictReader(csvfile)
+        for row in reader:
+            companies.append({
+                'symbol': row['symbol'].strip(),
+                'compname': row['compname'].strip()
+            })
+    return companies
+
+# 4. Update keyword generation
+
+def generate_company_keywords(symbol, compname):
     return [
-        base_name,
-        f"{base_name}+Portfolio", 
-        f"{base_name}+Stock",
-        f"{base_name}+Earnings",
-        f"{base_name}+Analysis"
+        f'"{symbol}"',
+        f'"${symbol}"',
+        f'"{compname}"',
+        f'"{compname} stock"',
+        f'"{compname} earnings"'
     ]
+
+# 5. Zero-shot classifier setup (load once)
+@st.cache_resource(show_spinner=False)
+def get_zero_shot_classifier():
+    return pipeline("zero-shot-classification", model="facebook/bart-large-mnli")
+
+classifier = get_zero_shot_classifier()
+
+# 6. Filtering function
+
+def filter_tweets_zero_shot(tweets, compname):
+    good, bad = [], []
+    labels = [f"about {compname}", f"not about {compname}"]
+    for tweet in tweets:
+        text = tweet.get('text', '')
+        result = classifier(text, labels)
+        if result['labels'][0] == labels[0] and result['scores'][0] > 0.7:
+            good.append(tweet)
+        else:
+            bad.append(tweet)
+    return good, bad
 
 def format_keyword_for_api(keyword):
     """Format keyword for API call"""
@@ -203,9 +242,9 @@ def process_company_worker(worker_id: int, companies: List[str], start_date, end
         for company in companies:
             company_success = True
             all_company_tweets = []
-            keywords = generate_company_keywords(company)
+            keywords = generate_company_keywords(company['symbol'], company['compname'])
             
-            status_queue.put(f"Worker {worker_id}: Processing company: {company}")
+            status_queue.put(f"Worker {worker_id}: Processing company: {company['compname']}")
             
             # Get date segments
             date_segments = split_date_range(start_date, end_date, segment_size_days)
@@ -215,7 +254,7 @@ def process_company_worker(worker_id: int, companies: List[str], start_date, end
                 keyword_tweets = []
                 keyword_success = True
                 
-                status_queue.put(f"Worker {worker_id}: {company} - Keyword {keyword_idx+1}/5: {keyword.replace('+', ' ')}")
+                status_queue.put(f"Worker {worker_id}: {company['compname']} - Keyword {keyword_idx+1}/5: {keyword.replace('+', ' ')}")
                 
                 # Fetch tweets for each date segment
                 for segment_start, segment_end in date_segments:
@@ -230,7 +269,7 @@ def process_company_worker(worker_id: int, companies: List[str], start_date, end
                         tweets = result.get("results", [])
                         keyword_tweets.extend(tweets)
                         
-                        status_queue.put(f"Worker {worker_id}: {company} - {keyword.replace('+', ' ')} ({segment_start} to {segment_end}): {len(tweets)} tweets")
+                        status_queue.put(f"Worker {worker_id}: {company['compname']} - {keyword.replace('+', ' ')} ({segment_start} to {segment_end}): {len(tweets)} tweets")
                         time.sleep(0.5)  # Rate limiting
                         
                     except Exception as e:
@@ -240,7 +279,7 @@ def process_company_worker(worker_id: int, companies: List[str], start_date, end
                 
                 if not keyword_success:
                     company_success = False
-                    status_queue.put(f"Worker {worker_id}: Company {company} FAILED due to keyword {keyword}")
+                    status_queue.put(f"Worker {worker_id}: Company {company['compname']} FAILED due to keyword {keyword}")
                     break
                 
                 # Add all tweets from this keyword to company collection
@@ -253,36 +292,36 @@ def process_company_worker(worker_id: int, companies: List[str], start_date, end
                 for tweet in all_company_tweets:
                     tweet_id = tweet.get("tweet_id")
                     if tweet_id and tweet_id not in unique_tweets:
-                        tweet["company_name"] = company
+                        tweet["company_name"] = company['compname']
                         unique_tweets[tweet_id] = tweet
                 
                 final_tweets = list(unique_tweets.values())
                 
                 # Save company JSON
-                company_json_path = os.path.join(output_dirs["company_json"], f"{company.replace(' ', '_')}.json")
+                company_json_path = os.path.join(output_dirs["company_json"], f"{company['compname'].replace(' ', '_')}.json")
                 try:
                     with open(company_json_path, "w", encoding="utf-8") as f:
-                        json.dump({"company": company, "total_tweets": len(final_tweets), "results": final_tweets}, f, indent=2)
-                    status_queue.put(f"Worker {worker_id}: 💾 Saved {company}.json with {len(final_tweets)} tweets")
+                        json.dump({"company": company['compname'], "total_tweets": len(final_tweets), "results": final_tweets}, f, indent=2)
+                    status_queue.put(f"Worker {worker_id}: 💾 Saved {company['compname']}.json with {len(final_tweets)} tweets")
                 except Exception as e:
-                    status_queue.put(f"Worker {worker_id}: ❌ Error saving {company}.json: {e}")
+                    status_queue.put(f"Worker {worker_id}: ❌ Error saving {company['compname']}.json: {e}")
                     company_success = False
                 
                 if company_success:
-                    status_queue.put(f"Worker {worker_id}: ✅ Company {company} completed - {len(final_tweets)} unique tweets")
-                    result_queue.put(("success", company, len(final_tweets)))
+                    status_queue.put(f"Worker {worker_id}: ✅ Company {company['compname']} completed - {len(final_tweets)} unique tweets")
+                    result_queue.put(("success", company['compname'], len(final_tweets)))
                 else:
-                    status_queue.put(f"Worker {worker_id}: ❌ Company {company} failed during save")
-                    result_queue.put(("failed", company, 0))
+                    status_queue.put(f"Worker {worker_id}: ❌ Company {company['compname']} failed during save")
+                    result_queue.put(("failed", company['compname'], 0))
                 
             else:
-                status_queue.put(f"Worker {worker_id}: ❌ Company {company} failed")
-                result_queue.put(("failed", company, 0))
+                status_queue.put(f"Worker {worker_id}: ❌ Company {company['compname']} failed")
+                result_queue.put(("failed", company['compname'], 0))
                 
     except Exception as e:
         status_queue.put(f"Worker {worker_id}: Fatal error: {e}")
         for company in companies:
-            result_queue.put(("failed", company, 0))
+            result_queue.put(("failed", company['compname'], 0))
 
 def fetch_data_parallel(companies, start_date, end_date, api_keys, segment_size_days=7, tweet_section="latest"):
     """Main parallel fetching function"""
@@ -543,13 +582,18 @@ st.write(f"📊 **{len(st.session_state['api_keys'])} API keys configured**")
 # Load companies
 companies = []
 if os.path.exists(KEYWORDS_FILE):
-    with open(KEYWORDS_FILE, "r") as file:
-        companies = [line.strip() for line in file if line.strip()]
+    companies = read_companies_from_csv(KEYWORDS_FILE)
 else:
     os.makedirs(os.path.dirname(KEYWORDS_FILE), exist_ok=True)
-    with open(KEYWORDS_FILE, "w") as file:
-        file.write("Apple\nMicrosoft\nGoogle\nAmazon\nMeta")
-    companies = ["Apple", "Microsoft", "Google", "Amazon", "Meta"]
+    with open(KEYWORDS_FILE, "w", newline='', encoding='utf-8') as file:
+        writer = csv.DictWriter(file, fieldnames=["symbol", "compname"])
+        writer.writeheader()
+        writer.writerow({"symbol": "AAPL", "compname": "Apple"})
+        writer.writerow({"symbol": "MSFT", "compname": "Microsoft"})
+        writer.writerow({"symbol": "GOOG", "compname": "Google"})
+        writer.writerow({"symbol": "AMZN", "compname": "Amazon"})
+        writer.writerow({"symbol": "META", "compname": "Meta"})
+    companies = read_companies_from_csv(KEYWORDS_FILE)
     st.info(f"Created sample companies file at {KEYWORDS_FILE}")
 
 if companies:
