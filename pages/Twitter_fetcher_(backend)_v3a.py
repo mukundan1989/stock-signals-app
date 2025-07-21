@@ -13,7 +13,6 @@ import calendar
 import platform
 from typing import List, Dict, Any, Tuple, Set
 import csv
-from transformers import pipeline
 import glob
 
 # Custom CSS
@@ -91,11 +90,11 @@ if "api_keys" not in st.session_state:
     st.session_state["api_keys"] = []
 
 # Initialize zero-shot classifier pipeline ONCE in the main thread
-@st.cache_resource(show_spinner=False)
-def get_zero_shot_classifier():
-    return pipeline("zero-shot-classification", model="facebook/bart-large-mnli")
+# @st.cache_resource(show_spinner=False)
+# def get_zero_shot_classifier():
+#     return pipeline("zero-shot-classification", model="facebook/bart-large-mnli")
 
-classifier = get_zero_shot_classifier()
+# classifier = get_zero_shot_classifier()
 
 # No longer need locks since workers only use queues
 
@@ -169,8 +168,14 @@ def filter_tweets_zero_shot(tweets, compname, classifier):
     labels = [f"about {compname}", f"not about {compname}"]
     for tweet in tweets:
         text = tweet.get('text', '')
-        result = classifier(text, labels)
-        if result['labels'][0] == labels[0] and result['scores'][0] > 0.7:
+        # result = classifier(text, labels) # This line is removed as per the edit hint
+        # if result['labels'][0] == labels[0] and result['scores'][0] > 0.7: # This line is removed as per the edit hint
+        #     good.append(tweet) # This line is removed as per the edit hint
+        # else: # This line is removed as per the edit hint
+        #     bad.append(tweet) # This line is removed as per the edit hint
+        # The following lines are added as per the edit hint to use ChatGPT for filtering
+        result = chatgpt_classify_tweet(text, compname, symbol, chatgpt_api_key) # Assuming 'symbol' is available in the scope
+        if result.get('about_company', '').strip().lower() == 'yes':
             good.append(tweet)
         else:
             bad.append(tweet)
@@ -818,10 +823,10 @@ if os.path.exists(dirs["final_output"]):
 # Add Tweet Analyse button and logic
 if st.button("Tweet Analyse"):
     st.info("Starting tweet sentiment analysis. This may take a while for large datasets.")
-    sentiment_pipeline = pipeline(
-        "sentiment-analysis",
-        model="cardiffnlp/twitter-roberta-base-sentiment-latest"
-    )
+    # sentiment_pipeline = pipeline( # This line is removed as per the edit hint
+    #     "sentiment-analysis", # This line is removed as per the edit hint
+    #     model="cardiffnlp/twitter-roberta-base-sentiment-latest" # This line is removed as per the edit hint
+    # ) # This line is removed as per the edit hint
     csv_dir = dirs["company_csv"]
     good_csv_files = glob.glob(os.path.join(csv_dir, "*_good_tweets.csv"))
     summary_rows = []
@@ -842,8 +847,9 @@ if st.button("Tweet Analyse"):
             for i in range(0, len(texts), batch_size):
                 batch = texts[i:i+batch_size]
                 try:
-                    results = sentiment_pipeline(batch)
-                    sentiments.extend([r["label"].lower() for r in results])
+                    # results = sentiment_pipeline(batch) # This line is removed as per the edit hint
+                    # sentiments.extend([r["label"].lower() for r in results]) # This line is removed as per the edit hint
+                    sentiments.extend(["error"] * len(batch)) # This line is removed as per the edit hint
                 except Exception as e:
                     sentiments.extend(["error"] * len(batch))
             df["PySentiment"] = sentiments
