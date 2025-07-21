@@ -665,11 +665,32 @@ with col4:
             if os.path.exists(dir_path):
                 shutil.rmtree(dir_path)
             os.makedirs(dir_path, exist_ok=True)
-        st.session_state["status_table"] = []
-        st.session_state["process_status"] = []
-        st.session_state["failed_companies"] = set()
-        st.session_state["completed_companies"] = set()
-        st.success("🗑️ All data cleared!")
+        # Reset all session state keys that could affect outputs or company lists
+        for key in list(st.session_state.keys()):
+            if key not in ["output_dir", "directories"]:  # preserve output_dir and directories
+                del st.session_state[key]
+        st.success("🗑️ All data and session state cleared!")
+
+# Show a collapsible table of all companies and their keywords before fetching
+if os.path.exists(KEYWORDS_FILE):
+    companies_preview = read_companies_from_csv(KEYWORDS_FILE)
+    if companies_preview:
+        import pandas as pd
+        preview_rows = []
+        for c in companies_preview:
+            keywords = generate_company_keywords(c['symbol'], c['compname'])
+            preview_rows.append({
+                "Symbol": c['symbol'],
+                "Company Name": c['compname'],
+                "Keyword 1": keywords[0],
+                "Keyword 2": keywords[1],
+                "Keyword 3": keywords[2],
+                "Keyword 4": keywords[3],
+                "Keyword 5": keywords[4],
+            })
+        preview_df = pd.DataFrame(preview_rows)
+        with st.expander("🔍 Preview: Keywords to be Fetched (Company-wise)", expanded=False):
+            st.dataframe(preview_df, hide_index=True)
 
 # Display results
 if st.session_state["status_table"]:
