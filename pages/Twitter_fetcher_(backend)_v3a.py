@@ -286,73 +286,32 @@ def process_company_worker(worker_id: int, companies: List[str], start_date, end
                 # Add all tweets from this keyword to company collection
                 all_company_tweets.extend(keyword_tweets)
             
-            # --- Wait and allow user to cancel filtering ---
-            filter_key = f"cancel_filtering_{company['symbol']}_{company['compname']}"
-            st.session_state[filter_key] = False
-            with st.spinner(f"Waiting 10 seconds before filtering tweets for {company['compname']}... Click 'Cancel Filtering' to skip."):
-                cancel_button = st.button("Cancel Filtering", key=filter_key)
-                start_time = time.time()
-                while time.time() - start_time < 10:
-                    if st.session_state.get(filter_key):
-                        break
-                    time.sleep(0.1)
-            if st.session_state.get(filter_key):
-                status_queue.put(f"Worker {worker_id}: Filtering canceled for {company['compname']}")
-                # Save all tweets as good (skip filtering)
-                if company_success and all_company_tweets:
-                    # Remove duplicates by tweet_id
-                    unique_tweets = {}
-                    for tweet in all_company_tweets:
-                        tweet_id = tweet.get("tweet_id")
-                        if tweet_id and tweet_id not in unique_tweets:
-                            tweet["company_name"] = company['compname']
-                            unique_tweets[tweet_id] = tweet
-                    final_tweets = list(unique_tweets.values())
-                    # Save as CSV
-                    good_tweets_path = os.path.join(output_dirs["company_csv"], f"{company['compname'].replace(' ', '_')}_good_tweets.csv")
-                    try:
-                        df = pd.DataFrame(final_tweets)
-                        df.to_csv(good_tweets_path, index=False)
-                        status_queue.put(f"Worker {worker_id}: 💾 Saved {company['compname']}_good_tweets.csv with {len(final_tweets)} tweets")
-                    except Exception as e:
-                        status_queue.put(f"Worker {worker_id}: ❌ Error saving {company['compname']}_good_tweets.csv: {e}")
-                        company_success = False
-                    if company_success:
-                        status_queue.put(f"Worker {worker_id}: ✅ Company {company['compname']} completed - {len(final_tweets)} unique tweets")
-                        result_queue.put(("success", company['compname'], len(final_tweets)))
-                    else:
-                        status_queue.put(f"Worker {worker_id}: ❌ Company {company['compname']} failed during save")
-                        result_queue.put(("failed", company['compname'], 0))
-                else:
-                    status_queue.put(f"Worker {worker_id}: ❌ Company {company['compname']} failed")
-                    result_queue.put(("failed", company['compname'], 0))
+            # Proceed with zero-shot filtering automatically
+            good, bad = filter_tweets_zero_shot(all_company_tweets, company['compname'])
+            # Save good tweets as CSV
+            good_tweets_path = os.path.join(output_dirs["company_csv"], f"{company['compname'].replace(' ', '_')}_good_tweets.csv")
+            try:
+                df_good = pd.DataFrame(good)
+                df_good.to_csv(good_tweets_path, index=False)
+                status_queue.put(f"Worker {worker_id}: 💾 Saved {company['compname']}_good_tweets.csv with {len(good)} good tweets")
+            except Exception as e:
+                status_queue.put(f"Worker {worker_id}: ❌ Error saving {company['compname']}_good_tweets.csv: {e}")
+                company_success = False
+            # Save bad tweets as CSV
+            bad_tweets_path = os.path.join(output_dirs["company_csv"], f"{company['compname'].replace(' ', '_')}_bad_tweets.csv")
+            try:
+                df_bad = pd.DataFrame(bad)
+                df_bad.to_csv(bad_tweets_path, index=False)
+                status_queue.put(f"Worker {worker_id}: 💾 Saved {company['compname']}_bad_tweets.csv with {len(bad)} bad tweets")
+            except Exception as e:
+                status_queue.put(f"Worker {worker_id}: ❌ Error saving {company['compname']}_bad_tweets.csv: {e}")
+                company_success = False
+            if company_success:
+                status_queue.put(f"Worker {worker_id}: ✅ Company {company['compname']} completed - {len(good)} good tweets, {len(bad)} bad tweets")
+                result_queue.put(("success", company['compname'], len(good)))
             else:
-                # Proceed with zero-shot filtering
-                good, bad = filter_tweets_zero_shot(all_company_tweets, company['compname'])
-                # Save good tweets as CSV
-                good_tweets_path = os.path.join(output_dirs["company_csv"], f"{company['compname'].replace(' ', '_')}_good_tweets.csv")
-                try:
-                    df_good = pd.DataFrame(good)
-                    df_good.to_csv(good_tweets_path, index=False)
-                    status_queue.put(f"Worker {worker_id}: 💾 Saved {company['compname']}_good_tweets.csv with {len(good)} good tweets")
-                except Exception as e:
-                    status_queue.put(f"Worker {worker_id}: ❌ Error saving {company['compname']}_good_tweets.csv: {e}")
-                    company_success = False
-                # Save bad tweets as CSV
-                bad_tweets_path = os.path.join(output_dirs["company_csv"], f"{company['compname'].replace(' ', '_')}_bad_tweets.csv")
-                try:
-                    df_bad = pd.DataFrame(bad)
-                    df_bad.to_csv(bad_tweets_path, index=False)
-                    status_queue.put(f"Worker {worker_id}: 💾 Saved {company['compname']}_bad_tweets.csv with {len(bad)} bad tweets")
-                except Exception as e:
-                    status_queue.put(f"Worker {worker_id}: ❌ Error saving {company['compname']}_bad_tweets.csv: {e}")
-                    company_success = False
-                if company_success:
-                    status_queue.put(f"Worker {worker_id}: ✅ Company {company['compname']} completed - {len(good)} good tweets, {len(bad)} bad tweets")
-                    result_queue.put(("success", company['compname'], len(good)))
-                else:
-                    status_queue.put(f"Worker {worker_id}: ❌ Company {company['compname']} failed during save")
-                    result_queue.put(("failed", company['compname'], 0))
+                status_queue.put(f"Worker {worker_id}: ❌ Company {company['compname']} failed during save")
+                result_queue.put(("failed", company['compname'], 0))
                 
     except Exception as e:
         status_queue.put(f"Worker {worker_id}: Fatal error: {e}")
