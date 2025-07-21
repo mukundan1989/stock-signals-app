@@ -13,7 +13,7 @@ import calendar
 import platform
 from typing import List, Dict, Any, Tuple, Set
 import csv
-import glob
+from transformers import pipeline
 
 # Custom CSS
 st.markdown(
@@ -89,13 +89,6 @@ if "tweet_section" not in st.session_state:
 if "api_keys" not in st.session_state:
     st.session_state["api_keys"] = []
 
-# Initialize zero-shot classifier pipeline ONCE in the main thread
-# @st.cache_resource(show_spinner=False)
-# def get_zero_shot_classifier():
-#     return pipeline("zero-shot-classification", model="facebook/bart-large-mnli")
-
-# classifier = get_zero_shot_classifier()
-
 # No longer need locks since workers only use queues
 
 # Streamlit UI
@@ -159,23 +152,21 @@ def generate_company_keywords(symbol, compname):
     ]
 
 # 5. Zero-shot classifier setup (load once)
-# classifier = get_zero_shot_classifier() # Moved to main thread
+@st.cache_resource(show_spinner=False)
+def get_zero_shot_classifier():
+    return pipeline("zero-shot-classification", model="facebook/bart-large-mnli")
+
+classifier = get_zero_shot_classifier()
 
 # 6. Filtering function
 
-def filter_tweets_zero_shot(tweets, compname, classifier):
+def filter_tweets_zero_shot(tweets, compname):
     good, bad = [], []
     labels = [f"about {compname}", f"not about {compname}"]
     for tweet in tweets:
         text = tweet.get('text', '')
-        # result = classifier(text, labels) # This line is removed as per the edit hint
-        # if result['labels'][0] == labels[0] and result['scores'][0] > 0.7: # This line is removed as per the edit hint
-        #     good.append(tweet) # This line is removed as per the edit hint
-        # else: # This line is removed as per the edit hint
-        #     bad.append(tweet) # This line is removed as per the edit hint
-        # The following lines are added as per the edit hint to use ChatGPT for filtering
-        result = chatgpt_classify_tweet(text, compname, symbol, chatgpt_api_key) # Assuming 'symbol' is available in the scope
-        if result.get('about_company', '').strip().lower() == 'yes':
+        result = classifier(text, labels)
+        if result['labels'][0] == labels[0] and result['scores'][0] > 0.7:
             good.append(tweet)
         else:
             bad.append(tweet)
@@ -243,137 +234,91 @@ def fetch_tweets_for_keyword(keyword, start_date, end_date, api_key, tweet_secti
     except Exception as e:
         return {"results": [], "error": str(e)}
 
-# Add Streamlit input for ChatGPT RapidAPI key
-st.subheader("ChatGPT RapidAPI Key")
-chatgpt_api_key = st.text_input(
-    "Enter your ChatGPT RapidAPI Key",
-    type="password",
-    help="Get your key from RapidAPI and paste it here."
-)
-
-# Helper function to call ChatGPT API for tweet relevance and sentiment
-
-def chatgpt_classify_tweet(tweet_text, company_name, symbol, api_key):
-    prompt = f"""
-You are an expert social media analyst.  
-Given the following tweet and company information, answer these questions:
-1. Is this tweet about the company? (Answer only \"yes\" or \"no\")
-2. If yes, what is the sentiment of the tweet about the company? (Answer only \"positive\", \"negative\", or \"neutral\")
-
-Company: {company_name} ({symbol})  
-Tweet: {tweet_text}
-
-Respond in this JSON format:  
-{{\"about_company\": \"yes/no\", \"sentiment\": \"positive/negative/neutral\"}}
-"""
-    payload = json.dumps({
-        "model": "gpt-4o",
-        "messages": [
-            {"role": "user", "content": prompt}
-        ]
-    })
-    headers = {
-        'x-rapidapi-key': api_key,
-        'x-rapidapi-host': "gpt-4o.p.rapidapi.com",
-        'Content-Type': "application/json"
-    }
-    try:
-        conn = http.client.HTTPSConnection("gpt-4o.p.rapidapi.com")
-        conn.request("POST", "/chat/completions", payload, headers)
-        res = conn.getresponse()
-        data = res.read()
-        conn.close()
-        response = data.decode("utf-8")
-        # Try to extract JSON from response
-        try:
-            # Sometimes the model may return text before/after JSON, so extract JSON substring
-            start = response.find('{')
-            end = response.rfind('}') + 1
-            json_str = response[start:end]
-            result = json.loads(json_str)
-            return result
-        except Exception as e:
-            return {"about_company": "error", "sentiment": "error", "raw": response}
-    except Exception as e:
-        return {"about_company": "error", "sentiment": "error", "raw": str(e)}
-
-# Update process_company_worker to use ChatGPT API for filtering and sentiment
-
 def process_company_worker(worker_id: int, companies: List[str], start_date, end_date, 
                           api_key: str, segment_size_days: int, status_queue: Queue, 
-                          result_queue: Queue, output_dirs: dict, tweet_section: str = "latest",
-                          chatgpt_api_key=None):
+                          result_queue: Queue, output_dirs: dict, tweet_section: str = "latest"):
+    """Process multiple companies with one API key"""
     try:
         for company in companies:
-            print(f"[Worker {worker_id}] Starting company: {company['compname']}")
             company_success = True
             all_company_tweets = []
             keywords = generate_company_keywords(company['symbol'], company['compname'])
+            
             status_queue.put(f"Worker {worker_id}: Processing company: {company['compname']}")
+            
+            # Get date segments
             date_segments = split_date_range(start_date, end_date, segment_size_days)
+            
+            # Process each keyword for this company
             for keyword_idx, keyword in enumerate(keywords):
-                print(f"[Worker {worker_id}] Fetching keyword {keyword} for {company['compname']}")
                 keyword_tweets = []
                 keyword_success = True
+                
                 status_queue.put(f"Worker {worker_id}: {company['compname']} - Keyword {keyword_idx+1}/5: {keyword.replace('+', ' ')}")
+                
+                # Fetch tweets for each date segment
                 for segment_start, segment_end in date_segments:
                     try:
                         result = fetch_tweets_for_keyword(keyword, segment_start, segment_end, api_key, tweet_section)
+                        
                         if "error" in result:
                             status_queue.put(f"Worker {worker_id}: Error for {keyword}: {result['error']}")
                             keyword_success = False
                             break
+                        
                         tweets = result.get("results", [])
                         keyword_tweets.extend(tweets)
+                        
                         status_queue.put(f"Worker {worker_id}: {company['compname']} - {keyword.replace('+', ' ')} ({segment_start} to {segment_end}): {len(tweets)} tweets")
-                        time.sleep(0.5)
+                        time.sleep(0.5)  # Rate limiting
+                        
                     except Exception as e:
-                        print(f"[Worker {worker_id}] Error fetching tweets: {e}")
                         status_queue.put(f"Worker {worker_id}: Error fetching {keyword} for {segment_start}-{segment_end}: {e}")
                         keyword_success = False
                         break
+                
                 if not keyword_success:
                     company_success = False
                     status_queue.put(f"Worker {worker_id}: Company {company['compname']} FAILED due to keyword {keyword}")
                     break
+                
+                # Add all tweets from this keyword to company collection
                 all_company_tweets.extend(keyword_tweets)
-            print(f"[Worker {worker_id}] Finished fetching for {company['compname']}, now filtering with ChatGPT...")
-            good, bad = [], []
-            for tweet in all_company_tweets:
-                tweet_text = tweet.get('text', '')
-                result = chatgpt_classify_tweet(tweet_text, company['compname'], company['symbol'], chatgpt_api_key)
-                if result.get('about_company', '').strip().lower() == 'yes':
-                    tweet['PySentiment'] = result.get('sentiment', 'error')
-                    good.append(tweet)
+            
+            # Process results for this company
+            if company_success and all_company_tweets:
+                # Remove duplicates by tweet_id
+                unique_tweets = {}
+                for tweet in all_company_tweets:
+                    tweet_id = tweet.get("tweet_id")
+                    if tweet_id and tweet_id not in unique_tweets:
+                        tweet["company_name"] = company['compname']
+                        unique_tweets[tweet_id] = tweet
+                
+                final_tweets = list(unique_tweets.values())
+                
+                # Save company JSON
+                company_json_path = os.path.join(output_dirs["company_json"], f"{company['compname'].replace(' ', '_')}.json")
+                try:
+                    with open(company_json_path, "w", encoding="utf-8") as f:
+                        json.dump({"company": company['compname'], "total_tweets": len(final_tweets), "results": final_tweets}, f, indent=2)
+                    status_queue.put(f"Worker {worker_id}: 💾 Saved {company['compname']}.json with {len(final_tweets)} tweets")
+                except Exception as e:
+                    status_queue.put(f"Worker {worker_id}: ❌ Error saving {company['compname']}.json: {e}")
+                    company_success = False
+                
+                if company_success:
+                    status_queue.put(f"Worker {worker_id}: ✅ Company {company['compname']} completed - {len(final_tweets)} unique tweets")
+                    result_queue.put(("success", company['compname'], len(final_tweets)))
                 else:
-                    bad.append(tweet)
-            print(f"[Worker {worker_id}] ChatGPT filtering done for {company['compname']}. Good: {len(good)}, Bad: {len(bad)}")
-            good_tweets_path = os.path.join(output_dirs["company_csv"], f"{company['compname'].replace(' ', '_')}_good_tweets.csv")
-            try:
-                df_good = pd.DataFrame(good)
-                df_good.to_csv(good_tweets_path, index=False)
-                status_queue.put(f"Worker {worker_id}: 💾 Saved {company['compname']}_good_tweets.csv with {len(good)} good tweets")
-            except Exception as e:
-                print(f"[Worker {worker_id}] Error saving good tweets: {e}")
-                status_queue.put(f"Worker {worker_id}: ❌ Error saving {company['compname']}_good_tweets.csv: {e}")
-                company_success = False
-            bad_tweets_path = os.path.join(output_dirs["company_csv"], f"{company['compname'].replace(' ', '_')}_bad_tweets.csv")
-            try:
-                df_bad = pd.DataFrame(bad)
-                df_bad.to_csv(bad_tweets_path, index=False)
-                status_queue.put(f"Worker {worker_id}: 💾 Saved {company['compname']}_bad_tweets.csv with {len(bad)} bad tweets")
-            except Exception as e:
-                print(f"[Worker {worker_id}] Error saving bad tweets: {e}")
-                status_queue.put(f"Worker {worker_id}: ❌ Error saving {company['compname']}_bad_tweets.csv: {e}")
-                company_success = False
-            if company_success:
-                status_queue.put(f"Worker {worker_id}: ✅ Company {company['compname']} completed - {len(good)} good tweets, {len(bad)} bad tweets")
-                result_queue.put(("success", company['compname'], len(good)))
+                    status_queue.put(f"Worker {worker_id}: ❌ Company {company['compname']} failed during save")
+                    result_queue.put(("failed", company['compname'], 0))
+                
             else:
-                status_queue.put(f"Worker {worker_id}: ❌ Company {company['compname']} failed during save")
+                status_queue.put(f"Worker {worker_id}: ❌ Company {company['compname']} failed")
                 result_queue.put(("failed", company['compname'], 0))
+                
     except Exception as e:
-        print(f"[Worker {worker_id}] Fatal error: {e}")
         status_queue.put(f"Worker {worker_id}: Fatal error: {e}")
         for company in companies:
             result_queue.put(("failed", company['compname'], 0))
@@ -386,10 +331,6 @@ def fetch_data_parallel(companies, start_date, end_date, api_keys, segment_size_
     
     if not api_keys:
         st.error("No API keys provided!")
-        return
-    
-    if not chatgpt_api_key:
-        st.error("No ChatGPT RapidAPI key provided!")
         return
     
     # Clear previous data
@@ -445,8 +386,7 @@ def fetch_data_parallel(companies, start_date, end_date, api_keys, segment_size_
                     status_queue,
                     result_queue,
                     dirs,
-                    tweet_section,
-                    chatgpt_api_key  # pass ChatGPT API key
+                    tweet_section
                 )
                 futures.append(future)
         
@@ -819,80 +759,6 @@ if os.path.exists(dirs["final_output"]):
                     file_name=failed_file,
                     mime="text/plain"
                 )
-
-# Add Tweet Analyse button and logic
-if st.button("Tweet Analyse"):
-    st.info("Starting tweet sentiment analysis. This may take a while for large datasets.")
-    # sentiment_pipeline = pipeline( # This line is removed as per the edit hint
-    #     "sentiment-analysis", # This line is removed as per the edit hint
-    #     model="cardiffnlp/twitter-roberta-base-sentiment-latest" # This line is removed as per the edit hint
-    # ) # This line is removed as per the edit hint
-    csv_dir = dirs["company_csv"]
-    good_csv_files = glob.glob(os.path.join(csv_dir, "*_good_tweets.csv"))
-    summary_rows = []
-    progress = st.progress(0)
-    total_files = len(good_csv_files)
-    for idx, csv_file in enumerate(good_csv_files):
-        try:
-            df = pd.read_csv(csv_file)
-            # Remove duplicates by tweet_id if present, else by text
-            if "tweet_id" in df.columns:
-                df = df.drop_duplicates(subset=["tweet_id"])
-            else:
-                df = df.drop_duplicates(subset=["text"])
-            # Run sentiment in batches
-            texts = df["text"].astype(str).tolist()
-            sentiments = []
-            batch_size = 32
-            for i in range(0, len(texts), batch_size):
-                batch = texts[i:i+batch_size]
-                try:
-                    # results = sentiment_pipeline(batch) # This line is removed as per the edit hint
-                    # sentiments.extend([r["label"].lower() for r in results]) # This line is removed as per the edit hint
-                    sentiments.extend(["error"] * len(batch)) # This line is removed as per the edit hint
-                except Exception as e:
-                    sentiments.extend(["error"] * len(batch))
-            df["PySentiment"] = sentiments
-            # Save analyzed file
-            analyzed_path = csv_file.replace("_good_tweets.csv", "_good_tweets_analyzed.csv")
-            df.to_csv(analyzed_path, index=False)
-            # For summary: get symbol from filename or DataFrame
-            symbol = df["symbol"].iloc[0] if "symbol" in df.columns else os.path.basename(csv_file).split("_")[0]
-            n_tweets = len(df)
-            pos = sum(df["PySentiment"] == "positive")
-            neg = sum(df["PySentiment"] == "negative")
-            neu = sum(df["PySentiment"] == "neutral")
-            # Majority sentiment logic
-            if neu >= pos and neu >= neg:
-                majority = "neutral"
-            elif pos == neg:
-                majority = "neutral"
-            elif pos > neg:
-                majority = "positive"
-            else:
-                majority = "negative"
-            summary_rows.append({
-                "symbol": symbol,
-                "no of tweets": n_tweets,
-                "sentiment": majority
-            })
-        except Exception as e:
-            st.error(f"Error analyzing {csv_file}: {e}")
-        progress.progress((idx + 1) / total_files)
-    progress.empty()
-    # Show summary table
-    if summary_rows:
-        summary_df = pd.DataFrame(summary_rows)
-        st.subheader("Overall Sentiment Summary")
-        st.dataframe(summary_df, hide_index=True)
-        # Download button
-        csv_bytes = summary_df.to_csv(index=False).encode()
-        st.download_button(
-            label="Download Sentiment Summary CSV",
-            data=csv_bytes,
-            file_name="tweet_sentiment_summary.csv",
-            mime="text/csv"
-        )
 
 # Storage information
 with st.expander("💾 Storage Information"):
