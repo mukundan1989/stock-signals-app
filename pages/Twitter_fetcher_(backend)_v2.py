@@ -7,6 +7,7 @@ import shutil
 import time
 import threading
 import concurrent.futures
+import urllib.parse  # <--- FIX 1: Added import for URL encoding
 from queue import Queue
 from datetime import datetime, timedelta
 import platform
@@ -283,9 +284,9 @@ def fetch_tweets_for_keyword_legacy(keyword, start_date, end_date, api_key, twee
     start_date_str = start_date.strftime("%Y-%m-%d")
     end_date_str = end_date.strftime("%Y-%m-%d")
     
-    # Keyword should already be formatted with + instead of spaces
-    api_query = keyword
-    endpoint = f"/search/search?query={api_query}&section={tweet_section}&min_retweets=1&min_likes=1&limit=50&start_date={start_date_str}&language=en&end_date={end_date_str}"
+    # FIX 1: Encode query to handle special characters
+    encoded_query = urllib.parse.quote(keyword, safe='+')
+    endpoint = f"/search/search?query={encoded_query}&section={tweet_section}&min_retweets=1&min_likes=1&limit=50&start_date={start_date_str}&language=en&end_date={end_date_str}"
     
     try:
         conn.request("GET", endpoint, headers=headers)
@@ -399,9 +400,9 @@ def fetch_tweets_for_keyword_worker(worker_id: int, keyword: str, start_date, en
         start_date_str = start_date.strftime("%Y-%m-%d")
         end_date_str = end_date.strftime("%Y-%m-%d")
         
-        # Keyword should already be formatted with + instead of spaces
-        api_query = keyword
-        endpoint = f"/search/search?query={api_query}&section={tweet_section}&min_retweets=1&min_likes=1&limit=50&start_date={start_date_str}&language=en&end_date={end_date_str}"
+        # FIX 1: Encode query to handle special characters
+        encoded_query = urllib.parse.quote(keyword, safe='+')
+        endpoint = f"/search/search?query={encoded_query}&section={tweet_section}&min_retweets=1&min_likes=1&limit=50&start_date={start_date_str}&language=en&end_date={end_date_str}"
         
         try:
             conn.request("GET", endpoint, headers=headers)
@@ -469,9 +470,9 @@ def fetch_company_data_worker(worker_id: int, company: str, combined_keywords: L
                 start_date_str = start_date.strftime("%Y-%m-%d")
                 end_date_str = end_date.strftime("%Y-%m-%d")
                 
-                # Keyword should already be formatted with + instead of spaces
-                api_query = keyword
-                endpoint = f"/search/search?query={api_query}&section={tweet_section}&min_retweets=1&min_likes=1&limit=50&start_date={start_date_str}&language=en&end_date={end_date_str}"
+                # FIX 1: Encode query to handle special characters
+                encoded_query = urllib.parse.quote(keyword, safe='+')
+                endpoint = f"/search/search?query={encoded_query}&section={tweet_section}&min_retweets=1&min_likes=1&limit=50&start_date={start_date_str}&language=en&end_date={end_date_str}"
                 
                 conn.request("GET", endpoint, headers=headers)
                 res = conn.getresponse()
@@ -1054,6 +1055,7 @@ def convert_json_to_csv_parallel(max_workers=MAX_WORKERS):
 
 def combine_company_csvs(company_name, use_combined=True):
     """Merge all CSV files for a company's combined keywords into one DataFrame"""
+    # FIX 2: Handle EmptyDataError by skipping empty files
     if use_combined and os.path.exists(COMBINED_OUTPUT_DIR):
         # First check for combined files
         # Sanitize company name for filename (replace + with _ for filesystem compatibility)
@@ -1064,11 +1066,22 @@ def combine_company_csvs(company_name, use_combined=True):
         ]
         
         if csv_files:
-            combined_df = pd.concat(
-                [pd.read_csv(os.path.join(COMBINED_OUTPUT_DIR, f)) for f in csv_files],
-                ignore_index=True
-            )
-            return combined_df
+            valid_dfs = []
+            for f in csv_files:
+                file_path = os.path.join(COMBINED_OUTPUT_DIR, f)
+                # Check if file is not empty (size > 0)
+                if os.path.getsize(file_path) > 0:
+                    try:
+                        df = pd.read_csv(file_path)
+                        # Only add if the dataframe actually has data
+                        if not df.empty:
+                            valid_dfs.append(df)
+                    except pd.errors.EmptyDataError:
+                        continue
+            
+            if valid_dfs:
+                combined_df = pd.concat(valid_dfs, ignore_index=True)
+                return combined_df
     
     # Fall back to regular CSV files
     if not os.path.exists(CSV_OUTPUT_DIR):
@@ -1094,11 +1107,21 @@ def combine_company_csvs(company_name, use_combined=True):
     if not csv_files:
         return None
     
-    combined_df = pd.concat(
-        [pd.read_csv(os.path.join(CSV_OUTPUT_DIR, f)) for f in csv_files],
-        ignore_index=True
-    )
-    return combined_df
+    valid_dfs = []
+    for f in csv_files:
+        file_path = os.path.join(CSV_OUTPUT_DIR, f)
+        if os.path.getsize(file_path) > 0:
+            try:
+                df = pd.read_csv(file_path)
+                if not df.empty:
+                    valid_dfs.append(df)
+            except pd.errors.EmptyDataError:
+                continue
+
+    if valid_dfs:
+        combined_df = pd.concat(valid_dfs, ignore_index=True)
+        return combined_df
+    return None
 
 def combine_all_company_files():
     """Combine all files for each company into a single CSV file"""
