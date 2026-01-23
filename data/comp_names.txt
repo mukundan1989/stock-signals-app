@@ -1,4 +1,3 @@
-companies
 Apple
 NVIDIA
 Microsoft
