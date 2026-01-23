@@ -1,7 +1,7 @@
 import requests
 import csv
 import os
-import pandas as pd  # Required for CSV conversion
+import pandas as pd
 import streamlit as st
 import re
 import time
@@ -16,12 +16,12 @@ st.title("Google Trends Keyword Extractor")
 # 1. API Configuration
 col1, col2 = st.columns(2)
 with col1:
-    API_KEY = st.text_input("RapidAPI Key (Free ChatGPT)", type="password", help="Paste your RapidAPI key here")
+    API_KEY = st.text_input("RapidAPI Key (Chat-GPT26)", type="password", help="Paste your RapidAPI key here")
 with col2:
     SERPAPI_KEY = st.text_input("SerpAPI Key (Google Trends)", type="password", help="Paste your SerpAPI key here")
 
 # Configuration Constants
-API_HOST = "free-chatgpt-api.p.rapidapi.com"
+API_HOST = "chat-gpt26.p.rapidapi.com"
 COMPANY_NAMES_FILE = "data/comp_names.txt"
 KEYWORDS_OUTPUT_DIR = "/tmp/datagdata/outputs"
 TRENDS_OUTPUT_DIR = "/tmp/datagtrendoutputz/json/outputs"
@@ -92,7 +92,7 @@ def fetch_trends_for_all_files():
     location = "us"
 
     for company in companies_list:
-        csv_filename = f"{company.lower().replace(' ', '_')}_freegpt_keywords.csv"
+        csv_filename = f"{company.lower().replace(' ', '_')}_gpt26_keywords.csv"
         csv_path = os.path.join(KEYWORDS_OUTPUT_DIR, csv_filename)
 
         if not os.path.exists(csv_path):
@@ -125,39 +125,30 @@ def fetch_trends_for_all_files():
                 json.dump(all_data, combined_file, indent=2)
             st.success(f"✅ Finished: {company}")
 
-# Helper to convert JSON structure to CSV
 def convert_json_to_csv(json_path):
     try:
         with open(json_path, 'r') as f:
             data = json.load(f)
         
         all_frames = []
-        
-        # Iterate through parts (Part 1, Part 2...)
         for part_name, content in data.items():
             if 'interest_over_time' in content and 'timeline_data' in content['interest_over_time']:
                 timeline = content['interest_over_time']['timeline_data']
-                
                 rows = []
                 for point in timeline:
-                    # Create a row with the date
                     row_data = {'date': point.get('date')}
-                    # Extract values for each keyword in this chunk
                     for value_item in point.get('values', []):
                         row_data[value_item['query']] = value_item.get('extracted_value')
                     rows.append(row_data)
                 
                 if rows:
                     df = pd.DataFrame(rows)
-                    # Convert date to datetime objects for proper sorting/merging
                     df['date'] = pd.to_datetime(df['date'])
                     df.set_index('date', inplace=True)
                     all_frames.append(df)
 
         if all_frames:
-            # Merge all parts horizontally (aligning by date)
             final_df = pd.concat(all_frames, axis=1)
-            # Remove duplicate columns (if any)
             final_df = final_df.loc[:, ~final_df.columns.duplicated()]
             return final_df.to_csv()
         else:
@@ -172,30 +163,48 @@ if st.button("Fetch Keywords"):
     elif "{company}" not in user_prompt_template:
         st.error("❌ Your prompt must contain '{company}'.")
     else:
-        st.write("Generating keywords...")
+        st.write("Generating keywords using Chat-GPT26...")
         progress_bar = st.progress(0)
         
         for idx, company in enumerate(companies_list):
-            csv_filename = f"{company.lower().replace(' ', '_')}_freegpt_keywords.csv"
+            csv_filename = f"{company.lower().replace(' ', '_')}_gpt26_keywords.csv"
             formatted_prompt = user_prompt_template.replace("{company}", company)
 
-            querystring = {"prompt": formatted_prompt}
+            # NEW: Payload for Chat-GPT26
+            payload = {
+                "model": "GPT-5-mini",
+                "messages": [
+                    {
+                        "role": "user",
+                        "content": formatted_prompt
+                    }
+                ]
+            }
+
             headers = {
                 'x-rapidapi-key': API_KEY,
-                'x-rapidapi-host': API_HOST
+                'x-rapidapi-host': API_HOST,
+                'Content-Type': 'application/json'
             }
-            url = f"https://{API_HOST}/chat-completion-one"
+            
+            # NEW: URL
+            url = f"https://{API_HOST}/"
             
             for attempt in range(3):
                 try:
-                    response = requests.get(url, headers=headers, params=querystring)
+                    # POST request
+                    response = requests.post(url, json=payload, headers=headers)
+                    
                     if response.status_code == 200:
                         response_data = response.json()
                         keywords_str = ""
                         
-                        if isinstance(response_data, str): keywords_str = response_data
-                        elif 'response' in response_data: keywords_str = response_data['response']
-                        else: keywords_str = str(response_data)
+                        # Parsing Logic for standard Chat format
+                        if 'choices' in response_data and len(response_data['choices']) > 0:
+                            keywords_str = response_data['choices'][0]['message']['content']
+                        else:
+                            # Fallback if structure varies
+                            keywords_str = str(response_data)
 
                         keywords_list = keywords_str.split("\n")
                         cleaned_keywords = []
@@ -208,7 +217,7 @@ if st.button("Fetch Keywords"):
                         csv_path = os.path.join(KEYWORDS_OUTPUT_DIR, csv_filename)
                         with open(csv_path, mode='w', newline='') as file:
                             writer = csv.writer(file)
-                            writer.writerow(['freegpt']) 
+                            writer.writerow(['gpt26']) 
                             for keyword in cleaned_keywords:
                                 writer.writerow([keyword])
 
@@ -218,7 +227,7 @@ if st.button("Fetch Keywords"):
                         time.sleep(2)
                         continue
                     else:
-                        st.error(f"Error {response.status_code}")
+                        st.error(f"Error {response.status_code}: {response.text}")
                         break
                 except Exception as e:
                     st.error(f"Error: {e}")
@@ -234,7 +243,7 @@ st.write("### Keyword Review & Trends")
 
 table_data = []
 for company in companies_list:
-    csv_filename = f"{company.lower().replace(' ', '_')}_freegpt_keywords.csv"
+    csv_filename = f"{company.lower().replace(' ', '_')}_gpt26_keywords.csv"
     csv_path = os.path.join(KEYWORDS_OUTPUT_DIR, csv_filename)
     if os.path.exists(csv_path):
         table_data.append({"Company": company, "Status": "✅ Ready", "File": csv_filename})
