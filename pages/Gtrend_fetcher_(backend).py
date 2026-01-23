@@ -10,14 +10,16 @@ from serpapi import GoogleSearch  # For fetching Google Trends data
 # --- APP LAYOUT & INPUTS ---
 st.set_page_config(page_title="Trend Fetcher", layout="wide")
 
-st.sidebar.header("API Configuration")
-st.sidebar.info("Enter your API keys here so you don't need to edit the code.")
+st.title("Google Trends Keyword Extractor")
 
-# 1. Frontend Inputs for Keys
-API_KEY = st.sidebar.text_input("RapidAPI Key (Open-AI21)", type="password", help="Paste your RapidAPI key here")
-SERPAPI_KEY = st.sidebar.text_input("SerpAPI Key (Google Trends)", type="password", help="Paste your SerpAPI key here")
+# 1. API Configuration (Main Page)
+col1, col2 = st.columns(2)
+with col1:
+    API_KEY = st.text_input("RapidAPI Key (Open-AI21)", type="password", help="Paste your RapidAPI key here")
+with col2:
+    SERPAPI_KEY = st.text_input("SerpAPI Key (Google Trends)", type="password", help="Paste your SerpAPI key here")
 
-# API Configuration
+# Configuration Constants
 API_HOST = "open-ai21.p.rapidapi.com"
 COMPANY_NAMES_FILE = "data/comp_names.txt"
 KEYWORDS_OUTPUT_DIR = "/tmp/datagdata/outputs"
@@ -27,11 +29,7 @@ TRENDS_OUTPUT_DIR = "/tmp/datagtrendoutputz/json/outputs"
 os.makedirs(KEYWORDS_OUTPUT_DIR, exist_ok=True)
 os.makedirs(TRENDS_OUTPUT_DIR, exist_ok=True)
 
-# Streamlit App Title
-st.title("Google Trends Keyword Extractor")
-st.markdown("### Step 1: Generate Keywords")
-
-# 2. Frontend Input for Prompt
+# 2. Prompt Input
 default_prompt = (
     'Provide a list of top fifteen important keywords associated with the company "{company}", '
     'focusing on its most popular products, services, or core offerings. '
@@ -40,8 +38,9 @@ default_prompt = (
     'Give the output as a bulletted list with no other extra characters or text.'
 )
 
+st.write("### AI Prompt Configuration")
 user_prompt_template = st.text_area(
-    "Customize AI Prompt", 
+    "Customize Prompt", 
     value=default_prompt, 
     height=150,
     help="Keep the text '{company}' in the prompt. The script will replace it with the actual company names from your file."
@@ -82,7 +81,7 @@ def split_keywords(keywords, chunk_size=5):
 
 def fetch_trends_for_all_files():
     if not SERPAPI_KEY:
-        st.error("Please enter your SerpAPI Key in the sidebar first!")
+        st.error("Please enter your SerpAPI Key first!")
         return
 
     st.write("Fetching Google Trends data...")
@@ -129,7 +128,7 @@ def fetch_trends_for_all_files():
 
 if st.button("Fetch Keywords"):
     if not API_KEY:
-        st.error("❌ Please enter your RapidAPI Key in the sidebar.")
+        st.error("❌ Please enter your RapidAPI Key above.")
     elif "{company}" not in user_prompt_template:
         st.error("❌ Your prompt must contain the placeholder '{company}' so the script knows where to insert the name.")
     else:
@@ -139,7 +138,7 @@ if st.button("Fetch Keywords"):
         for idx, company in enumerate(companies_list):
             csv_filename = f"{company.lower().replace(' ', '_')}_ai21_keywords.csv"
             
-            # 3. Dynamic Prompt formatting
+            # Dynamic Prompt formatting
             formatted_prompt = user_prompt_template.replace("{company}", company)
 
             payload = {
@@ -208,7 +207,7 @@ if st.button("Fetch Keywords"):
 
 # --- DISPLAY & DOWNLOAD ---
 st.markdown("---")
-st.markdown("### Step 2: Review & Trends")
+st.write("### Keyword Review & Trends")
 
 # Table Logic
 table_data = []
@@ -223,8 +222,8 @@ for company in companies_list:
 st.table(table_data)
 
 # View Keywords
-col1, col2 = st.columns([1, 1])
-with col1:
+col_view, col_action = st.columns([1, 1])
+with col_view:
     st.write("#### Inspect Keywords")
     available_files = [row["File"] for row in table_data if row["File"] != "N/A"]
     if available_files:
@@ -238,14 +237,14 @@ with col1:
             st.dataframe(keywords, height=200)
 
 # Get Trends
-with col2:
+with col_action:
     st.write("#### Fetch Volume Data")
     if st.button("Get Google Trend Values", type="primary"):
         fetch_trends_for_all_files()
 
 # Download Section
 if os.path.exists(TRENDS_OUTPUT_DIR):
-    st.markdown("### Step 3: Download Results")
+    st.markdown("### Download Results")
     combined_files = [f for f in os.listdir(TRENDS_OUTPUT_DIR) if f.endswith('_trends_combined.json')]
     if combined_files:
         for file_name in combined_files:
