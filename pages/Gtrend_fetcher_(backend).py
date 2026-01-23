@@ -9,13 +9,13 @@ import json  # For handling JSON payloads
 from serpapi import GoogleSearch  # For fetching Google Trends data
 
 # --- CONFIGURATION ---
-# ⚠️ SECURITY WARNING: You should not hardcode keys in production. 
-# Consider using st.secrets or environment variables.
-API_KEY = "1ce12aafcdmshdb6eea1ac608501p1ab501jsn4a47cc5027ce"  # Your RapidAPI key
-SERPAPI_KEY = "00d04ad3fedf5a39974184171ae64492e3198cc07ed608cad0af9a780ee6f4c0"  # Your SerpAPI key
+# ⚠️ SECURITY WARNING: You have exposed your API key in the chat. 
+# Please regenerate it in your RapidAPI dashboard immediately for security.
+API_KEY = "1ce12aafcdmshdb6eea1ac608501p1ab501jsn4a47cc5027ce" 
+SERPAPI_KEY = "00d04ad3fedf5a39974184171ae64492e3198cc07ed608cad0af9a780ee6f4c0"
 
-# NEW: ChatGPT API Host
-API_HOST = "cheapest-gpt-4-turbo-gpt-4-vision-chatgpt-openai-ai-api.p.rapidapi.com"
+# NEW: Open-AI21 API Host
+API_HOST = "open-ai21.p.rapidapi.com"
 COMPANY_NAMES_FILE = "data/comp_names.txt"
 KEYWORDS_OUTPUT_DIR = "/tmp/datagdata/outputs"
 TRENDS_OUTPUT_DIR = "/tmp/datagtrendoutputz/json/outputs"
@@ -25,8 +25,8 @@ os.makedirs(KEYWORDS_OUTPUT_DIR, exist_ok=True)
 os.makedirs(TRENDS_OUTPUT_DIR, exist_ok=True)
 
 # Streamlit App Title
-st.title("Google Trends Keyword Extractor (GPT-4o Edition)")
-st.write("Fetching keywords for companies using GPT-4o and Google Trends data.")
+st.title("Google Trends Keyword Extractor (Open-AI21)")
+st.write("Fetching keywords for companies using Open-AI21 and Google Trends data.")
 
 # Read the company names
 try:
@@ -69,7 +69,7 @@ def fetch_trends_for_all_files():
     location = "us"
 
     for company in companies_list:
-        csv_filename = f"{company.lower().replace(' ', '_')}_gpt_keywords.csv" # Renamed suffix to _gpt_keywords
+        csv_filename = f"{company.lower().replace(' ', '_')}_ai21_keywords.csv" # Renamed suffix
         csv_path = os.path.join(KEYWORDS_OUTPUT_DIR, csv_filename)
 
         if not os.path.exists(csv_path):
@@ -102,14 +102,14 @@ def fetch_trends_for_all_files():
                 json.dump(all_data, combined_file, indent=2)
             st.success(f"Combined data saved: {combined_file_path}")
 
-# --- KEYWORD FETCHING LOGIC (UPDATED FOR GPT-4o) ---
+# --- KEYWORD FETCHING LOGIC (UPDATED FOR OPEN-AI21) ---
 if st.button("Fetch Keywords"):
-    st.write("Fetching keywords using GPT-4o...")
+    st.write("Fetching keywords using Open-AI21...")
 
     for company in companies_list:
-        csv_filename = f"{company.lower().replace(' ', '_')}_gpt_keywords.csv"
+        csv_filename = f"{company.lower().replace(' ', '_')}_ai21_keywords.csv"
 
-        # NEW: Payload structure for the ChatGPT API
+        # NEW: Payload structure for Open-AI21
         payload = {
             "messages": [
                 {
@@ -119,36 +119,42 @@ if st.button("Fetch Keywords"):
                     )
                 }
             ],
-            "model": "gpt-4o",  # Updated model
-            "max_tokens": 300,    # Increased tokens to ensure list isn't cut off
-            "temperature": 0.9
+            "web_access": False
         }
 
-        # NEW: Headers with correct host
         headers = {
             'x-rapidapi-key': API_KEY,
             'x-rapidapi-host': API_HOST,
             'Content-Type': 'application/json'
         }
 
-        # NEW: URL endpoint
-        url = f"https://{API_HOST}/v1/chat/completions"
+        url = f"https://{API_HOST}/chatgpt"
 
         max_retries = 3
         retry_delay = 2
 
         for attempt in range(max_retries):
             try:
-                # Making request to new URL
                 response = requests.post(url, json=payload, headers=headers)
 
                 if response.status_code == 200:
                     response_data = response.json()
+                    
+                    # --- RESPONSE PARSING ---
+                    # Different APIs nest data differently. We try the most common key "result".
+                    # If that fails, we fallback to "result" or check standard OpenAI "choices".
+                    keywords_str = ""
+                    if 'result' in response_data:
+                        keywords_str = response_data['result']
+                    elif 'choices' in response_data:
+                        keywords_str = response_data['choices'][0]['message']['content']
+                    else:
+                        # Fallback: dump the whole JSON to string if structure is unknown
+                        st.warning(f"Unknown JSON structure. Trying to parse raw response.")
+                        keywords_str = str(response_data)
 
-                    # Extract content (Structure is usually compatible with OpenAI format)
-                    keywords_str = response_data['choices'][0]['message']['content']
+                    # Clean the keywords
                     keywords_list = keywords_str.split("\n")
-
                     cleaned_keywords = []
                     for kw in keywords_list:
                         kw = kw.replace("-", "").replace('"', '')
@@ -160,7 +166,7 @@ if st.button("Fetch Keywords"):
                     csv_path = os.path.join(KEYWORDS_OUTPUT_DIR, csv_filename)
                     with open(csv_path, mode='w', newline='') as file:
                         writer = csv.writer(file)
-                        writer.writerow(['gpt-4o']) # Updated header
+                        writer.writerow(['ai21']) 
                         for keyword in cleaned_keywords:
                             writer.writerow([keyword])
 
@@ -173,7 +179,7 @@ if st.button("Fetch Keywords"):
                     continue
                 else:
                     st.error(f"Failed for '{company}'. Status: {response.status_code}")
-                    st.error(response.text) # Print error details for debugging
+                    st.write(response.text) # Display error text for debugging
                     break
 
             except Exception as e:
@@ -190,7 +196,7 @@ if st.button("Fetch Keywords"):
 st.write("### Keyword Files Table")
 table_data = []
 for company in companies_list:
-    csv_filename = f"{company.lower().replace(' ', '_')}_gpt_keywords.csv"
+    csv_filename = f"{company.lower().replace(' ', '_')}_ai21_keywords.csv"
     csv_path = os.path.join(KEYWORDS_OUTPUT_DIR, csv_filename)
     if os.path.exists(csv_path):
         table_data.append({"Company Name": company, "Keyword File Name": csv_filename})
