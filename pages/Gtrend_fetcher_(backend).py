@@ -6,6 +6,8 @@ import streamlit as st
 import re
 import time
 import json
+import shutil
+from datetime import datetime
 from serpapi import GoogleSearch
 
 # --- APP LAYOUT & INPUTS ---
@@ -99,11 +101,9 @@ def fetch_trends_for_all_files():
             st.warning(f"No keyword file found for '{company}'. Skipping.")
             continue
 
-        # FIXED: Removed [1:] slicing so it reads the file exactly as is
         with open(csv_path, "r") as file:
             keywords = [row[0] for row in csv.reader(file) if row]
             
-        # SAFETY CHECK: If old files still exist with "gpt26" header, remove it dynamically
         if keywords and keywords[0] == 'gpt26':
             keywords.pop(0)
 
@@ -116,12 +116,16 @@ def fetch_trends_for_all_files():
                 keywords_str, data_type, date_ranges[0], SERPAPI_KEY, language, location
             )
             if trends_data:
-                all_data[f"part_{i + 1}"] = trends_data
-                output_file_name = csv_filename.replace('.csv', f'_part{i + 1}.json')
-                output_file_path = os.path.join(TRENDS_OUTPUT_DIR, output_file_name)
-                with open(output_file_path, 'w') as output_file:
-                    json.dump(trends_data, output_file, indent=2)
-                st.info(f"Saved Part {i + 1} for '{company}'")
+                if "error" in trends_data:
+                    st.error(f"API Error for {company}: {trends_data['error']}")
+                else:
+                    all_data[f"part_{i + 1}"] = trends_data
+                    
+                    output_file_name = csv_filename.replace('.csv', f'_part{i + 1}.json')
+                    output_file_path = os.path.join(TRENDS_OUTPUT_DIR, output_file_name)
+                    with open(output_file_path, 'w') as output_file:
+                        json.dump(trends_data, output_file, indent=2)
+                    st.info(f"Saved Part {i + 1} for '{company}'")
                 
         if all_data:
             combined_file_name = csv_filename.replace('.csv', '_trends_combined.json')
@@ -131,17 +135,31 @@ def fetch_trends_for_all_files():
             st.success(f"✅ Finished: {company}")
 
 def convert_json_to_csv(json_path):
+    """
+    Robust JSON to CSV converter that uses TIMESTAMP instead of date string.
+    """
     try:
         with open(json_path, 'r') as f:
             data = json.load(f)
         
         all_frames = []
         for part_name, content in data.items():
-            if 'interest_over_time' in content and 'timeline_data' in content['interest_over_time']:
+            if "error" in content:
+                return f"Error: The JSON contains an API error message: {content['error']}"
+            
+            if 'interest_over_time' not in content:
+                continue 
+                
+            if 'timeline_data' in content['interest_over_time']:
                 timeline = content['interest_over_time']['timeline_data']
                 rows = []
                 for point in timeline:
-                    row_data = {'date': point.get('date')}
+                    # FIX: Use 'timestamp' for reliable date parsing
+                    ts = int(point.get('timestamp'))
+                    date_val = datetime.utcfromtimestamp(ts).strftime('%Y-%m-%d')
+                    
+                    row_data = {'date': date_val}
+                    
                     for value_item in point.get('values', []):
                         row_data[value_item['query']] = value_item.get('extracted_value')
                     rows.append(row_data)
@@ -153,13 +171,15 @@ def convert_json_to_csv(json_path):
                     all_frames.append(df)
 
         if all_frames:
+            # Join all parts on the 'date' index
             final_df = pd.concat(all_frames, axis=1)
+            # Remove duplicate columns if chunks overlap
             final_df = final_df.loc[:, ~final_df.columns.duplicated()]
             return final_df.to_csv()
         else:
-            return None
+            return "Error: No 'Timeline Data' found in JSON."
     except Exception as e:
-        return f"Error: {e}"
+        return f"Error Exception: {e}"
 
 # --- KEYWORD FETCHING LOGIC ---
 if st.button("Fetch Keywords"):
@@ -177,30 +197,21 @@ if st.button("Fetch Keywords"):
 
             payload = {
                 "model": "GPT-5-mini",
-                "messages": [
-                    {
-                        "role": "user",
-                        "content": formatted_prompt
-                    }
-                ]
+                "messages": [{"role": "user", "content": formatted_prompt}]
             }
-
             headers = {
                 'x-rapidapi-key': API_KEY,
                 'x-rapidapi-host': API_HOST,
                 'Content-Type': 'application/json'
             }
-            
             url = f"https://{API_HOST}/"
             
             for attempt in range(3):
                 try:
                     response = requests.post(url, json=payload, headers=headers)
-                    
                     if response.status_code == 200:
                         response_data = response.json()
                         keywords_str = ""
-                        
                         if 'choices' in response_data and len(response_data['choices']) > 0:
                             keywords_str = response_data['choices'][0]['message']['content']
                         else:
@@ -217,7 +228,6 @@ if st.button("Fetch Keywords"):
                         csv_path = os.path.join(KEYWORDS_OUTPUT_DIR, csv_filename)
                         with open(csv_path, mode='w', newline='') as file:
                             writer = csv.writer(file)
-                            # FIXED: Removed writer.writerow(['gpt26']) 
                             for keyword in cleaned_keywords:
                                 writer.writerow([keyword])
 
@@ -227,7 +237,7 @@ if st.button("Fetch Keywords"):
                         time.sleep(2)
                         continue
                     else:
-                        st.error(f"Error {response.status_code}: {response.text}")
+                        st.error(f"Error {response.status_code}")
                         break
                 except Exception as e:
                     st.error(f"Error: {e}")
@@ -240,6 +250,17 @@ if st.button("Fetch Keywords"):
 # --- DISPLAY & DOWNLOAD ---
 st.markdown("---")
 st.write("### Keyword Review & Trends")
+
+# CLEAR DATA BUTTON
+if st.button("⚠️ Clear All Old Data"):
+    if os.path.exists(KEYWORDS_OUTPUT_DIR):
+        shutil.rmtree(KEYWORDS_OUTPUT_DIR)
+        os.makedirs(KEYWORDS_OUTPUT_DIR)
+    if os.path.exists(TRENDS_OUTPUT_DIR):
+        shutil.rmtree(TRENDS_OUTPUT_DIR)
+        os.makedirs(TRENDS_OUTPUT_DIR)
+    st.warning("All old files deleted. Please Fetch Keywords again.")
+    st.rerun()
 
 table_data = []
 for company in companies_list:
@@ -262,7 +283,6 @@ with col_view:
             csv_path = os.path.join(KEYWORDS_OUTPUT_DIR, selected_file)
             with open(csv_path, "r") as file:
                 reader = csv.reader(file)
-                # FIXED: Simple read, but filtering out 'gpt26' if it exists in old files
                 keywords = [row[0] for row in reader if row and row[0] != 'gpt26']
             st.caption(f"Found {len(keywords)} keywords")
             st.dataframe(keywords, height=200)
@@ -298,8 +318,11 @@ if os.path.exists(TRENDS_OUTPUT_DIR):
             st.markdown("### Download Results (CSV)")
             for file_name in combined_files:
                 file_path = os.path.join(TRENDS_OUTPUT_DIR, file_name)
+                
+                # Convert on the fly
                 csv_data = convert_json_to_csv(file_path)
                 
+                # Check if the result is an Error string
                 if csv_data and not csv_data.startswith("Error"):
                     csv_filename = file_name.replace('.json', '.csv')
                     st.download_button(
@@ -310,4 +333,4 @@ if os.path.exists(TRENDS_OUTPUT_DIR):
                         key=f"csv_{file_name}"
                     )
                 else:
-                    st.error(f"Could not convert {file_name}")
+                    st.error(f"❌ {file_name}: {csv_data}")
