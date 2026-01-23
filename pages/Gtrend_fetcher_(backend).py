@@ -99,8 +99,13 @@ def fetch_trends_for_all_files():
             st.warning(f"No keyword file found for '{company}'. Skipping.")
             continue
 
+        # FIXED: Removed [1:] slicing so it reads the file exactly as is
         with open(csv_path, "r") as file:
-            keywords = [row[0] for row in csv.reader(file) if row][1:]
+            keywords = [row[0] for row in csv.reader(file) if row]
+            
+        # SAFETY CHECK: If old files still exist with "gpt26" header, remove it dynamically
+        if keywords and keywords[0] == 'gpt26':
+            keywords.pop(0)
 
         keyword_chunks = split_keywords(keywords)
         all_data = {}
@@ -170,7 +175,6 @@ if st.button("Fetch Keywords"):
             csv_filename = f"{company.lower().replace(' ', '_')}_gpt26_keywords.csv"
             formatted_prompt = user_prompt_template.replace("{company}", company)
 
-            # NEW: Payload for Chat-GPT26
             payload = {
                 "model": "GPT-5-mini",
                 "messages": [
@@ -187,23 +191,19 @@ if st.button("Fetch Keywords"):
                 'Content-Type': 'application/json'
             }
             
-            # NEW: URL
             url = f"https://{API_HOST}/"
             
             for attempt in range(3):
                 try:
-                    # POST request
                     response = requests.post(url, json=payload, headers=headers)
                     
                     if response.status_code == 200:
                         response_data = response.json()
                         keywords_str = ""
                         
-                        # Parsing Logic for standard Chat format
                         if 'choices' in response_data and len(response_data['choices']) > 0:
                             keywords_str = response_data['choices'][0]['message']['content']
                         else:
-                            # Fallback if structure varies
                             keywords_str = str(response_data)
 
                         keywords_list = keywords_str.split("\n")
@@ -217,7 +217,7 @@ if st.button("Fetch Keywords"):
                         csv_path = os.path.join(KEYWORDS_OUTPUT_DIR, csv_filename)
                         with open(csv_path, mode='w', newline='') as file:
                             writer = csv.writer(file)
-                            writer.writerow(['gpt26']) 
+                            # FIXED: Removed writer.writerow(['gpt26']) 
                             for keyword in cleaned_keywords:
                                 writer.writerow([keyword])
 
@@ -262,7 +262,8 @@ with col_view:
             csv_path = os.path.join(KEYWORDS_OUTPUT_DIR, selected_file)
             with open(csv_path, "r") as file:
                 reader = csv.reader(file)
-                keywords = [row[0] for row in reader if row]
+                # FIXED: Simple read, but filtering out 'gpt26' if it exists in old files
+                keywords = [row[0] for row in reader if row and row[0] != 'gpt26']
             st.caption(f"Found {len(keywords)} keywords")
             st.dataframe(keywords, height=200)
 
@@ -297,8 +298,6 @@ if os.path.exists(TRENDS_OUTPUT_DIR):
             st.markdown("### Download Results (CSV)")
             for file_name in combined_files:
                 file_path = os.path.join(TRENDS_OUTPUT_DIR, file_name)
-                
-                # Convert on the fly
                 csv_data = convert_json_to_csv(file_path)
                 
                 if csv_data and not csv_data.startswith("Error"):
