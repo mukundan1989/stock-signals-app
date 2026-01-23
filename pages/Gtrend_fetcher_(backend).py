@@ -8,54 +8,46 @@ import time  # For adding delays
 import json  # For handling JSON payloads
 from serpapi import GoogleSearch  # For fetching Google Trends data
 
-# Configuration
-API_KEY = "1ce12aafcdmshdb6eea1ac608501p1ab501jsn4a47cc5027ce"  # Your RapidAPI key for Llama API
+# --- CONFIGURATION ---
+# ⚠️ SECURITY WARNING: You should not hardcode keys in production. 
+# Consider using st.secrets or environment variables.
+API_KEY = "1ce12aafcdmshdb6eea1ac608501p1ab501jsn4a47cc5027ce"  # Your RapidAPI key
 SERPAPI_KEY = "00d04ad3fedf5a39974184171ae64492e3198cc07ed608cad0af9a780ee6f4c0"  # Your SerpAPI key
-API_HOST = "meta-llama-3-8b.p.rapidapi.com"  # API host for Llama API
-COMPANY_NAMES_FILE = "data/comp_names.txt"  # Path to the company names file
-KEYWORDS_OUTPUT_DIR = "/tmp/datagdata/outputs"  # Directory to save keyword CSV files
-TRENDS_OUTPUT_DIR = "/tmp/datagtrendoutputz/json/outputs"  # Directory to save Google Trends JSON files
+
+# NEW: ChatGPT API Host
+API_HOST = "cheapest-gpt-4-turbo-gpt-4-vision-chatgpt-openai-ai-api.p.rapidapi.com"
+COMPANY_NAMES_FILE = "data/comp_names.txt"
+KEYWORDS_OUTPUT_DIR = "/tmp/datagdata/outputs"
+TRENDS_OUTPUT_DIR = "/tmp/datagtrendoutputz/json/outputs"
 
 # Ensure output directories exist
 os.makedirs(KEYWORDS_OUTPUT_DIR, exist_ok=True)
 os.makedirs(TRENDS_OUTPUT_DIR, exist_ok=True)
 
 # Streamlit App Title
-st.title("Google Trends Keyword Extractor")
-st.write("Fetching keywords for companies listed in 'comp_names.txt' and Google Trends data.")
+st.title("Google Trends Keyword Extractor (GPT-4o Edition)")
+st.write("Fetching keywords for companies using GPT-4o and Google Trends data.")
 
-# Read the company names from the text file
+# Read the company names
 try:
     with open(COMPANY_NAMES_FILE, "r") as file:
-        companies_list = [line.strip() for line in file if line.strip()]  # Read and clean the company names
+        companies_list = [line.strip() for line in file if line.strip()]
     st.success(f"Successfully read {len(companies_list)} companies from '{COMPANY_NAMES_FILE}'.")
 except FileNotFoundError:
-    st.error(f"File '{COMPANY_NAMES_FILE}' not found. Please ensure the file exists in the 'repo' folder.")
+    st.error(f"File '{COMPANY_NAMES_FILE}' not found. Please ensure the file exists.")
     st.stop()
 
-# Function to fetch Google Trends data
+# Function to fetch Google Trends data (Unchanged)
 def fetch_google_trends_data(keywords, data_type, date_range, api_key, language="en", location="us"):
-    """
-    Fetch Google Trends data using the provided parameters.
-
-    :param keywords: Comma-separated string of keywords.
-    :param data_type: Data type for the trends (e.g., TIMESERIES).
-    :param date_range: Date range for the query (e.g., "2023-01-01 2023-12-31").
-    :param api_key: API key for the Google Trends API.
-    :param language: Language for the trends data (e.g., "en").
-    :param location: Location for the trends data (e.g., "us").
-    :return: Results as a dictionary, or None in case of an error.
-    """
     params = {
         "engine": "google_trends",
         "q": keywords,
         "data_type": data_type,
         "date": date_range,
         "api_key": api_key,
-        "hl": language,  # Language parameter
-        "gl": location   # Location parameter
+        "hl": language,
+        "gl": location
     }
-
     try:
         search = GoogleSearch(params)
         results = search.get_dict()
@@ -64,84 +56,61 @@ def fetch_google_trends_data(keywords, data_type, date_range, api_key, language=
         st.error(f"Error fetching data for range {date_range}: {e}")
         return None
 
-# Function to split keywords into chunks of 5
+# Function to split keywords (Unchanged)
 def split_keywords(keywords, chunk_size=5):
-    """
-    Split a list of keywords into chunks of a specified size.
-
-    :param keywords: List of keywords.
-    :param chunk_size: Size of each chunk (default is 5).
-    :return: List of keyword chunks.
-    """
     return [keywords[i:i + chunk_size] for i in range(0, len(keywords), chunk_size)]
 
-# Function to fetch Google Trends data for all keyword files
+# Function to fetch Trends for all files (Unchanged)
 def fetch_trends_for_all_files():
-    """
-    Fetch Google Trends data for all keyword files in the output directory.
-    """
     st.write("Fetching Google Trends data...")
-
     data_type = "TIMESERIES"
-    date_ranges = ["2020-01-01 2024-11-30"]  # Specify the date range
-    language = "en"  # Language for the trends data
-    location = "us"  # Location for the trends data
+    date_ranges = ["2020-01-01 2024-11-30"]
+    language = "en"
+    location = "us"
 
     for company in companies_list:
-        csv_filename = f"{company.lower().replace(' ', '_')}_llama_keywords.csv"
+        csv_filename = f"{company.lower().replace(' ', '_')}_gpt_keywords.csv" # Renamed suffix to _gpt_keywords
         csv_path = os.path.join(KEYWORDS_OUTPUT_DIR, csv_filename)
 
         if not os.path.exists(csv_path):
             st.warning(f"No keyword file found for '{company}'. Skipping.")
             continue
 
-        # Read keywords from the CSV file
         with open(csv_path, "r") as file:
-            keywords = [row[0] for row in csv.reader(file) if row][1:]  # Skip the header
+            keywords = [row[0] for row in csv.reader(file) if row][1:]
 
-        # Split keywords into chunks of 5
         keyword_chunks = split_keywords(keywords)
-
         all_data = {}
+
         for i, chunk in enumerate(keyword_chunks):
             keywords_str = ",".join(chunk)
-
-            # Fetch Google Trends data for the current chunk
             trends_data = fetch_google_trends_data(
                 keywords_str, data_type, date_ranges[0], SERPAPI_KEY, language, location
             )
-
             if trends_data:
                 all_data[f"part_{i + 1}"] = trends_data
-
-                # Save the trends data for the current chunk (not displayed for download)
                 output_file_name = csv_filename.replace('.csv', f'_part{i + 1}.json')
                 output_file_path = os.path.join(TRENDS_OUTPUT_DIR, output_file_name)
                 with open(output_file_path, 'w') as output_file:
                     json.dump(trends_data, output_file, indent=2)
-
-                st.success(f"Google Trends data for '{company}' (Part {i + 1}) saved to {output_file_path}")
-
-        # Save the combined data for the company
+                st.success(f"Google Trends data for '{company}' (Part {i + 1}) saved.")
+                
         if all_data:
             combined_file_name = csv_filename.replace('.csv', '_trends_combined.json')
             combined_file_path = os.path.join(TRENDS_OUTPUT_DIR, combined_file_name)
             with open(combined_file_path, 'w') as combined_file:
                 json.dump(all_data, combined_file, indent=2)
+            st.success(f"Combined data saved: {combined_file_path}")
 
-            st.success(f"Combined Google Trends data for '{company}' saved to {combined_file_path}")
-
-# Button to start fetching keywords
+# --- KEYWORD FETCHING LOGIC (UPDATED FOR GPT-4o) ---
 if st.button("Fetch Keywords"):
-    st.write("Fetching keywords...")
+    st.write("Fetching keywords using GPT-4o...")
 
-    # Loop through each company to get the keywords
     for company in companies_list:
-        csv_filename = f"{company.lower().replace(' ', '_')}_llama_keywords.csv"
+        csv_filename = f"{company.lower().replace(' ', '_')}_gpt_keywords.csv"
 
-        # Prepare the payload for the API request
+        # NEW: Payload structure for the ChatGPT API
         payload = {
-            "model": "llama-3.1-8B-Instruct",  # Specify the model
             "messages": [
                 {
                     "role": "user",
@@ -149,98 +118,87 @@ if st.button("Fetch Keywords"):
                         f"Provide a list of top fifteen important keywords associated with the company \"{company}\", focusing on its most popular products, services, or core offerings. The keywords should reflect areas where demand or interest can be analyzed using Google Trends data. Ensure the keywords are specific, and highly representative of the company's primary focus. Give the output as a bulletted list with no other extra characters or text."
                     )
                 }
-            ]
+            ],
+            "model": "gpt-4o",  # Updated model
+            "max_tokens": 300,    # Increased tokens to ensure list isn't cut off
+            "temperature": 0.9
         }
 
-        # Retry logic for rate limiting
-        max_retries = 3  # Maximum number of retries
-        retry_delay = 2  # Delay between retries in seconds
+        # NEW: Headers with correct host
+        headers = {
+            'x-rapidapi-key': API_KEY,
+            'x-rapidapi-host': API_HOST,
+            'Content-Type': 'application/json'
+        }
+
+        # NEW: URL endpoint
+        url = f"https://{API_HOST}/v1/chat/completions"
+
+        max_retries = 3
+        retry_delay = 2
 
         for attempt in range(max_retries):
             try:
-                # Make the API request with SSL verification disabled
-                response = requests.post(
-                    f"https://{API_HOST}/",
-                    json=payload,
-                    headers={
-                        'x-rapidapi-key': API_KEY,
-                        'x-rapidapi-host': API_HOST,
-                        'Content-Type': 'application/json'
-                    },
-                    verify=False  # Disable SSL verification
-                )
+                # Making request to new URL
+                response = requests.post(url, json=payload, headers=headers)
 
-                # Check if the response is successful
                 if response.status_code == 200:
                     response_data = response.json()
 
-                    # Extract and clean the list of keywords
-                    keywords_str = response_data['choices'][0]['message']['content']  # Extract the response content
-                    keywords_list = keywords_str.split("\n")[1:]  # Skip the first line (header)
+                    # Extract content (Structure is usually compatible with OpenAI format)
+                    keywords_str = response_data['choices'][0]['message']['content']
+                    keywords_list = keywords_str.split("\n")
 
-                    # Clean each keyword
                     cleaned_keywords = []
                     for kw in keywords_list:
-                        # Remove hyphens, quotes, and non-alphabetic characters (except spaces)
-                        kw = kw.replace("-", "").replace('"', '')  # Remove hyphens and quotes
-                        kw = re.sub(r"[^a-zA-Z\s]", "", kw)  # Remove non-alphabetic characters (except spaces)
-                        kw = kw.strip()  # Remove leading/trailing spaces
-                        if kw:  # Add only non-empty keywords
+                        kw = kw.replace("-", "").replace('"', '')
+                        kw = re.sub(r"[^a-zA-Z\s]", "", kw)
+                        kw = kw.strip()
+                        if kw:
                             cleaned_keywords.append(kw)
 
-                    # Write the cleaned keywords to a CSV file
                     csv_path = os.path.join(KEYWORDS_OUTPUT_DIR, csv_filename)
                     with open(csv_path, mode='w', newline='') as file:
                         writer = csv.writer(file)
-                        writer.writerow(['llama'])  # Write the header
+                        writer.writerow(['gpt-4o']) # Updated header
                         for keyword in cleaned_keywords:
                             writer.writerow([keyword])
 
                     st.success(f"Keywords for '{company}' saved to {csv_path}")
-                    break  # Exit the retry loop if successful
+                    break
 
                 elif response.status_code == 429:
-                    st.warning(f"Rate limit exceeded for '{company}'. Retrying in {retry_delay} seconds...")
-                    time.sleep(retry_delay)  # Wait before retrying
-                    continue  # Retry the request
-
+                    st.warning(f"Rate limit exceeded for '{company}'. Retrying in {retry_delay}s...")
+                    time.sleep(retry_delay)
+                    continue
                 else:
-                    st.error(f"Failed to retrieve data for '{company}'. Status code: {response.status_code}")
-                    break  # Exit the retry loop if the error is not rate-limiting
+                    st.error(f"Failed for '{company}'. Status: {response.status_code}")
+                    st.error(response.text) # Print error details for debugging
+                    break
 
             except Exception as e:
                 st.error(f"Error fetching data for '{company}': {e}")
-                break  # Exit the retry loop if an unexpected error occurs
-
+                break
         else:
-            st.error(f"Max retries ({max_retries}) reached for '{company}'. Skipping.")
+            st.error(f"Max retries reached for '{company}'.")
 
-        # Add a delay between requests to avoid rate limiting
-        time.sleep(1)  # Wait 1 second before the next request
+        time.sleep(1)
 
     st.write("Keyword fetching completed!")
 
-# Create a table with Company Name and Keyword File Name
+# --- DISPLAY & DOWNLOAD (Unchanged logic, updated file references) ---
 st.write("### Keyword Files Table")
-
-# Initialize a list to store table data
 table_data = []
-
-# Loop through companies and check if their keyword files exist
 for company in companies_list:
-    csv_filename = f"{company.lower().replace(' ', '_')}_llama_keywords.csv"
+    csv_filename = f"{company.lower().replace(' ', '_')}_gpt_keywords.csv"
     csv_path = os.path.join(KEYWORDS_OUTPUT_DIR, csv_filename)
-
-    # Check if the file exists
     if os.path.exists(csv_path):
         table_data.append({"Company Name": company, "Keyword File Name": csv_filename})
     else:
         table_data.append({"Company Name": company, "Keyword File Name": "File not found"})
 
-# Display the table
 st.table(table_data)
 
-# Add functionality to display keywords when a file name is clicked
 st.write("### View Keywords")
 selected_file = st.selectbox("Select a keyword file to view:", [row["Keyword File Name"] for row in table_data if row["Keyword File Name"] != "File not found"])
 
@@ -249,19 +207,14 @@ if selected_file:
     if os.path.exists(csv_path):
         with open(csv_path, "r") as file:
             reader = csv.reader(file)
-            keywords = [row[0] for row in reader if row]  # Read keywords from the CSV file
-
+            keywords = [row[0] for row in reader if row]
         st.write(f"Keywords in '{selected_file}':")
         st.write(keywords)
-    else:
-        st.error(f"File '{selected_file}' not found.")
 
-# Button to fetch Google Trends data
 st.write("### Get Google Trend Values")
 if st.button("Get Google Trend Values"):
     fetch_trends_for_all_files()
 
-# Display combined Google Trends files for download
 if os.path.exists(TRENDS_OUTPUT_DIR):
     st.write("### Combined Google Trends Files")
     combined_files = [f for f in os.listdir(TRENDS_OUTPUT_DIR) if f.endswith('_trends_combined.json')]
@@ -275,7 +228,3 @@ if os.path.exists(TRENDS_OUTPUT_DIR):
                     file_name=file_name,
                     mime="application/json"
                 )
-    else:
-        st.warning("No combined Google Trends files found in the output directory.")
-else:
-    st.warning("Google Trends output directory does not exist.")
