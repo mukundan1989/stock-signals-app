@@ -13,9 +13,10 @@ import re
 API_HOST = "https://seeking-alpha.p.rapidapi.com"
 SYMBOL_FILE = "data/symbollist.txt"
 MAX_WORKERS = 4
+MAX_RETRIES = 3
 
 st.set_page_config(layout="wide")
-st.title("Seeking Alpha News Fetcher – Full Pipeline")
+st.title("Seeking Alpha News Fetcher – Retry Enabled")
 
 # ================= INPUT =================
 
@@ -23,7 +24,6 @@ keys_text = st.text_area("RapidAPI Keys (one per line)")
 API_KEYS = [k.strip() for k in keys_text.splitlines() if k.strip()]
 
 if not API_KEYS:
-    st.warning("Enter at least one RapidAPI key.")
     st.stop()
 
 from_date = st.date_input("From Date", datetime(2024, 1, 1))
@@ -44,7 +44,7 @@ def get_key(worker):
 def clean_html(txt):
     return re.sub("<[^<]+?>", "", txt or "")
 
-# ================= PHASE 1 =================
+# ================= FETCH HEADLINES =================
 
 def fetch_articles(worker, symbol):
 
@@ -81,7 +81,7 @@ def fetch_articles(worker, symbol):
 
     return symbol, all_items
 
-# ================= PHASE 2 =================
+# ================= FETCH FULL ARTICLE WITH RETRY =================
 
 def fetch_full(worker, article_id):
 
@@ -90,19 +90,31 @@ def fetch_full(worker, article_id):
         "x-rapidapi-host": "seeking-alpha.p.rapidapi.com"
     }
 
-    r = requests.get(
-        f"{API_HOST}/news/get-details",
-        headers=headers,
-        params={"id": article_id},
-        timeout=30
-    )
+    for attempt in range(MAX_RETRIES):
 
-    try:
-        js = r.json()
-        content = js["data"]["attributes"].get("content", "")
-        return article_id, clean_html(content)
-    except:
-        return article_id, "FAILED"
+        try:
+            r = requests.get(
+                f"{API_HOST}/news/get-details",
+                headers=headers,
+                params={"id": article_id},
+                timeout=30
+            )
+
+            if r.status_code != 200:
+                time.sleep(1)
+                continue
+
+            js = r.json()
+
+            content = js["data"]["attributes"].get("content", "")
+
+            if content:
+                return article_id, clean_html(content)
+
+        except:
+            time.sleep(1)
+
+    return article_id, "FAILED"
 
 # ================= STEP 1 =================
 
@@ -125,7 +137,6 @@ if st.button("STEP 1 — Fetch Article Lists"):
     all_ids = []
 
     for sym, items in results.items():
-
         path = os.path.join(ARTICLES_DIR, f"{sym.lower()}_news.csv")
 
         with open(path, "w", newline="", encoding="utf8") as fp:
@@ -143,9 +154,9 @@ if st.button("STEP 1 — Fetch Article Lists"):
 
     st.success(f"Saved {len(all_ids)} articles.")
 
-# ================= STEP 2 =================
+# ================= STEP 2 + RETRY =================
 
-if st.button("STEP 2 — Fetch Full Article Content"):
+if st.button("STEP 2 — Fetch Full Article Content (with retry)"):
 
     csvs = [f for f in os.listdir(ARTICLES_DIR) if f.endswith("_news.csv")]
 
@@ -163,6 +174,8 @@ if st.button("STEP 2 — Fetch Full Article Content"):
     bar = st.progress(0.0)
     results = {}
 
+    # ---- MAIN PASS ----
+
     with ThreadPoolExecutor(MAX_WORKERS) as ex:
         futures = [ex.submit(fetch_full, i, aid) for i, aid in enumerate(ids)]
 
@@ -171,14 +184,38 @@ if st.button("STEP 2 — Fetch Full Article Content"):
             results[aid] = txt
             bar.progress((idx + 1) / len(ids))
 
+    failed_ids = [k for k,v in results.items() if v == "FAILED"]
+
+    # ---- RETRY FAILED ----
+
+    if failed_ids:
+        st.info(f"Retrying {len(failed_ids)} failed articles...")
+        retry_bar = st.progress(0.0)
+
+        retry_results = {}
+
+        with ThreadPoolExecutor(MAX_WORKERS) as ex:
+            futures = [ex.submit(fetch_full, i, aid) for i, aid in enumerate(failed_ids)]
+
+            for idx, f in enumerate(as_completed(futures)):
+                aid, txt = f.result()
+                retry_results[aid] = txt
+                retry_bar.progress((idx + 1) / len(failed_ids))
+
+        for k,v in retry_results.items():
+            if v != "FAILED":
+                results[k] = v
+
+    # ---- WRITE BACK ----
+
     for name, df in dfs.items():
         df["Content"] = df["ID"].map(results)
         df.to_csv(fmap[name], index=False)
 
-    st.success("Full article content added.")
+    st.success("Completed content fetch + retry.")
 
 # ======================================================
-# LIVE DASHBOARD (always visible)
+# LIVE DASHBOARD
 # ======================================================
 
 st.divider()
@@ -199,9 +236,7 @@ if os.path.exists(ARTICLES_DIR):
 
         article_count = len(df)
 
-        content_done = False
-        if "Content" in df.columns:
-            content_done = df["Content"].notna().any() and (df["Content"] != "").any()
+        content_done = df["Content"].notna().any() and (df["Content"] != "").any()
 
         summary_rows.append({
             "Symbol": symbol,
@@ -212,9 +247,8 @@ if os.path.exists(ARTICLES_DIR):
         df["Symbol"] = symbol
         combined_rows.append(df)
 
-    if summary_rows:
-        st.subheader("Summary Table")
-        st.dataframe(pd.DataFrame(summary_rows), use_container_width=True)
+    st.subheader("Summary Table")
+    st.dataframe(pd.DataFrame(summary_rows), use_container_width=True)
 
     st.divider()
     st.subheader("📁 Individual Symbol Files")
