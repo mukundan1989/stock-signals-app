@@ -8,17 +8,22 @@ from datetime import datetime
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import re
 
+# ================= CONFIG =================
+
 API_HOST = "https://seeking-alpha.p.rapidapi.com"
 SYMBOL_FILE = "data/symbollist.txt"
 MAX_WORKERS = 4
 
 st.set_page_config(layout="wide")
-st.title("Seeking Alpha News Fetcher (Stable Version)")
+st.title("Seeking Alpha News Fetcher – Full Pipeline")
+
+# ================= INPUT =================
 
 keys_text = st.text_area("RapidAPI Keys (one per line)")
 API_KEYS = [k.strip() for k in keys_text.splitlines() if k.strip()]
 
 if not API_KEYS:
+    st.warning("Enter at least one RapidAPI key.")
     st.stop()
 
 from_date = st.date_input("From Date", datetime(2024, 1, 1))
@@ -31,13 +36,15 @@ OUT_DIR = os.path.join(os.path.expanduser("~"), "SeekingAlphaNews")
 ARTICLES_DIR = os.path.join(OUT_DIR, "articles")
 os.makedirs(ARTICLES_DIR, exist_ok=True)
 
+# ================= HELPERS =================
+
 def get_key(worker):
     return API_KEYS[worker % len(API_KEYS)]
 
 def clean_html(txt):
     return re.sub("<[^<]+?>", "", txt or "")
 
-# ---------------- PHASE 1 ----------------
+# ================= PHASE 1 =================
 
 def fetch_articles(worker, symbol):
 
@@ -70,11 +77,11 @@ def fetch_articles(worker, symbol):
 
         all_items.extend(js["data"])
         page += 1
-        time.sleep(0.25)
+        time.sleep(0.2)
 
     return symbol, all_items
 
-# ---------------- PHASE 2 ----------------
+# ================= PHASE 2 =================
 
 def fetch_full(worker, article_id):
 
@@ -97,9 +104,7 @@ def fetch_full(worker, article_id):
     except:
         return article_id, "FAILED"
 
-# =====================================================
-# STEP 1
-# =====================================================
+# ================= STEP 1 =================
 
 if st.button("STEP 1 — Fetch Article Lists"):
 
@@ -120,6 +125,7 @@ if st.button("STEP 1 — Fetch Article Lists"):
     all_ids = []
 
     for sym, items in results.items():
+
         path = os.path.join(ARTICLES_DIR, f"{sym.lower()}_news.csv")
 
         with open(path, "w", newline="", encoding="utf8") as fp:
@@ -137,11 +143,9 @@ if st.button("STEP 1 — Fetch Article Lists"):
 
     st.success(f"Saved {len(all_ids)} articles.")
 
-# =====================================================
-# STEP 2
-# =====================================================
+# ================= STEP 2 =================
 
-if st.button("STEP 2 — Fetch Full Content"):
+if st.button("STEP 2 — Fetch Full Article Content"):
 
     csvs = [f for f in os.listdir(ARTICLES_DIR) if f.endswith("_news.csv")]
 
@@ -171,4 +175,78 @@ if st.button("STEP 2 — Fetch Full Content"):
         df["Content"] = df["ID"].map(results)
         df.to_csv(fmap[name], index=False)
 
-    st.success("Completed. All CSVs now contain full articles.")
+    st.success("Full article content added.")
+
+# ======================================================
+# LIVE DASHBOARD (always visible)
+# ======================================================
+
+st.divider()
+st.header("📊 Extraction Status")
+
+summary_rows = []
+combined_rows = []
+
+if os.path.exists(ARTICLES_DIR):
+
+    csv_files = [f for f in os.listdir(ARTICLES_DIR) if f.endswith("_news.csv")]
+
+    for f in csv_files:
+        path = os.path.join(ARTICLES_DIR, f)
+        symbol = f.replace("_news.csv", "").upper()
+
+        df = pd.read_csv(path)
+
+        article_count = len(df)
+
+        content_done = False
+        if "Content" in df.columns:
+            content_done = df["Content"].notna().any() and (df["Content"] != "").any()
+
+        summary_rows.append({
+            "Symbol": symbol,
+            "Articles": article_count,
+            "Content Fetched": "✅" if content_done else "⏳"
+        })
+
+        df["Symbol"] = symbol
+        combined_rows.append(df)
+
+    if summary_rows:
+        st.subheader("Summary Table")
+        st.dataframe(pd.DataFrame(summary_rows), use_container_width=True)
+
+    st.divider()
+    st.subheader("📁 Individual Symbol Files")
+
+    for f in csv_files:
+        symbol = f.replace("_news.csv", "").upper()
+        path = os.path.join(ARTICLES_DIR, f)
+
+        with st.expander(symbol):
+            df = pd.read_csv(path)
+            st.dataframe(df.head(5), use_container_width=True)
+
+            with open(path, "r", encoding="utf8") as fp:
+                st.download_button(
+                    f"Download {symbol}",
+                    fp.read(),
+                    file_name=f,
+                    mime="text/csv"
+                )
+
+    if combined_rows:
+        st.divider()
+        st.subheader("📦 Combined CSV")
+
+        combined_df = pd.concat(combined_rows, ignore_index=True)
+        combined_path = os.path.join(OUT_DIR, "combined_news.csv")
+        combined_df.to_csv(combined_path, index=False)
+
+        with open(combined_path, "r", encoding="utf8") as fp:
+            st.download_button(
+                "Download Combined CSV",
+                fp.read(),
+                file_name="combined_news.csv",
+                mime="text/csv"
+            )
