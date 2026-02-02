@@ -1,12 +1,12 @@
-streamlit==1.30.0
-pandas==2.1.4
-numpy==1.26.4
+streamlit
+pandas==2.2.0
 mysql-connector-python
 plotly==5.18.0
 streamlit-option-menu==0.3.12
 pillow==10.2.0
 yfinance
 matplotlib
+numpy
 seaborn
 requests
 PyGithub
@@ -14,4 +14,4 @@ google-search-results
 beautifulsoup4==4.12.2
 vaderSentiment==3.3.2
 transformers==4.35.2
-torch==2.2.2
+torch==2.1.1
