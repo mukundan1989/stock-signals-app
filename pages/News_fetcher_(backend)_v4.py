@@ -16,7 +16,7 @@ MAX_WORKERS = 4
 MAX_RETRIES = 3
 
 st.set_page_config(layout="wide")
-st.title("Seeking Alpha News Fetcher – Retry Enabled")
+st.title("Seeking Alpha News Fetcher")
 
 # ================= INPUT =================
 
